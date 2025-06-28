@@ -1,0 +1,139 @@
+﻿@using Models.ViewModel.Home
+@model PostVM
+
+<div class="hidden lg:p-20" id="create-status" uk-modal="">
+    <div class="uk-modal-dialog tt relative overflow-hidden mx-auto bg-white shadow-xl rounded-lg md:w-[520px] w-full">
+        <div class="text-center py-4 border-b mb-0">
+            <h2 class="text-sm font-medium text-black">Create Status</h2>
+            <button type="button" class="button-icon absolute top-0 right-0 m-2.5 uk-modal-close">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <form asp-controller="Home" asp-action="CreatePost" enctype="multipart/form-data" id="createPostForm">
+            <div class="space-y-5 mt-3 p-2">
+                <textarea name="Content" id="Content" class="w-full !text-black placeholder:!text-black !bg-white !border-transparent focus:!border-transparent focus:!ring-transparent !font-normal !text-xl" asp-for="Content" rows="2" placeholder="What do you have in mind?"></textarea>
+            </div>
+            <div class="flex items-center gap-2 text-sm py-2 px-4 font-medium flex-wrap">
+                <input id="imageUpload" type="file" class="hidden" name="Image" multiple accept="image/png, image/jpeg" />
+
+                <div id="imagePreviewContainer" class="flex flex-wrap gap-2 hidden"></div>
+
+                <button type="button" id="imageUploadBtn"  class="flex items-center gap-1.5 bg-sky-50 text-sky-600 rounded-full py-1 px-2 border-2 border-sky-100">
+                    <ion-icon name="image" class="text-base"></ion-icon> Image
+                </button>
+            </div>
+
+            <div class="p-5 flex justify-between items-center">
+                <button type="submit" class="button bg-blue-500 text-white py-2 px-12 text-[14px]">Create</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    window.addEventListener("DOMContentLoaded", () => {
+        const imageUploadBtn = document.getElementById('imageUploadBtn');
+        const imageUpload = document.getElementById('imageUpload');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const createPostForm = document.getElementById('createPostForm');
+            let previewFiles = [];
+
+        imageUploadBtn.addEventListener('click', () => {
+            imageUpload.click();
+        });
+
+        imageUpload.addEventListener('change', (event) => {
+                console.log('Files selected:', event.target.files);
+
+            const files = Array.from(event.target.files);
+            previewFiles = files;
+
+            imagePreviewContainer.classList.toggle('hidden', files.length === 0);
+            imagePreviewContainer.innerHTML = '';
+
+            files.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const previewItem = document.createElement('div');
+                    previewItem.classList.add('relative');
+
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.classList.add('w-24', 'h-24', 'rounded');
+                    previewItem.appendChild(img);
+
+                    const removeButton = document.createElement('button');
+                    removeButton.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>`;
+                    removeButton.classList.add('absolute', 'top-0', 'right-0', '-mt-1', '-mr-1', 'bg-white', 'rounded-full', 'w-6', 'h-6', 'flex', 'items-center', 'justify-center', 'shadow');
+
+                    removeButton.addEventListener('click', () => {
+                        previewFiles.splice(index, 1);
+
+                        const dt = new DataTransfer();
+                        previewFiles.forEach(f => dt.items.add(f));
+                        imageUpload.files = dt.files;
+
+                        previewItem.remove();
+                        if (dt.files.length === 0) {
+                            imageUpload.value = '';
+                            imagePreviewContainer.classList.add('hidden');
+                        }
+                    });
+
+                    previewItem.appendChild(removeButton);
+                    imagePreviewContainer.appendChild(previewItem);
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+
+        createPostForm.addEventListener('submit', (event) => {
+        const content = createPostForm.querySelector('#Content').value.trim();
+        const files = imageUpload.files;
+
+        if (content.length === 0 && files.length === 0) {
+            console.log('Content:', content);
+            console.log('Files:', files);
+            console.log('Files length:', files ? files.length : 0);
+            event.preventDefault();
+            Toastify({
+                text: "Vui lòng nhập nội dung hoặc chọn ảnh để đăng.",
+                duration: 3000,
+                gravity: "top",
+                position: "center",
+                backgroundColor: "#f44336"
+            }).showToast();
+        }
+    });
+
+        const successMessage = "@TempData["Success"]";
+        const errorMessage = "@TempData["Error"]";
+
+        if (successMessage) {
+            Toastify({
+                text: "Đăng bài thành công",
+                duration: 3000,
+                gravity: "top",
+                position: "center",
+                backgroundColor: "#4CAF50"
+            }).showToast();
+
+        }
+
+        if (errorMessage) {
+            Toastify({
+                text: "Đăng bài thất bại",
+                duration: 3000,
+                gravity: "top",
+                position: "center",
+                backgroundColor: "#f44336"
+            }).showToast();
+        }
+    });
+</script>

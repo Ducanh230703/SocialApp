@@ -1,0 +1,273 @@
+﻿@using Models.ViewModel.Home
+@model PostEditVM
+
+<div id="editPostModal" class="hidden fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-xl p-4 relative">
+        <button class="absolute top-2 right-2 text-gray-500" onclick="closeEditModal()">×</button>
+
+        <h2 class="text-lg font-semibold text-center mb-4">Chỉnh sửa bài viết</h2>
+
+        <form id="editPostForm" asp-action="EditPost" asp-controller="Home" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="PostId" id="postIdInput" value="@Model.PostId" />
+            <textarea name="Content" id="editContent" class="w-full border rounded p-2 mb-2">@Model.Content</textarea>
+
+            <label>Ảnh mới:</label>
+            <input type="file" name="Image" id="editImageInput" multiple accept="image/*" class="mb-2" />
+
+            <div id="existingImagesContainer" class="flex flex-wrap gap-2 mb-2">
+                @if (Model.ImageUrls != null)
+                {
+                    foreach (var url in Model.ImageUrls.Split(','))
+                    {
+                        <div class="existing-image relative" data-url="@url">
+                            <img src="@url" class="w-20 h-20 object-cover rounded border" />
+                            <button type="button" class="remove-old-image absolute top-0 right-0 bg-red-600 text-white rounded-full w-5 h-5 text-xs">×</button>
+                        </div>
+                    }
+                }
+            </div>
+
+            <div id="editImagePreviewContainer" class="flex flex-wrap gap-2 mb-2"></div>
+            <div id="removedImageContainer"></div>
+
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Lưu thay đổi</button>
+        </form>
+
+
+    </div>
+</div>
+
+<script>
+            document.addEventListener("DOMContentLoaded", function () {
+        const editImageInput = document.getElementById("editImageInput");
+        const imagePreviewContainer = document.getElementById("editImagePreviewContainer");
+        const removedImageContainer = document.getElementById("removedImageContainer");
+        const existingImagesContainer = document.getElementById("existingImagesContainer");
+        const editPostForm = document.getElementById("editPostForm");
+        const editPostModal = document.getElementById("editPostModal");
+        const editContent = document.getElementById("editContent");
+        const postIdInput = document.querySelector("#editPostForm input[name='PostId']");
+
+        let selectedNewImages = [];
+
+        window.closeEditModal = function () {
+            editPostModal.classList.add("hidden");
+            resetEditForm();
+        };
+
+        function resetEditForm() {
+            editPostForm.reset();
+            editContent.value = "";
+            imagePreviewContainer.innerHTML = "";
+            imagePreviewContainer.classList.add("hidden"); 
+            selectedNewImages = [];
+            removedImageContainer.innerHTML = ""; 
+            existingImagesContainer.innerHTML = ""; 
+        }
+
+        // --- NEW: Hàm để render ảnh cũ từ dữ liệu API ---
+        // Hàm này sẽ được gọi bởi openEditModal
+        function renderExistingImagesFromApi(imageUrlsString) {
+            existingImagesContainer.innerHTML = ''; // Xóa bất kỳ ảnh cũ nào đang hiển thị (từ Razor hoặc lần mở trước)
+            if (imageUrlsString && typeof imageUrlsString === 'string') {
+                const filenames = imageUrlsString.split(',');
+                filenames.forEach(filename => {
+                    const trimmedFilename = filename.trim();
+                    if (trimmedFilename === '') return; // Bỏ qua chuỗi rỗng
+
+                    // Xây dựng URL đầy đủ cho ảnh cũ
+                    const imageUrl = `https://localhost:7024/Media/ShowImage?fileName=${trimmedFilename}`;
+
+                    const imageDiv = document.createElement("div");
+                    imageDiv.className = "existing-image relative"; // Giữ class này để event listener nhận diện
+                    imageDiv.dataset.url = trimmedFilename; // Lưu filename gốc để gửi lên server khi xóa
+
+                    const img = document.createElement("img");
+                    img.src = imageUrl; // URL đã xây dựng
+                    img.className = "w-20 h-20 object-cover rounded border";
+
+                    const removeBtn = document.createElement("button");
+                    removeBtn.type = "button";
+                    removeBtn.innerText = "×";
+                    // Đảm bảo class này khớp với class trong event listener của ảnh cũ
+                    removeBtn.className = "remove-old-image absolute top-0 right-0 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs";
+
+                    imageDiv.appendChild(img);
+                    imageDiv.appendChild(removeBtn);
+                    existingImagesContainer.appendChild(imageDiv);
+                });
+            }
+        }
+
+        // --- Hàm mở Modal (sử dụng fetch API) ---
+        window.openEditModal = function (postId) {
+            // Reset form trước khi fetch dữ liệu mới để đảm bảo sạch sẽ
+            resetEditForm();
+
+            fetch(`/Home/GetPostById?postId=${postId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        // Nếu phản hồi không thành công, ném lỗi để bắt ở .catch
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json(); // Trực tiếp parse JSON, không cần .text() trước
+                })
+                .then(data => {
+                    // Kiểm tra dữ liệu trả về
+                    if (!data) {
+                        throw new Error('Empty or invalid data received from API');
+                    }
+                    console.log("Data fetched for post:", data); // Debug: Kiểm tra dữ liệu API
+
+                    // Điền dữ liệu vào form
+                    editContent.value = data.content || '';
+                    postIdInput.value = data.postId || '';
+
+                    // Gọi hàm renderExistingImagesFromApi để hiển thị ảnh cũ
+                    // Truyền chuỗi imageUrls thô từ API vào
+                    renderExistingImagesFromApi(data.imageUrls);
+
+                    // Hiển thị modal
+                    editPostModal.classList.remove('hidden');
+                })
+                .catch(err => {
+                    console.error('Lỗi khi lấy dữ liệu bài viết:', err);
+                    alert('Không thể tải dữ liệu bài viết. Vui lòng thử lại.');
+                });
+        };
+
+
+        // --- Xử lý sự kiện click để xóa ảnh cũ ---
+        existingImagesContainer.addEventListener("click", function (event) {
+            if (event.target && event.target.matches(".remove-old-image")) {
+                const imageDiv = event.target.closest(".existing-image");
+                const imageUrl = imageDiv.getAttribute("data-url"); // Lấy filename gốc
+
+                const hiddenInput = document.createElement("input");
+                hiddenInput.type = "hidden";
+                hiddenInput.name = "RemovedImageUrls";
+                hiddenInput.value = imageUrl;
+                removedImageContainer.appendChild(hiddenInput);
+
+                imageDiv.remove();
+            }
+        });
+
+        // --- Xử lý sự kiện thay đổi Input file (chọn ảnh mới) và hiển thị Preview ---
+        editImageInput.addEventListener("change", function () {
+            selectedNewImages = Array.from(this.files);
+            imagePreviewContainer.innerHTML = ""; // Xóa các preview cũ
+
+            if (selectedNewImages.length > 0) {
+                imagePreviewContainer.classList.remove("hidden"); // Hiển thị container preview ảnh mới
+                selectedNewImages.forEach((file, index) => {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const wrapper = document.createElement("div");
+                        wrapper.className = "relative";
+
+                        const img = document.createElement("img");
+                        img.src = e.target.result; // Data URL
+                        img.className = "w-20 h-20 object-cover rounded border";
+
+                        const removeBtn = document.createElement("button");
+                        removeBtn.type = "button";
+                        removeBtn.innerText = "×";
+                        removeBtn.className = "absolute top-0 right-0 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs remove-new-image";
+                        removeBtn.dataset.index = index;
+
+                        wrapper.appendChild(img);
+                        wrapper.appendChild(removeBtn);
+                        imagePreviewContainer.appendChild(wrapper);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            } else {
+                imagePreviewContainer.classList.add("hidden"); // Ẩn container preview ảnh mới
+            }
+        });
+
+        // --- Xử lý sự kiện click để xóa ảnh mới từ Preview ---
+        imagePreviewContainer.addEventListener("click", function (e) {
+            if (e.target.classList.contains("remove-new-image")) {
+                const indexToRemove = parseInt(e.target.dataset.index);
+
+                // Lọc bỏ ảnh ra khỏi mảng selectedNewImages
+                selectedNewImages = selectedNewImages.filter((_, idx) => idx !== indexToRemove);
+
+                e.target.parentElement.remove(); // Xóa phần tử ảnh preview khỏi DOM
+
+                // Cập nhật lại data-index cho các nút 'x' còn lại
+                imagePreviewContainer.querySelectorAll(".remove-new-image").forEach((btn, newIndex) => {
+                    btn.dataset.index = newIndex;
+                });
+
+                if (selectedNewImages.length === 0) {
+                    imagePreviewContainer.classList.add("hidden");
+                }
+            }
+        });
+
+        // --- Xử lý sự kiện Submit Form ---
+        editPostForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const formData = new FormData();
+
+            formData.append("PostId", postIdInput.value);
+            formData.append("Content", editContent.value);
+
+            selectedNewImages.forEach(file => {
+                formData.append("Image", file);
+            });
+
+            const remainingImageUrls = [];
+            existingImagesContainer.querySelectorAll(".existing-image").forEach(div => {
+                const url = div.getAttribute("data-url");
+                if (url) {
+                    remainingImageUrls.push(url);
+                }
+            });
+            formData.append("ImageUrls", remainingImageUrls.join(","));
+
+            const removedInputs = removedImageContainer.querySelectorAll("input[name='RemovedImageUrls']");
+            removedInputs.forEach(input => {
+                formData.append("RemovedImageUrls", input.value);
+            });
+
+            fetch("/Home/EditPost", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errorData => {
+                        throw new Error(errorData.message || 'Server responded with an error.');
+                    }).catch(() => {
+                        throw new Error('Network response was not ok, and could not parse error message.');
+                    });
+                }
+                return response.json(); 
+            })
+            .then(data => {
+                if (data.status === 1) {
+                    alert("Cập nhật thành công!");
+                    window.closeEditModal(); // Đóng modal
+                    location.reload(); // Tải lại trang để thấy thay đổi
+                } else {
+                    alert("Có lỗi xảy ra khi cập nhật: " + (data.message || "Không rõ lỗi."));
+                }
+            })
+            .catch(error => {
+                console.error("Lỗi khi gửi yêu cầu:", error);
+                alert("Đã xảy ra lỗi: " + error.message);
+            });
+        });
+
+        // --- Khởi tạo trạng thái ban đầu của preview ảnh mới ---
+        // Đảm bảo container preview ảnh mới bị ẩn khi trang tải ban đầu
+        if (editImageInput.files.length === 0) {
+            imagePreviewContainer.classList.add("hidden");
+        }
+    });
+</script>

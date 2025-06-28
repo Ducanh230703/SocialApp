@@ -1,0 +1,316 @@
+﻿@using Models.ViewModel.Users
+@model EditInfo
+
+@{
+    ViewData["Title"] = "Thông tin tài khoản của tôi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<main id="site__main" class="2xl:ml-[--w-side] xl:ml-[--w-side-sm] p-2.5 h-[calc(100vh-var(--m-top))] mt-[--m-top]">
+    <div class="container mx-auto p-4 mt-8">
+        <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-bold mb-6 text-center">Cập nhật thông tin cá nhân</h2>
+
+            <form id="avatar-update-form" class="mb-8">
+                <div class="flex flex-col items-center mb-6">
+                    <div class="w-24 h-24 rounded-full overflow-hidden mb-4">
+                        <img src="@(string.IsNullOrEmpty(Model?.ProfilePictureUrl) ? Url.Content("~/images/avatar/user.png") : Model?.ProfilePictureUrl)"
+                             alt="Avatar"
+                             class="w-full h-full object-cover"
+                             id="avatar-preview-display">
+                    </div>
+                    <input type="file" id="avatar-upload" name="ProfilePictureFile" accept="image/*" class="hidden">
+                    <label for="avatar-upload" class="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                        Chọn ảnh đại diện
+                    </label>
+                    <button type="submit" id="save-avatar-button" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-4" style="display:none;">
+                        Lưu ảnh
+                    </button>
+                    <button type="button" id="cancel-avatar-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-2" style="display:none;">
+                        Hủy
+                    </button>
+                </div>
+            </form>
+
+            <form id="info-update-form">
+                <div class="mb-4">
+                    <label for="fullName" class="block text-gray-700 text-sm font-bold mb-2">Họ và tên:</label>
+                    <input type="text" id="fullName" name="FullName" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="@Model?.FullName">
+                </div>
+
+                <div class="mb-4">
+                    <label for="email" class="block text-gray-700 text-sm font-bold mb-2">Email:</label>
+                    <input type="email" id="email" name="Email" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="@Model?.Email">
+                </div>
+
+                <div class="mb-6">
+                    <label for="bio" class="block text-gray-700 text-sm font-bold mb-2">Tiểu sử:</label>
+                    <textarea id="bio" name="Bio" rows="4" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline resize-none">@Model?.Bio</textarea>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                        Lưu thông tin
+                    </button>
+                    <button type="button" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                        Hủy
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+
+@section Scripts {
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // === Các phần tử và biến cần thiết cho Avatar Update ===
+        const avatarUpload = document.getElementById('avatar-upload');
+        const avatarPreviewDisplay = document.getElementById('avatar-preview-display');
+        const saveAvatarButton = document.getElementById('save-avatar-button');
+        const cancelAvatarButton = document.getElementById('cancel-avatar-button');
+        const avatarUpdateForm = document.getElementById('avatar-update-form');
+        const infoUpdateForm = document.getElementById('info-update-form');
+
+        // Lấy URL ảnh đại diện hiện tại từ thuộc tính src của img
+        // Đảm bảo rằng URL này chỉ chứa path tương đối nếu nó là từ cùng một domain
+        let currentProfilePictureUrl = avatarPreviewDisplay ? avatarPreviewDisplay.src : '';
+        if (currentProfilePictureUrl && currentProfilePictureUrl.startsWith(window.location.origin)) {
+            currentProfilePictureUrl = currentProfilePictureUrl.substring(window.location.origin.length);
+        }
+        if (!currentProfilePictureUrl || currentProfilePictureUrl.trim() === "") {
+            currentProfilePictureUrl = "@Url.Content("~/images/avatar/user.png")";
+        }
+        let originalAvatarSrc = avatarPreviewDisplay ? avatarPreviewDisplay.src : ''; // Lưu URL ảnh gốc để hủy bỏ
+
+        // === Các phần tử và biến cần thiết cho Edit Info ===
+        // Lưu ý: ID của input trong HTML là 'fullName' và 'email', không phải 'fullNameInputId' hay 'emailInputId'
+        const fullNameInput = document.getElementById('fullName');
+        const emailInput = document.getElementById('email');
+        const bioInput = document.getElementById('bio'); // Thêm để lấy giá trị bio
+
+        // --- Hàm hiển thị Toastify ---
+        function showToast(text, duration = 3000, type = 'success') {
+            let style = {};
+            if (type === 'success') {
+                style = { background: "linear-gradient(to right, #00b09b, #96c93d)" };
+            } else if (type === 'error') {
+                style = { background: "linear-gradient(to right, #ff5f6d, #ffc371)" };
+            } else if (type === 'warning') {
+                style = { background: "linear-gradient(to right, #ffc371, #f0e68c)" };
+            }
+
+            Toastify({
+                text: text,
+                duration: duration,
+                gravity: "top",
+                position: "right",
+                style: style,
+                close: true
+            }).showToast();
+        }
+
+        // --- Hàm reset trạng thái validation (nếu có CSS cho is-invalid) ---
+        function resetValidationState(inputElement) {
+            inputElement.classList.remove('is-invalid');
+            // Nếu bạn có một div/span để hiển thị thông báo lỗi cụ thể bên dưới input, hãy xóa nội dung của nó ở đây
+            // Ví dụ: const errorDiv = inputElement.nextElementSibling; if (errorDiv && errorDiv.classList.contains('invalid-feedback')) errorDiv.textContent = '';
+        }
+
+        // --- Hàm hiển thị lỗi validation cho input cụ thể ---
+        function setInvalidState(inputElement) { // Không cần message ở đây nếu dùng Toastify
+            inputElement.classList.add('is-invalid');
+            // Nếu bạn có một div/span để hiển thị thông báo lỗi cụ thể bên dưới input, hãy đặt nội dung của nó ở đây
+            // Ví dụ: const errorDiv = inputElement.nextElementSibling; if (errorDiv && errorDiv.classList.contains('invalid-feedback')) errorDiv.textContent = message;
+        }
+
+        // --- Xử lý Avatar Update ---
+        if (avatarUpload && avatarPreviewDisplay) {
+            avatarUpload.addEventListener('change', function () {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        avatarPreviewDisplay.src = e.target.result;
+                        saveAvatarButton.style.display = 'block';
+                        cancelAvatarButton.style.display = 'block';
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    avatarPreviewDisplay.src = originalAvatarSrc;
+                    saveAvatarButton.style.display = 'none';
+                    cancelAvatarButton.style.display = 'none';
+                }
+            });
+        }
+
+        if (cancelAvatarButton) {
+            cancelAvatarButton.addEventListener('click', function () {
+                avatarPreviewDisplay.src = originalAvatarSrc;
+                avatarUpload.value = '';
+                saveAvatarButton.style.display = 'none';
+                cancelAvatarButton.style.display = 'none';
+            });
+        }
+
+        if (avatarUpdateForm) {
+            avatarUpdateForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const formData = new FormData();
+                const avatarFile = avatarUpload.files[0];
+
+                if (avatarFile) {
+                    formData.append('image', avatarFile);
+                    formData.append('removeUrl', currentProfilePictureUrl);
+                } else {
+                    showToast("Vui lòng chọn ảnh để cập nhật.", 3000, 'warning');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/User/UpAvatar', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.status === 1) {
+                            showToast(result.mess || "Cập nhật ảnh đại diện thành công!", 3000, 'success');
+
+                            if (result.data) {
+                                avatarPreviewDisplay.src = result.data;
+                                currentProfilePictureUrl = result.data;
+                                originalAvatarSrc = result.data;
+                            }
+                            saveAvatarButton.style.display = 'none';
+                            cancelAvatarButton.style.display = 'none';
+                            avatarUpload.value = '';
+                        } else {
+                            let serverErrorMessage = result.mess || 'Lỗi không xác định từ server.';
+                            if (result.errors && result.errors.length > 0) {
+                                serverErrorMessage += '\n' + result.errors.join('\n');
+                            }
+                            showToast('Cập nhật ảnh đại diện thất bại: ' + serverErrorMessage, 5000, 'error');
+                            avatarPreviewDisplay.src = originalAvatarSrc;
+                        }
+                    } else {
+                        const errorText = await response.text();
+                        showToast('Lỗi server khi cập nhật ảnh đại diện: ' + errorText, 5000, 'error');
+                    }
+                } catch (error) {
+                    console.error('Lỗi khi cập nhật ảnh đại diện:', error);
+                    showToast("Đã xảy ra lỗi kết nối khi cập nhật ảnh đại diện.", 3000, 'error');
+                }
+            });
+        }
+
+        // --- Xử lý Edit Info ---
+        if (infoUpdateForm) {
+            infoUpdateForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                // Lấy giá trị từ input và trim khoảng trắng
+                const fullName = fullNameInput.value.trim();
+                const email = emailInput.value.trim();
+                const bio = bioInput.value.trim();
+
+                // --- VALIDATE CLIENT-SIDE ---
+                let isValid = true;
+                let errorMessages = [];
+
+                // Reset validation states
+                resetValidationState(fullNameInput);
+                resetValidationState(emailInput);
+                // resetValidationState(bioInput); // Thêm nếu có validate cho Bio
+
+                // Validate FullName
+                if (!fullName) {
+                    isValid = false;
+                    errorMessages.push('Họ và tên không được để trống.');
+                    setInvalidState(fullNameInput);
+                } else if (fullName.length < 3 || fullName.length > 100) {
+                    isValid = false;
+                    errorMessages.push('Họ và tên phải có ít nhất 3 ký tự và không quá 100 ký tự.');
+                    setInvalidState(fullNameInput);
+                }
+
+                // Validate Email (đã sửa lỗi regex)
+                const emailRegex = @Html.Raw(" /^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$/ "); // Chú ý các dấu '\' phải được escape trong C# string literal
+                if (!email) {
+                    isValid = false;
+                    errorMessages.push('Email không được để trống.');
+                    setInvalidState(emailInput);
+                } else if (!emailRegex.test(email)) {
+                    isValid = false;
+                    errorMessages.push('Địa chỉ email không hợp lệ.');
+                    setInvalidState(emailInput);
+                } else if (email.length > 100) {
+                    isValid = false;
+                    errorMessages.push('Email không được quá 100 ký tự.');
+                    setInvalidState(emailInput);
+                }
+                // Email input có readonly, nhưng validate vẫn cần thiết để tránh trường hợp người dùng can thiệp HTML
+
+                // Thêm validation cho Bio nếu cần
+                // if (bio.length > 500) {
+                //     isValid = false;
+                //     errorMessages.push('Tiểu sử không được quá 500 ký tự.');
+                //     setInvalidState(bioInput);
+                // }
+
+
+                if (!isValid) {
+                    showToast(errorMessages.join('\n'), 5000, 'error');
+                    return; // Dừng lại nếu validation thất bại
+                }
+                // --- KẾT THÚC VALIDATE CLIENT-SIDE ---
+
+                // Chuẩn bị dữ liệu để gửi dưới dạng FormData
+                const editInfoFormData = new FormData();
+                editInfoFormData.append('FullName', fullName);
+                editInfoFormData.append('Email', email);
+                editInfoFormData.append('Bio', bio);
+                // Thêm các trường khác nếu có trong EditInfo model của bạn
+
+                try {
+                    const response = await fetch('/User/EditInfo', {
+                        method: 'POST',
+                        body: editInfoFormData
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.status === 1) {
+                            showToast(result.mess || "Cập nhật thông tin cá nhân thành công!", 3000, 'success');
+                        } else {
+                            let serverErrorMessage = result.mess || 'Lỗi không xác định từ server.';
+                            if (result.errors && result.errors.length > 0) {
+                                serverErrorMessage += '\n' + result.errors.join('\n');
+                            }
+                            showToast('Cập nhật thông tin cá nhân thất bại: ' + serverErrorMessage, 5000, 'error');
+                        }
+                    } else {
+                        let errorResult;
+                        try {
+                            errorResult = await response.json();
+                        } catch (e) {
+                            errorResult = { mess: await response.text() };
+                        }
+
+                        let errorMessage = 'Lỗi server khi cập nhật: ' + (errorResult.mess || 'Lỗi không xác định.');
+                        if (errorResult.errors && errorResult.errors.length > 0) {
+                            errorMessage += '\n' + errorResult.errors.join('\n');
+                        }
+                        showToast(errorMessage, 5000, 'error');
+                    }
+                } catch (error) {
+                    console.error('Lỗi khi cập nhật thông tin cá nhân:', error);
+                    showToast("Đã xảy ra lỗi khi cập nhật thông tin cá nhân.", 3000, 'error');
+                }
+            });
+        }
+    });
+</script>
+}

@@ -1,0 +1,7 @@
+﻿@using Models.ReponseModel
+@model List<PostFull>
+
+@foreach (var post in Model)
+{
+    @await Html.PartialAsync("_Post", post, new ViewDataDictionary(ViewData) { { "ShowAllComment", true } })
+}

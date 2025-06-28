@@ -1,0 +1,195 @@
+﻿@model Models.ReponseModel.PostFull
+
+<main id="site__main" class="2xl:ml-[--w-side] xl:ml-[--w-side-sm] p-2.5 h-[calc(100vh-var(--m-top))] mt-[--m-top]">
+    <div class="w-full h-full" id="js-oversized">
+        <div class="w-full h-full">
+            <partial name="_Post" model="Model" view-data='new ViewDataDictionary(ViewData) { ["ShowAllComment"] = true, ["LoggedInUserId"] = ViewBag.LoggedInUserId }' />
+            <partial name="_PostDeleteConfirmation" />
+
+        </div>
+    </div>
+</main>
+<script>
+    function openPostDeleteConfirmation(postId) {
+        UIkit.dropdown('.post-options-dropdown')?.hide?.();
+        document.getElementById('deleteConfirmationPostId').value = postId;
+        UIkit.modal('#postDeleteDialog').show();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const postsContainer = document.getElementById('posts-container');
+        if (postsContainer) {
+            postsContainer.addEventListener('click', function (event) {
+                const editButton = event.target.closest('a[asp-action="GetPostById"]');
+                if (editButton) {
+                    event.preventDefault();
+                    const postId = editButton.getAttribute('asp-route-id');
+                    window.location.href = `/Home/Index?editId=${postId}`;
+                }
+            });
+        }
+    });
+
+    document.getElementById("confirmDeleteBtn").addEventListener("click", function () {
+        const postId = document.getElementById('deleteConfirmationPostId').value;
+
+        fetch(`/Home/DeletePost?PostId=${postId}`, {
+            method: 'DELETE',
+        })
+        .then(response => {
+            if (response.ok) {
+                UIkit.modal('#postDeleteDialog').hide();
+                document.getElementById(`post-${postId}`)?.remove();
+                Toastify({
+                        text: "Xóa bài viết thành công.",
+                        duration: 3000,
+                        gravity: "top",
+                        position: "center",
+                        backgroundColor: "#4CAF50",
+                    }).showToast();
+            window.location.href = "/Home/Index";
+    
+            } else {
+                response.json().then(data => {
+                    Toastify({
+                        text: data.message || "Xóa bài viết không thành công.",
+                        duration: 3000,
+                        gravity: "top",
+                        position: "center",
+                        backgroundColor: "#f44336",
+                    }).showToast();
+                }).catch(() => {
+                     Toastify({
+                        text:  "Xóa bài viết không thành công.",
+                        duration: 3000,
+                        gravity: "top",
+                        position: "center",
+                        backgroundColor: "#f44336",
+                    }).showToast();
+                });
+            }
+        })
+        .catch(error => {
+            console.error("Lỗi khi xóa bài viết:", error);
+             Toastify({
+                        text:  "Đã xảy ra lỗi khi xóa bài viết.",
+                        duration: 3000,
+                        gravity: "top",
+                        position: "center",
+                        backgroundColor: "#f44336",
+                    }).showToast();
+        });
+    });
+
+    document.querySelectorAll('.add-comment-form').forEach(form => {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const postId = this.getAttribute('data-post-id');
+            const textarea = this.querySelector('textarea[name="content"]');
+            const content = textarea.value.trim();
+
+            if (!content) {
+                Toastify({
+                    text: "Nội dung bình luận không được để trống.",
+                    duration: 3000,
+                    backgroundColor: "#f44336",
+                    gravity: "top",
+                    position: "center",
+                }).showToast();
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("PostId", postId);
+            formData.append("Content", content);
+
+            fetch('/Home/AddPostComment', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status) {
+                    Toastify({
+                        text: data.message || "Bình luận thành công!",
+                        duration: 3000,
+                        backgroundColor: "#4CAF50",
+                        gravity: "top",
+                        position: "center",
+                    }).showToast();
+
+                    textarea.value = "";
+
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    Toastify({
+                        text: data.message || "Không thể thêm bình luận.",
+                        duration: 3000,
+                        backgroundColor: "#f44336",
+                        gravity: "top",
+                        position: "center",
+                    }).showToast();
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                Toastify({
+                    text: "Đã xảy ra lỗi.",
+                    duration: 3000,
+                    backgroundColor: "#f44336",
+                    gravity: "top",
+                    position: "center",
+                }).showToast();
+            });
+        });
+    });
+
+        document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.remove-comment-form').forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                const commentId = form.getAttribute('data-comment-id');
+                const actionUrl = form.getAttribute('action') + '?commentId=' + commentId;
+
+                fetch(actionUrl, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 1) {
+                        Toastify({
+                            text: data.message || "Xóa bình luận thành công.",
+                            duration: 3000,
+                            backgroundColor: "#4CAF50",
+                            gravity: "top",
+                            position: "center"
+                        }).showToast();
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        Toastify({
+                            text: data.message || "Không thể xóa bình luận.",
+                            duration: 3000,
+                            backgroundColor: "#f44336",
+                            gravity: "top",
+                            position: "center"
+                        }).showToast();
+                    }
+                })
+                .catch(error => {
+                    console.error("Lỗi:", error);
+                    Toastify({
+                        text: "Đã xảy ra lỗi khi gửi yêu cầu.",
+                        duration: 3000,
+                        backgroundColor: "#f44336",
+                        gravity: "top",
+                        position: "center"
+                    }).showToast();
+                });
+            });
+        });
+    });
+
+</script>
+

@@ -1,0 +1,720 @@
+﻿@using Models.ReponseModel
+@using Models.ViewModel.Home
+@using Models.ViewModel.Story
+@model UserInfo
+
+@{
+    ViewData["Title"] = "Trang cá nhân";
+    var currentPage = Model?.ListPost?.PageNumber ?? 1;
+    var pageSize = Model?.ListPost?.PageSize ?? 10;
+    var loggedInUserIdServer = (int?)ViewBag.LoggedInUserId;
+    var profileUserId = Model?.ID; 
+    var friendshipStatus = (int?)ViewBag.FriendshipStatus;
+    var senderId = (int?)ViewBag.SenderId;
+    var statusId = (int?)ViewBag.ID;
+}
+
+<main id="site__main" class="2xl:ml-[--w-side] xl:ml-[--w-side-sm] p-2.5 h-[calc(100vh-var(--m-top))] mt-[--m-top]">
+
+    <div class="max-w-[1065px] mx-auto max-lg:-m-2.5">
+        <div class="bg-white shadow lg:rounded-b-xl lg:-mt-10">
+            <div class="relative overflow-hidden w-full lg:h-8 h-8"></div>
+            <div class="p-3 flex flex-row items-center">
+                <div class="flex-shrink-0 mr-4">
+                    <div class="relative lg:h-28 lg:w-28 w-28 h-28">
+                        <div class="relative overflow-hidden rounded-full md:border-[6px] border-gray-100 shrink-0">
+                            <img src="@(string.IsNullOrEmpty(Model?.ProfilePictureUrl) ? Url.Content("~/images/avatar/user.png") : Model?.ProfilePictureUrl)" class="object-cover w-full h-full inset-0" alt="Profile Picture" />
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="md:text-3xl text-base font-bold text-black">@Model?.FullName</h3>
+                    <p class="mt-2 text-gray-500">@Model?.Bio</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex 2xl:gap-12 gap-10 mt-8 max-lg:flex-col" id="js-oversized">
+            <div class="flex-1 xl:space-y-6 space-y-3">
+                @if (profileUserId == loggedInUserIdServer)
+                {
+                    <div class="bg-white rounded-xl shadow-sm md:p-4 p-2 space-y-4 text-sm font-medium border1">
+                        <div class="flex items-center md:gap-3 gap-1">
+                            <div class="flex-1 bg-slate-100 hover:bg-opacity-80 transition-all rounded-lg cursor-pointer" uk-toggle="target: #create-status">
+                                <div class="py-2.5 text-center">Bạn đang nghĩ gì?</div>
+                            </div>
+                            <div class="cursor-pointer hover:bg-opacity-80 p-1 px-1.5 rounded-xl transition-all bg-pink-100/60 hover:bg-pink-100" uk-toggle="target: #create-status">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 stroke-pink-600 fill-pink-200/70" viewBox="0 0 24 24" stroke-width="1.5" stroke="#2c3e50" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                    <path d="M15 8h.01" />
+                                    <path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" />
+                                    <path d="M3.5 15.5l4.5 -4.5c.928 -.893 2.072 -.893 3 0l5 5" />
+                                    <path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l2.5 2.5" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (ViewBag.EditPost != null)
+                    {
+                        <partial name="/Views/Home/_EditStatus.cshtml" model="ViewBag.EditPost as PostEditVM" />
+                    }
+                    else
+                    {
+                        <div id="edit-status-placeholder" class="hidden">
+                            <partial name="/Views/Home/_EditStatus.cshtml" model="new PostEditVM()" />
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="mt-3">
+                            @if (friendshipStatus == 1)
+                            {
+                                <button id="unfriendBtn" class="button bg-blue-400 text-white py-2 px-4 rounded-full text-sm"
+                                        data-profile-status-id="@statusId">
+                                    Huỷ kết bạn
+                                </button>
+                            }
+                            else if (friendshipStatus == 0 && senderId == loggedInUserIdServer)
+                            {
+                                <button id="cancelRequestBtn" class="button bg-yellow-500 text-white py-2 px-4 rounded-full text-sm"
+                                    data-profile-status-id="@statusId">
+                                    Huỷ lời mời
+                                </button>
+                            }
+                            else if (friendshipStatus == 0 && senderId != loggedInUserIdServer)
+                            {
+                                <div class="flex gap-2">
+                                    <button id="acceptRequestBtn" class="button bg-blue-600 text-white py-2 px-4 rounded-full text-sm"
+                                        data-profile-status-id="@statusId">
+                                        Xác nhận
+                                    </button>
+                                    <button id="declineRequestBtn" class="button bg-red-600 text-white py-2 px-4 rounded-full text-sm"
+                                        data-profile-status-id="@statusId">
+                                        Từ chối
+                                    </button>
+                                </div>
+                            }
+                            else
+                            {
+                                <button id="sendRequestBtn" class="button bg-blue-600 text-white py-2 px-4 rounded-full text-sm"
+                                    data-profile-user-id="@profileUserId">
+                                    Kết bạn
+                                </button>
+                            }
+                    </div>
+                }
+
+                <div id="posts-container" class="space-y-4">
+                    @if (Model?.ListPost != null && Model.ListPost.Data != null && Model.ListPost.Data.Any())
+                    {
+                        @foreach (var post in Model.ListPost.Data)
+                        {
+                            <partial name="/Views/Shared/_Post.cshtml" model="post"
+                                     view-data='new ViewDataDictionary(ViewData)
+                               {
+                                   { "ShowAllComment", false },
+                                   { "ShowDetails", false }
+                               }' />
+                        }
+                    }
+                    else
+                    {
+                        <div class="bg-white rounded-xl shadow-sm md:p-4 p-2 space-y-4 text-sm font-medium border1">
+                            Hiện tại không có bài viết nào.
+                            @if (profileUserId == loggedInUserIdServer)
+                            {
+                                <span>Bạn có muốn tạo bài viết đầu tiên không?</span>
+                            }
+                        </div>
+                    }
+                </div>
+
+                @if (Model?.ListPost != null && Model.ListPost.HasNextPage)
+                {
+                    <div class="uk-flex uk-flex-center">
+                        <button id="loadMorePostsBtn"
+                                class="button lg:text-lg lg:py-4 flex items-center justify-center gap-2"
+                                data-next-page="@(currentPage + 1)"
+                                data-page-size="@pageSize"
+                                data-profile-user-id="@profileUserId">
+                            <ion-icon name="sync-outline" class="text-xl"></ion-icon>
+                            <span>Tải thêm</span>
+                        </button>
+                    </div>
+                }
+                else if (Model?.ListPost != null && !Model.ListPost.HasNextPage && Model.ListPost.Data.Any())
+                {
+                    <div class="uk-flex uk-flex-center text-gray-500 mt-4">
+                        <span>Đã tải hết bài viết.</span>
+                    </div>
+                }
+
+            </div>
+            <div class="lg:w-[400px]">
+                <div class="lg:space-y-4 lg:pb-8 max-lg:grid sm:grid-cols-2 max-lg:gap-6"
+                     uk-sticky="media: 1024; end: #js-oversized; offset: 80">
+                    <div class="box p-5 px-6">
+                        <div class="flex items-ce justify-between text-black">
+                            <h3 class="font-bold text-lg">
+                                Friends
+                                <span class="block text-sm text-gray-500 mt-0.5 font-normal"> @(Model?.ListFriend?.Count ?? 0) friends </span>
+                            </h3>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2 gap-y-5 text-center text-sm mt-4 mb-2">
+                            @if (Model?.ListFriend != null && Model.ListFriend.Any())
+                            {
+                                @foreach (var friend in Model.ListFriend)
+                                {
+                                    <div>
+                                        <a href="/User/Details?userId=@friend.ID"> 
+                                            <div class="relative w-full aspect-square rounded-lg overflow-hidden">
+                                                <img src="@friend.ImageUrl" class="object-cover w-full h-full inset-0" alt="Friend's avatar" />
+                                            </div>
+                                            <div class="mt-2 line-clamp-1">@friend.FullName</div>
+                                        </a>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="col-span-3 text-gray-500 text-center">Không có bạn bè nào để hiển thị.</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<partial name="/Views/Home/_CreateStatus.cshtml" model="new PostVM()" />
+<partial name="/Views/Home/_PostDeleteConfirmation.cshtml" />
+<partial name="/Views/Home/_Createstory.cshtml" model="new StoryVM()" />
+
+
+@section Scripts {
+    <script>
+        var loggedInUserIdClient = @(ViewBag.LoggedInUserId?.ToString() ?? "null");
+        var profileUserIdClient = @(Model.ID.ToString() ?? "null");
+
+        $(document).ready(function() {
+            function sendFriendRequest(status,senderId,receiverId) {
+                $.ajax({
+                    url: '/FriendRequest/FriendRequest', // Endpoint API của FriendRequestController trong SocialMedia project
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        Status: status,
+                        SenderId: senderId,
+                        ReceiverId: receiverId
+                    }),
+                    success: function(response) {
+                        if (response.status === 1) {
+                            alert(response.mess);
+                            location.reload(); // Tải lại trang để cập nhật trạng thái nút
+                        } else {
+                            alert('Lỗi: ' + response.mess);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Lỗi AJAX cho friendrequest:', status, error, xhr.responseText);
+                        alert('Đã xảy ra lỗi khi gửi yêu cầu kết bạn.');
+                    }
+                });
+            }
+
+            function sendFriendAnswer(status,statusId) {
+                $.ajax({
+                    url: '/FriendRequest/FriendAnswer', // Endpoint API của FriendRequestController trong SocialMedia project
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        ID: statusId,
+                        Status : status
+                    }),
+                    success: function(response) {
+                        if (response.status === 1) {
+                            alert(response.mess);
+                            location.reload(); // Tải lại trang để cập nhật trạng thái nút
+                        } else {
+                            alert('Lỗi: ' + response.mess);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Lỗi AJAX cho friendanswer:', status, error, xhr.responseText);
+                        alert('Đã xảy ra lỗi khi thực hiện hành động.');
+                    }
+                });
+            }
+
+
+            // --- Event Listeners cho các nút ---
+
+            // Nút "Kết bạn" (Ban đầu không có mối quan hệ)
+            $(document).on('click', '#sendRequestBtn', function() {
+                if (loggedInUserIdClient === "null" || loggedInUserIdClient === null) {
+                    alert('Bạn cần đăng nhập để thực hiện hành động này.');
+                    return;
+                }
+                const targetUser = $(this).data('profile-user-id');
+                sendFriendRequest(0,parseInt(loggedInUserIdClient), parseInt(targetUser));
+            });
+
+            // Nút "Hủy lời mời" (Người dùng hiện tại đã gửi lời mời và đang chờ)
+            $(document).on('click', '#cancelRequestBtn', function() {
+                if (loggedInUserIdClient === "null" || loggedInUserIdClient === null) {
+                    alert('Bạn cần đăng nhập để thực hiện hành động này.');
+                    return;
+                }
+                const statusId = $(this).data('profile-status-id');
+                // Status 0: Sử dụng status 0 để báo hiệu backend hủy yêu cầu
+                sendFriendAnswer(0, parseInt(statusId));
+            });
+
+            // Nút "Xác nhận" (Người dùng hiện tại nhận được lời mời)
+            $(document).on('click', '#acceptRequestBtn', function() {
+                if (loggedInUserIdClient === "null" || loggedInUserIdClient === null) {
+                    alert('Bạn cần đăng nhập để thực hiện hành động này.');
+                    return;
+                }
+                const statusId = $(this).data('profile-status-id'); // Đây là SenderId từ phía người gửi lời mời
+                // Status 1: Chấp nhận yêu cầu (trở thành bạn bè)
+                sendFriendAnswer(1 ,parseInt(statusId));
+            });
+
+            // Nút "Từ chối" (Người dùng hiện tại nhận được lời mời)
+            $(document).on('click', '#declineRequestBtn', function() {
+                if (loggedInUserIdClient === "null" || loggedInUserIdClient === null) {
+                    alert('Bạn cần đăng nhập để thực hiện hành động này.');
+                    return;
+                }
+                const statusId = $(this).data('profile-status-id'); // Đây là SenderId từ phía người gửi lời mời
+                // Status 0: Từ chối yêu cầu (Backend sẽ xóa bản ghi yêu cầu pending)
+                sendFriendAnswer(0,parseInt(statusId));
+            });
+
+            // Nút "Hủy kết bạn" (Đã là bạn bè)
+            $(document).on('click', '#unfriendBtn', function() {
+                if (loggedInUserIdClient === "null" || loggedInUserIdClient === null) {
+                    alert('Bạn cần đăng nhập để thực hiện hành động này.');
+                    return;
+                }
+                const statusId = $(this).data('profile-status-id');
+                // Status -1: Tạm định nghĩa cho "hủy kết bạn" (backend sẽ xóa mối quan hệ bạn bè)
+                // Backend cần điều chỉnh FriendRequestService.AnswerRequest để xử lý việc xóa mối quan hệ từ cả hai chiều.
+                // Gửi ID của người đang đăng nhập làm SenderId và ID của người trên profile làm ReceiverId (hoặc ngược lại, backend cần xử lý linh hoạt).
+                sendFriendAnswer(-1,parseInt(statusId));
+            });
+        });
+
+        function openPostDeleteConfirmation(postId) {
+            UIkit.dropdown('.uk-dropdown.uk-open')?.hide?.(); // Chỉ đóng dropdown nếu nó đang mở
+            document.getElementById('deleteConfirmationPostId').value = postId;
+            UIkit.modal('#postDeleteDialog').show();
+        }
+
+        function formatDate(dateString) {
+            const options = { year: 'numeric', month: 'numeric', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString(undefined, options);
+        }
+
+        // Hàm tạo HTML cho bài viết với dropdown tùy chọn
+        function createPostHtml(post, currentLoggedInUserId) {
+            const imageUrls = post.imageUrl ? post.imageUrl.split(',') : [];
+            const imageHtml = imageUrls.length > 0 ? `
+                <div class="relative w-full">
+                    ${imageUrls.length === 1 ?
+                        `<img src="${imageUrls[0]}" class="sm:rounded-lg w-full h-auto object-cover" style="max-height: 500px; object-fit: contain;" alt="Post image" />` :
+                        `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            ${imageUrls.map(img => `<img src="${img}" class="sm:rounded-lg w-full h-auto object-cover" style="max-height: 300px;" alt="Post image" />`).join('')}
+                        </div>`
+                    }
+                </div>` : '';
+
+            const commentsHtml = post.comments && post.comments.length > 0 ? `
+                ${post.comments.slice().sort((a,b) => new Date(b.dateCreated) - new Date(a.dateCreated)).slice(0, 2).map(comment => `
+                    <div class="flex items-start gap-3 relative">
+                        <img src="${comment.userProfilePictureUrl || '/images/avatar/user.png'}" class="w-6 h-6 mt-1 rounded-full" alt="Commenter avatar" />
+                        <div class="flex-1">
+                            <div class="flex justify-between">
+                                <span class="text-black font-medium inline-block flex-grow">${comment.userFullName}</span>
+                                <small>${formatDate(comment.dateCreated)}</small>
+                            </div>
+                            <p class="mt-0.5">${comment.content}</p>
+                            ${(currentLoggedInUserId == post.userId || currentLoggedInUserId == comment.userId) ? `
+                                <form class="remove-comment-form" data-comment-id="${comment.id}" action="/Home/RemovePostComment">
+                                    <button type="submit" class="text-red-500 text-xs ml-2" title="Remove post comment">
+                                        <ion-icon name="trash-outline"></ion-icon>
+                                    </button>
+                                </form>` : ''
+                            }
+                        </div>
+                    </div>
+                `).join('')}
+                ${post.comments.length >=3 ? `
+                    <div class="p-1.5">
+                        <a href="/Home/Details?postId=${post.id}">Hiện tất cả bình luận</a>
+                    </div>` : ''
+                }
+            ` : '';
+
+            return `
+                <div id="post-${post.id}" class="bg-white rounded-xl shadow-sm text-sm font-medium border1">
+                    <div class="flex gap-3 sm:p-4 p-2.5 text-sm font-medium">
+                        <img src="${post.userProfilePictureUrl || '/images/avatar/user.png'}" class="w-9 h-9 rounded-full" alt="User profile picture" />
+                        <div class="flex-1">
+                            <h4 class="text-black">${post.userFullName}</h4>
+                            <div class="text-xs text-gray-500/80">${formatDate(post.dateCreated)}</div>
+                        </div>
+                        ${post.userId == currentLoggedInUserId ? `
+                            <div class="absolute top-0 right-0 m-2.5">
+                                <button type="button" class="button-icon text-lg" aria-expanded="false" data-uk-icon="more-vertical"></button>
+                                <div data-uk-dropdown="pos: bottom-right; mode: click; offset: 5" class="uk-dropdown">
+                                    <ul class="uk-nav uk-dropdown-nav">
+                                        <li><a href="/Home/Index?editId=${post.id}" class="text-blue-500 hover:text-blue-700">Sửa bài viết</a></li>
+                                        <li><a href="javascript:void(0);" onclick="openPostDeleteConfirmation(${post.id})" class="text-red-500 hover:text-red-700">Xóa bài viết</a></li>
+                                    </ul>
+                                </div>
+                            </div>` : ''
+                        }
+                    </div>
+                    <div class="sm:px-4 p-2.5 pt-0 w-full">
+                        <p class="font-normal">${post.content}</p>
+                    </div>
+                    ${imageHtml}
+                    <div class="sm:p-4 p-2.5 flex items-center gap-4 text-xs font-semibold">
+                        <div class="flex items-center gap-2.5">
+                            <button class="button-icon like-button ${post.likedByCurrentUser ? 'text-red-500 bg-red-100' : ''}" data-post-id="${post.id}">
+                                <ion-icon class="text-lg" name="${post.likedByCurrentUser ? 'heart' : 'heart-outline'}"></ion-icon>
+                            </button>
+                            <span class="like-count">${post.likeCount}</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <a class="button-icon" href="/Home/Details?postId=${post.id}">
+                                <ion-icon class="text-lg" name="chatbubble-ellipses-outline"></ion-icon>
+                            </a>
+                            <span class="comment-count">${post.commentCount}</span>
+                        </div>
+                        <div class="ml-auto"></div>
+                    </div>
+                    <div class="p-2.5 border-t border-gray-100 font-normal space-y-3 relative">
+                        ${commentsHtml}
+                        <form class="add-comment-form" data-post-id="${post.id}">
+                            <div class="sm:px-4 sm:py-3 p-2.5 flex items-center gap-1">
+                                <a href="/User/Details?userId=${currentLoggedInUserId}">
+                                    <img src="${loggedInUserProfilePictureUrl}" class="w-6 h-6 rounded-full" alt="Your profile picture" />
+                                </a>
+                                <input type="hidden" name="postId" value="${post.id}" />
+                                <div class="flex-1 relative overflow-hidden h-10">
+                                    <textarea name="content" placeholder="Thêm bình luận...." rows="1" class="w-full resize-none !bg-transparent px-4 py-2 focus:!border-transparent focus:!ring-transparent"></textarea>
+                                </div>
+                                <button type="submit" class="text-sm rounded-full py-1.5 px-3.5 bg-secondery">Bình luận</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const postsContainer = document.getElementById('posts-container');
+            const friendshipStatusBtn = document.getElementById('friendshipStatusBtn');
+
+            postsContainer.addEventListener('click', function (event) {
+                const deleteButton = event.target.closest('a[onclick^="openPostDeleteConfirmation"]');
+                if (deleteButton) {
+                }
+            });
+
+            document.getElementById("confirmDeleteBtn").addEventListener("click", function () {
+                const postId = document.getElementById('deleteConfirmationPostId').value;
+                fetch(`/Home/DeletePost?PostId=${postId}`, {
+                    method: 'DELETE',
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => Promise.reject(data.message || "Xóa bài viết không thành công."));
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    UIkit.modal('#postDeleteDialog').hide();
+                    if (data.status === 1) {
+                        document.getElementById(`post-${postId}`)?.remove();
+                        Toastify({
+                            text: data.message || "Xóa bài viết thành công.",
+                            duration: 3000,
+                            gravity: "top",
+                            position: "center",
+                            backgroundColor: "#4CAF50",
+                        }).showToast();
+                    } else {
+                        Toastify({
+                            text: data.message || "Xóa bài viết không thành công.",
+                            duration: 3000,
+                            gravity: "top",
+                            position: "center",
+                            backgroundColor: "#f44336",
+                        }).showToast();
+                    }
+                })
+                .catch(error => {
+                    console.error("Lỗi khi xóa bài viết:", error);
+                    Toastify({
+                        text: error || "Đã xảy ra lỗi khi xóa bài viết.",
+                        duration: 3000,
+                        gravity: "top",
+                        position: "center",
+                        backgroundColor: "#f44336",
+                    }).showToast();
+                });
+            });
+
+            postsContainer.addEventListener('submit', function (e) {
+                if (e.target.classList.contains('add-comment-form')) {
+                    e.preventDefault();
+
+                    const form = e.target;
+                    const postId = form.getAttribute('data-post-id');
+                    const textarea = form.querySelector('textarea[name="content"]');
+                    const content = textarea.value.trim();
+                    if (!content) {
+                        Toastify({
+                            text: "Nội dung bình luận không được để trống.",
+                            duration: 3000,
+                            backgroundColor: "#f44336",
+                            gravity: "top",
+                            position: "center",
+                        }).showToast();
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append("PostId", postId);
+                    formData.append("Content", content);
+
+                    fetch('/Home/AddPostComment', {
+                        method: 'POST',
+                        body: formData,
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 1) {
+                            Toastify({
+                                text: data.message || "Bình luận thành công!",
+                                duration: 3000,
+                                backgroundColor: "#4CAF50",
+                                gravity: "top",
+                                position: "center",
+                            }).showToast();
+
+                            textarea.value = "";
+                        } else {
+                            Toastify({
+                                text: data.message || "Không thể thêm bình luận.",
+                                duration: 3000,
+                                backgroundColor: "#f44336",
+                                gravity: "top",
+                                position: "center",
+                            }).showToast();
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        Toastify({
+                            text: "Đã xảy ra lỗi khi thêm bình luận.",
+                            duration: 3000,
+                            backgroundColor: "#f44336",
+                            gravity: "top",
+                            position: "center",
+                        }).showToast();
+                    });
+                }
+            });
+
+            postsContainer.addEventListener('submit', function (e) {
+                if (e.target.classList.contains('remove-comment-form')) {
+                    e.preventDefault();
+
+                    const form = e.target;
+                    const commentId = form.getAttribute('data-comment-id');
+                    const actionUrl = form.getAttribute('action') + '?commentId=' + commentId;
+                    fetch(actionUrl, {
+                        method: 'DELETE',
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 1) {
+                            Toastify({
+                                text: data.message || "Xóa bình luận thành công.",
+                                duration: 3000,
+                                backgroundColor: "#4CAF50",
+                                gravity: "top",
+                                position: "center"
+                            }).showToast();
+                            form.closest('.flex.items-start.gap-3.relative')?.remove();
+                        } else {
+                            Toastify({
+                                text: data.message || "Không thể xóa bình luận.",
+                                duration: 3000,
+                                backgroundColor: "#f44336",
+                                gravity: "top",
+                                position: "center"
+                            }).showToast();
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Lỗi:", error);
+                        Toastify({
+                            text: "Đã xảy ra lỗi khi gửi yêu cầu xóa bình luận.",
+                            duration: 3000,
+                            backgroundColor: "#f44336",
+                            gravity: "top",
+                            position: "center"
+                        }).showToast();
+                    });
+                }
+            });
+
+            postsContainer.addEventListener('click', function (e) {
+                const likeButton = e.target.closest('.like-button');
+                if (likeButton) {
+                    const postId = likeButton.getAttribute('data-post-id');
+                    const isCurrentlyLiked = likeButton.classList.contains('text-red-500');
+
+                    let url = '';
+                    let successMessage = '';
+                    let errorMessage = '';
+                    let newIconName = '';
+
+                    if (isCurrentlyLiked) {
+                        url = '/Home/Unlike';
+                        successMessage = "Đã bỏ thích bài viết!";
+                        errorMessage = "Không thể bỏ thích bài viết.";
+                        newIconName = 'heart-outline';
+                    } else {
+                        url = '/Home/LikePost';
+                        successMessage = "Đã thích bài viết!";
+                        errorMessage = "Không thể thích bài viết.";
+                        newIconName = 'heart';
+                    }
+
+                    const formdata = new FormData();
+                    formdata.append("postId", postId);
+                    fetch(url, {
+                        method: 'POST',
+                        body: formdata,
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            if (response.status === 401) {
+                                Toastify({
+                                    text: "Bạn cần đăng nhập để thực hiện hành động này.",
+                                    duration: 3000,
+                                    backgroundColor: "#f44336",
+                                    gravity: "top",
+                                    position: "center",
+                                }).showToast();
+                                return Promise.reject("Unauthorized");
+                            }
+                            return response.json().then(err => Promise.reject(err.message || 'Lỗi server không xác định'));
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.status === 1) {
+                            Toastify({
+                                text: successMessage,
+                                duration: 3000,
+                                backgroundColor: "#4CAF50",
+                                gravity: "top",
+                                position: "center",
+                            }).showToast();
+
+                            const likeCountElement = likeButton.nextElementSibling;
+                            let currentLikes = parseInt(likeCountElement.textContent);
+
+                            if (isCurrentlyLiked) {
+                                likeButton.classList.remove('text-red-500', 'bg-red-100');
+                                currentLikes--;
+                            } else {
+                                likeButton.classList.add('text-red-500', 'bg-red-100');
+                                currentLikes++;
+                            }
+                            likeButton.querySelector('ion-icon').setAttribute('name', newIconName);
+                            likeCountElement.textContent = currentLikes;
+
+                        } else {
+                            Toastify({
+                                text: data.message || errorMessage,
+                                duration: 3000,
+                                backgroundColor: "#f44336",
+                                gravity: "top",
+                                position: "center",
+                            }).showToast();
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Lỗi khi gửi yêu cầu:", error);
+                        Toastify({
+                            text: error || "Đã xảy ra lỗi không mong muốn.",
+                            duration: 3000,
+                            backgroundColor: "#f44336",
+                            gravity: "top",
+                            position: "center",
+                        }).showToast();
+                    });
+                }
+            });
+
+            const loadMoreBtn = document.getElementById('loadMorePostsBtn');
+                if (loadMoreBtn) {
+                loadMoreBtn.addEventListener('click', function () {
+                const nextPage = parseInt(this.getAttribute('data-next-page'));
+                const pageSize = parseInt(this.getAttribute('data-page-size'));
+                const userId = parseInt(this.getAttribute('data-profile-user-id'));
+                console.log('nextPage:', nextPage, 'pageSize:', pageSize);
+
+                if (isNaN(nextPage) || nextPage < 1) {
+                    console.warn('Giá trị nextPage không hợp lệ:', nextPage);
+                    return;
+                }
+
+                this.disabled = true;
+                this.querySelector('span').textContent = 'Đang tải...';
+
+                fetch(`/User/GetMoreUserPosts?userId=${userId}&pageNumber=${nextPage}&pageSize=${pageSize}`)
+                    .then(res => res.text())
+                    .then(html => {
+                        if (html.trim() === "") {
+                            loadMoreBtn.querySelector('span').textContent = "Đã hết bài viết";
+                            loadMoreBtn.disabled = true;
+                        } else {
+                            postsContainer.insertAdjacentHTML('beforeend', html);
+                            loadMoreBtn.setAttribute('data-next-page', nextPage + 1);
+                            loadMoreBtn.querySelector('span').textContent = "Tải thêm";
+                            loadMoreBtn.disabled = false;
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        loadMoreBtn.querySelector('span').textContent = "Tải thêm";
+                        loadMoreBtn.disabled = false;
+                        Toastify({
+                            text: "Có lỗi xảy ra khi tải thêm bài viết.",
+                            duration: 3000,
+                            backgroundColor: "#f44336",
+                            gravity: "top",
+                            position: "center",
+                        }).showToast();
+                    });
+            });
+            }
+        });
+
+    
+    </script>
+}

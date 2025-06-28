@@ -1,0 +1,67 @@
+﻿@using Models.ReponseModel
+@using Models.ViewModel.Friend
+@model PaginatedResponse<SearchResult>
+
+@{
+    // Lấy các giá trị từ ViewData, được truyền từ Controller
+    var currentQuery = ViewData["SearchQuery"]?.ToString();
+    var currentPage = (int)(ViewData["PageNumber"] ?? 1);
+    var currentPageSize = (int)(ViewData["PageSize"] ?? 5);
+}
+
+@if (Model != null && Model.Data != null && Model.Data.Any())
+{
+    @* Đây là lưới hiển thị kết quả, sẽ được cập nhật khi tải thêm *@
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="search-results-grid">
+        @foreach (var result in Model.Data)
+        {
+            // Kiểm tra null cho từng đối tượng SearchResult để tránh lỗi runtime
+            if (result == null) { continue; }
+
+            <div class="bg-white rounded-xl shadow-sm p-4 flex items-center space-x-4">
+                <a href="/User/Details?userId=@(result.ID)">
+                    <img src="@(!string.IsNullOrEmpty(result.ProfilePictureUrl) ? result.ProfilePictureUrl : Url.Content("~/images/avatar/user.png"))"
+                         alt="@(result.FullName ?? "Người dùng")" class="w-16 h-16 rounded-full object-cover">
+                </a>
+                <div class="flex-1">
+                    <a href="/User/Details?userId=@(result.ID)" class="text-lg font-semibold text-black hover:underline">
+                        @(result.FullName ?? "Không rõ tên")
+                    </a>
+                </div>
+                <div class="flex-none">
+                    <a href="/User/Details?userId=@(result.ID)" class="button-icon bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
+                        Xem trang cá nhân
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
+
+    @* Nút "Tải thêm" hoặc thông báo hết kết quả *@
+    <div class="text-center mt-6" id="load-more-section">
+        @if (Model.HasNextPage)
+        {
+            @* Khi người dùng bấm "Tải thêm", hàm loadMoreSearchResults sẽ được gọi với pageNumber tăng lên *@
+            <button id="loadMoreBtn"
+                    onclick="loadMoreSearchResults('@currentQuery', @(currentPage + 1), @currentPageSize)"
+                    class="bg-blue-500 text-white px-6 py-2 rounded-full hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                Tải thêm
+            </button>
+        }
+        else
+        {
+            <p class="text-gray-500">Không còn kết quả nào để tải.</p>
+        }
+    </div>
+}
+else
+{
+    @* Thông báo khi partial view được tải nhưng không có kết quả cho truy vấn hiện tại.
+       Trường hợp không có query thì View chính sẽ xử lý thông báo "Vui lòng nhập từ khóa". *@
+    @if (!string.IsNullOrEmpty(currentQuery))
+    {
+        <div class="bg-white rounded-xl shadow-sm p-4 text-center text-gray-500">
+            Không tìm thấy kết quả nào cho "@currentQuery".
+        </div>
+    }
+}

@@ -1,0 +1,97 @@
+﻿<!DOCTYPE html>
+<html lang="en" class="h-full" style="--m-top: 64px; --w-side: 288px; --w-side-sm: 256px;">
+<head>
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Circle</title>
+    <link href="~/images/favicon.png" rel="icon" type="image/png" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/style.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tailwind.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/SocialMedia.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.16.5/dist/css/uikit.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+</head>
+<body>
+
+    @{
+        var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+        var action = ViewContext.RouteData.Values["action"]?.ToString();
+        var showSidebar = !(controller == "Authentication" && (action == "Login" || action == "Register"));
+    }
+
+    @if (showSidebar)
+    {
+        <partial name="_Sidebar" />
+        <partial name="_Topbar" />
+
+    }
+
+    @RenderBody()
+
+    @if (showSidebar)
+    {
+        <div id="online-friends-sidebar">
+            <h3 class="uk-text-bold uk-margin-small-bottom">Bạn bè đang Online</h3>
+            <div id="onlineFriendListContainer">
+                <p class="uk-text-muted uk-text-small" id="noOnlineFriendsMessage">Không có bạn bè nào đang online.</p>
+            </div>
+        </div>
+
+        <div id="chatBoxesContainer">
+        </div>
+
+        <div id="videoCallModal" uk-modal>
+            <div class="uk-modal-dialog uk-modal-body uk-margin-auto-vertical video-call-modal-content">
+                <h2 class="uk-modal-title uk-text-center"></h2>
+                <div class="video-streams-container">
+                    <video id="localVideo" autoplay muted playsinline></video>
+                    <video id="remoteVideo" autoplay playsinline></video>
+                </div>
+                <p id="callStatusText" class="uk-text-center uk-text-muted uk-margin-small-top"></p>
+
+                <div id="incomingCallModal" class="uk-text-center uk-margin-top">
+                    <div id="incoming-call-actions" style="display: none;">
+                        <button id="acceptCallButton" class="uk-button uk-button-primary uk-button-large uk-margin-small-right">
+                            <span uk-icon="icon: check"></span> Trả lời
+                        </button>
+                        <button id="rejectCallButton" class="uk-button uk-button-danger uk-button-large">
+                            <span uk-icon="icon: ban"></span> Từ chối
+                        </button>
+                    </div>
+                </div>
+
+                <div class="uk-flex uk-flex-center uk-margin-top call-controls">
+                    <button id="toggleAudioBtn" class="uk-button uk-button-default uk-button-large uk-margin-small-right" title="Tắt/Bật Mic">
+                        <span uk-icon="icon: mic"></span>
+                    </button>
+                    <button id="toggleVideoBtn" class="uk-button uk-button-default uk-button-large uk-margin-small-right" title="Tắt/Bật Camera">
+                        <span uk-icon="icon: video-camera"></span>
+                    </button>
+                    <button id="endCallButton" class="uk-button uk-button-danger uk-button-large" title="Kết thúc cuộc gọi">
+                        <span uk-icon="icon: close"></span> Kết thúc
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/uikit@3.16.5/dist/js/uikit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/uikit@3.16.5/dist/js/uikit-icons.min.js"></script>
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+
+    <script src="~/js/SignalR.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+
+</body>
+</html>

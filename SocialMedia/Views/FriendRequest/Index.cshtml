@@ -1,0 +1,363 @@
+﻿@using System.Security.Claims;
+@using Models.ViewModel.Friend;
+@model FriendShipVM;
+
+<main id="site__main" class="2xl:ml-[--w-side] xl:ml-[--w-side-sm] p-2.5 h-[calc(100vh-var(--m-top))] mt-[--m-top]">
+
+    <div class="2xl:max-w-[1220px] max-w-[1065px] mx-auto">
+
+        @if (Model.Friend.TotalCount > 0)
+        {
+            <div class="sm:my-6 my-3 flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg text-base font-semibold text-black">My Friends</h2>
+                    <p class="font-normal text-sm text-gray-500 leading-6"> Your personal network of friends and acquaintances. Connect, share, and stay in touch with the people who matter to you.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2" id="myFriendsContainer">
+                @foreach (var _friendship in Model.Friend.Data)
+                {
+                    var friend = _friendship;
+                    <div class="flex md:items-center space-x-4 p-4 rounded-md box" id="friend-item-@friend.StatusID">
+                        <div class="w-14 h-14 flex-shrink-0 rounded-lg relative">
+                            <img src="@(string.IsNullOrEmpty(friend.ProfilePictureUrl) ? Url.Content("~/images/avatar/user.png") : friend.ProfilePictureUrl)"
+                                 class="absolute w-full h-full inset-0 rounded-md object-cover shadow-sm" />
+                        </div>
+                        <div class="flex-1">
+                            <a href="/User/Details?userId=@friend.UserID" class="text-base font-semibold capitalize text-black">@friend.FullName</a>
+                        </div>
+                        <form class="ajax-friend-action-form" data-success-action="remove" data-item-id="@friend.StatusID" method="post">
+                            <input type="hidden" name="ID" value="@friend.StatusID" />
+                            <input type="hidden" name="Status" value="@((int)-1)" />
+                            <button type="submit" class="button bg-red-soft text-red gap-1 max-md:hidden">
+                                <ion-icon name="remove-circle-outline" class="text-xl -ml-1"></ion-icon> Remove
+                            </button>
+                        </form>
+                    </div>
+                }
+            </div>
+
+            @if (Model.Friend.TotalCount > Model.Friend.Data.Count())
+            {
+                <div class="flex justify-center mt-4">
+                    <button class="button soft gray load-more-button" data-section="myFriends" data-current-page="1" data-page-size="@Model.Friend.PageSize" data-total-count="@Model.Friend.TotalCount" data-loaded-count="@Model.Friend.Data.Count()">
+                        Load More My Friends
+                    </button>
+                </div>
+            }
+        }
+
+        @if (Model.FriendRequestsReceived.TotalCount > 0)
+        {
+            <div class="sm:my-6 my-3 flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg text-base font-semibold text-black">Received Requests</h2>
+                    <p class="font-normal text-sm text-gray-500 leading-6">See who wants to connect with you! Review and respond to incoming friend requests to expand your circle.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2" id="receivedRequestsContainer">
+                @foreach (var request in Model.FriendRequestsReceived.Data)
+                {
+                    <div class="flex md:items-center space-x-4 p-4 rounded-md box" id="request-item-@request.StatusID">
+                        <div class="w-14 h-14 flex-shrink-0 rounded-lg relative">
+                            <img src="@(string.IsNullOrEmpty(request.ProfilePictureUrl) ? Url.Content("~/images/avatar/user.png") : request.ProfilePictureUrl)"
+                                 class="absolute w-full h-full inset-0 rounded-md object-cover shadow-sm" />
+                        </div>
+                        <div class="flex-1">
+                            <a href="/User/Details?userId =@request.UserID" class="text-base font-semibold capitalize text-black">@request.FullName</a>
+                        </div>
+                        <form class="ajax-friend-action-form" data-success-action="hide" data-item-id="@request.StatusID" method="post">
+                            <input type="hidden" name="ID" value="@request.StatusID" />
+                            <input type="hidden" name="Status" value="@((int)-1)" />
+                            <button type="submit" class="button bg-red-soft text-red gap-1 max-md:hidden">
+                                <ion-icon name="remove-circle-outline" class="text-xl -ml-1"></ion-icon> Reject
+                            </button>
+                        </form>
+                        <form class="ajax-friend-action-form" data-success-action="hide" data-item-id="@request.StatusID"
+                              action="/FriendRequest/FriendAnswer" method="post">
+                            @* Changed href to action for form submit *@
+                            <input type="hidden" name="ID" value="@request.StatusID" />
+                            <input type="hidden" name="Status" value="@((int)1)" />
+                            <button type="submit" class="button bg-primary-soft text-primary gap-1 max-md:hidden">
+                                <ion-icon name="checkbox-outline" class="text-xl -ml-1"></ion-icon> Accept
+                            </button>
+                        </form>
+                    </div>
+                }
+            </div>
+
+            @if (Model.FriendRequestsReceived.TotalCount > Model.FriendRequestsReceived.Data.Count())
+            {
+                <div class="flex justify-center mt-4">
+                    <button class="button soft gray load-more-button" data-section="receivedRequests" data-current-page="1" data-page-size="@Model.FriendRequestsReceived.PageSize" data-total-count="@Model.FriendRequestsReceived.TotalCount" data-loaded-count="@Model.FriendRequestsReceived.Data.Count()">
+                        Load More Received Requests
+                    </button>
+                </div>
+            }
+        }
+
+
+        @if (Model.FriendRequestsSent.TotalCount > 0)
+        {
+            <div class="sm:my-6 my-3 flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg text-base font-semibold text-black">Pending Invitations</h2>
+                    <p class="font-normal text-sm text-gray-500 leading-6">Track the friend requests you’ve sent. See who hasn’t responded yet and manage your pending invitations</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2" id="sentRequestsContainer">
+                @foreach (var request in Model.FriendRequestsSent.Data)
+                {
+                    <div class="flex md:items-center space-x-4 p-4 rounded-md box" id="request-item-@request.StatusID">
+                        <div class="w-14 h-14 flex-shrink-0 rounded-lg relative">
+                            <img src="@(string.IsNullOrEmpty(request.ProfilePictureUrl) ? Url.Content("~/images/avatar/user.png") : request.ProfilePictureUrl)"
+                                 class="absolute w-full h-full inset-0 rounded-md object-cover shadow-sm" />
+                        </div>
+                        <div class="flex-1">
+                            <a href="/User/Details?userId =@request.UserID" class="text-base font-semibold capitalize text-black">@request.FullName</a>
+                        </div>
+                        <form class="ajax-friend-action-form" data-success-action="hide" data-item-id="@request.StatusID"
+                              asp-controller="FriendRequest" asp-action="FriendAnswer" method="post">
+                            <input type="hidden" name="ID" value="@request.StatusID" />
+                            <input type="hidden" name="Status" value="@((int)-1)" />
+                            <button type="submit" class="button text-primary gap-1 max-md:hidden">
+                                <ion-icon name="remove-circle-outline" class="text-xl -ml-1"></ion-icon> Cancel
+                            </button>
+                        </form>
+                    </div>
+                }
+            </div>
+
+            @if (Model.FriendRequestsSent.TotalCount > Model.FriendRequestsSent.Data.Count())
+            {
+                <div class="flex justify-center mt-4">
+                    <button class="button soft gray load-more-button" data-section="sentRequests" data-current-page="1" data-page-size="@Model.FriendRequestsSent.PageSize" data-total-count="@Model.FriendRequestsSent.TotalCount" data-loaded-count="@Model.FriendRequestsSent.Data.Count()">
+                        Load More Pending Invitations
+                    </button>
+                </div>
+            }
+        }
+    </div>
+</main>
+
+@section Scripts {
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script>
+            $(document).ready(function () {
+                $(document).on('submit', 'form.ajax-friend-action-form', function (e) {
+                    e.preventDefault(); // Ngăn chặn form submit truyền thống (reload trang)
+
+                    const $form = $(this);
+                    const actionUrl = "/FriendRequest/FriendAnswer";
+                    const successAction = $form.data('success-action'); // 'remove' hoặc 'hide'
+                    const itemId = $form.data('item-id'); // FriendRequestID
+
+                    const requestData = {
+                        ID: parseInt($form.find('input[name="ID"]').val()), // Đảm bảo là số nguyên
+                        Status: parseInt($form.find('input[name="Status"]').val()) // Đảm bảo là số nguyên
+                    };
+
+                    $form.find('button[type="submit"]').prop('disabled', true).text('Processing...');
+
+                    $.ajax({
+                        url: actionUrl,
+                        type: 'POST',
+                        contentType: 'application/json', 
+                        data: JSON.stringify(requestData), 
+                        success: function (response) {
+                            if (response.status === 1) {
+                                if (successAction === 'remove') {
+                                    $(`#friend-item-${itemId}`).fadeOut(300, function() {
+                                        $(this).remove();
+                                    });
+                                } else if (successAction === 'hide') {
+                                    $(`#request-item-${itemId}`).fadeOut(300, function() {
+                                        $(this).remove();
+                                    });
+                                }
+                                console.log("Success:", response.mess);
+                            } else {
+                                alert('Error: ' + response.mess);
+                                console.error("API Error:", response.mess);
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            console.error("AJAX form submission error:", status, error, xhr.responseText);
+                            let errorMessage = "Đã xảy ra lỗi. Vui lòng thử lại.";
+                            try {
+                                const errorResponse = JSON.parse(xhr.responseText);
+                                if (errorResponse && errorResponse.message) {
+                                    errorMessage = errorResponse.message;
+                                } else if (errorResponse && errorResponse.title) {
+                                    errorMessage = errorResponse.title;esponse
+                                }
+                            } catch (e) {
+                            }
+                            alert(errorMessage);
+                        },
+                        complete: function() {
+                            // Đảm bảo nút được bật lại sau khi request hoàn tất
+                            $form.find('button[type="submit"]').prop('disabled', false).text($form.find('button[type="submit"]').text().replace('Processing...', $form.find('button[type="submit"]').data('original-text') || ''));
+                        }
+                    });
+                });
+
+                // Lưu trữ text ban đầu của nút để khôi phục sau khi xử lý
+                $('form.ajax-friend-action-form button[type="submit"]').each(function() {
+                    $(this).data('original-text', $(this).text());
+                });
+            });
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.load-more-button').forEach(button => {
+                button.addEventListener('click', async function () {
+                    let currentPage = parseInt(this.dataset.currentPage);
+                    const pageSize = parseInt(this.dataset.pageSize);
+                    const totalCount = parseInt(this.dataset.totalCount); 
+                    let loadedCount = parseInt(this.dataset.loadedCount);
+                    const section = this.dataset.section;
+
+                    currentPage++; 
+
+                    let controllerActionUrl = '';
+                    let containerId = '';
+
+                    // Xác định URL của Controller action dựa trên section
+                    switch (section) {
+                        case 'myFriends':
+                            controllerActionUrl = `/FriendRequest/LoadMoreFriend`; // Gọi trực tiếp Controller action LoadMoreFriend
+                            containerId = 'myFriendsContainer';
+                            break;
+                        case 'receivedRequests':
+                            controllerActionUrl = `/FriendRequest/LoadMoreReceivedRequests`; // Bạn sẽ cần tạo action này trong Controller
+                            containerId = 'receivedRequestsContainer';
+                            break;
+                        case 'sentRequests':
+                            controllerActionUrl = `/FriendRequest/LoadMoreSentRequests`; // Bạn sẽ cần tạo action này trong Controller
+                            containerId = 'sentRequestsContainer';
+                            break;
+                        default:
+                            console.error('Unknown section for load more:', section);
+                            return;
+                    }
+
+                    const fullUrl = `${controllerActionUrl}?pageNumber=${currentPage}&pageSize=${pageSize}`;
+
+                    this.disabled = true;
+                    this.textContent = 'Đang tải...'; 
+
+                    try {
+                        const response = await fetch(fullUrl);
+
+                        if (!response.ok) {
+                            const errorResponse = await response.json();
+                            if (errorResponse && errorResponse.status === 0 && errorResponse.message === "Chưa xác thực") {
+                                alert("Bạn chưa xác thực. Vui lòng đăng nhập lại.");
+                                window.location.href = "/Account/Login";
+                                return; 
+                            }
+                            throw new Error(`Lỗi HTTP! status: ${response.status} - ${errorResponse.message || 'Lỗi không xác định'}`);
+                        }
+
+                        const newItems = await response.json();
+
+                        const container = document.getElementById(containerId);
+                        if (container) {
+                            if (newItems.length > 0) {
+                                newItems.forEach(item => {
+                                    const friendHtml = createFriendItemHtml(item, section);
+                                    container.insertAdjacentHTML('beforeend', friendHtml);
+                                    loadedCount++;
+                                });
+                            } else {
+                                console.log("Không có thêm dữ liệu.");
+                            }
+
+                            this.dataset.currentPage = currentPage; 
+                            this.dataset.loadedCount = loadedCount;
+
+                            if (loadedCount >= totalCount) {
+                                this.style.display = 'none';
+                            } else {
+                                this.disabled = false;
+                                this.textContent = `Tải thêm ${section === 'myFriends' ? 'Bạn bè của tôi' : section === 'receivedRequests' ? 'Yêu cầu đã nhận' : 'Lời mời đang chờ'}`;
+                            }
+                        }
+
+                    } catch (error) {
+                        console.error('Lỗi khi tải thêm mục:', error);
+                        alert(`Không thể tải thêm. Vui lòng thử lại. Lỗi: ${error.message}`);
+                        this.disabled = false;
+                        this.textContent = `Tải thêm ${section === 'myFriends' ? 'Bạn bè của tôi' : section === 'receivedRequests' ? 'Yêu cầu đã nhận' : 'Lời mời đang chờ'}`;
+                    }
+                });
+            });
+
+            // Hàm này giữ nguyên như bạn đã có, đảm bảo tên thuộc tính (item.userID, item.fullName, item.profilePictureUrl, item.statusID)
+            // khớp chính xác với tên thuộc tính trong đối tượng JSON mà API của bạn trả về.
+            function createFriendItemHtml(item, section) {
+                const defaultAvatar = '/images/avatar/user.png';
+                // Đảm bảo tên thuộc tính khớp với JSON
+                const profilePictureUrl = item.profilePictureUrl && item.profilePictureUrl !== '' ? item.profilePictureUrl : defaultAvatar;
+                const itemId = item.statusID;
+
+                let actionsHtml = '';
+                if (section === 'myFriends') {
+                    actionsHtml = `
+                        <form class="ajax-friend-action-form" data-success-action="remove" data-item-id="${itemId}" method="post">
+                            <input type="hidden" name="ID" value="${itemId}" />
+                            <input type="hidden" name="Status" value="-1" />
+                            <button type="submit" class="button bg-red-soft text-red gap-1 max-md:hidden">
+                                <ion-icon name="remove-circle-outline" class="text-xl -ml-1"></ion-icon> Remove
+                            </button>
+                        </form>
+                    `;
+                } else if (section === 'receivedRequests') {
+                    actionsHtml = `
+                        <form class="ajax-friend-action-form" data-success-action="hide" data-item-id="${itemId}" method="post">
+                            <input type="hidden" name="ID" value="${itemId}" />
+                            <input type="hidden" name="Status" value="-1" />
+                            <button type="submit" class="button bg-red-soft text-red gap-1 max-md:hidden">
+                                <ion-icon name="remove-circle-outline" class="text-xl -ml-1"></ion-icon> Reject
+                            </button>
+                        </form>
+                        <form class="ajax-friend-action-form" data-success-action="hide" data-item-id="${itemId}" action="/FriendRequest/FriendAnswer" method="post">
+                            <input type="hidden" name="ID" value="${itemId}" />
+                            <input type="hidden" name="Status" value="1" />
+                            <button type="submit" class="button bg-primary-soft text-primary gap-1 max-md:hidden">
+                                <ion-icon name="checkbox-outline" class="text-xl -ml-1"></ion-icon> Accept
+                            </button>
+                        </form>
+                    `;
+                } else if (section === 'sentRequests') {
+                    actionsHtml = `
+                        <form class="ajax-friend-action-form" data-success-action="hide" data-item-id="${itemId}" action="/FriendRequest/FriendAnswer" method="post">
+                            <input type="hidden" name="ID" value="${itemId}" />
+                            <input type="hidden" name="Status" value="-1" />
+                            <button type="submit" class="button text-primary gap-1 max-md:hidden">
+                                <ion-icon name="remove-circle-outline" class="text-xl -ml-1"></ion-icon> Cancle
+                            </button>
+                        </form>
+                    `;
+                }
+
+                return `
+                    <div class="flex md:items-center space-x-4 p-4 rounded-md box" id="${section === 'myFriends' ? 'friend-item' : 'request-item'}-${itemId}">
+                        <div class="w-14 h-14 flex-shrink-0 rounded-lg relative">
+                            <img src="${profilePictureUrl}"
+                                 class="absolute w-full h-full inset-0 rounded-md object-cover shadow-sm" />
+                        </div>
+                        <div class="flex-1">
+                            <a href="/User/Details?userId =${item.userID}" class="text-base font-semibold capitalize text-black">${item.fullName}</a>
+                        </div>
+                        ${actionsHtml}
+                    </div>
+                `;
+            }
+        });
+        </script>
+}
