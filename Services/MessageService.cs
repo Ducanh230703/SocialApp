@@ -62,42 +62,6 @@ namespace Services
             if (pageNumber < 1) pageNumber = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
-            string targetUserFullName= "Unknow";
-            string targetUserProfilePictureUrl = null;
-
-            try
-            {
-                string getUserInfoSql = $"SELECT FullName, ISNULL(ProfilePictureUrl, '') AS ProfilePictureUrl FROM Users WHERE ID = {targetUserId}";
-                string userInfoJson = await connectDB.SelectJS(getUserInfoSql);
-
-                if (!string.IsNullOrEmpty(userInfoJson) && userInfoJson != "[]")
-                {
-                    using (JsonDocument doc = JsonDocument.Parse(userInfoJson))
-                    {
-                        if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
-                        {
-                            var userElement = doc.RootElement[0];
-                            if (userElement.TryGetProperty("FullName", out JsonElement fullNameElement))
-                            {
-                                targetUserFullName = fullNameElement.GetString() ?? "Unknown User";
-                            }
-                            if (userElement.TryGetProperty("ProfilePictureUrl", out JsonElement profilePicElement))
-                            {
-                                targetUserProfilePictureUrl = profilePicElement.GetString() ?? "/images/default-avatar.png";
-                            }
-                        }
-                    }
-                }
-                if (!string.IsNullOrEmpty(targetUserProfilePictureUrl))
-                {
-                    targetUserProfilePictureUrl = apiAvatar + targetUserProfilePictureUrl;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Lỗi khi lấy thông tin người dùng mục tiêu (ID: {targetUserId}): {ex.Message}");
-            }
-
             string countSql = $@"SELECT COUNT(M.ID)
                              FROM Messages M
                              WHERE (M.SenderId = {currentLoggedInUserId} AND M.TargetId = {targetUserId})
@@ -190,8 +154,6 @@ namespace Services
             var chatMessageVM = new ChatMessageVM
             {
                 TargetUserId = targetUserId,
-                TargetUserFullName = targetUserFullName,
-                TargetUserProfilePictureUrl = targetUserProfilePictureUrl,
                 CurrentLoggedInUserId = currentLoggedInUserId,
                 Messages = paginatedMessages
             };
@@ -345,10 +307,7 @@ namespace Services
                     lists = JsonSerializer.Deserialize<List<MessengerList>>(json, options) ?? new List<MessengerList>();
                     foreach (var item in lists)
                     {
-                        if (!string.IsNullOrEmpty(item.ProfilePictureUrl))
-                        {
-                            item.ProfilePictureUrl = apiAvatar + item.ProfilePictureUrl;
-                        }
+                        item.ProfilePictureUrl = apiAvatar + item.ProfilePictureUrl;
                     }
                 }
                 catch (JsonException ex)

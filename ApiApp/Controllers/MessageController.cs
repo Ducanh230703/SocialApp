@@ -23,7 +23,7 @@ namespace ApiApp.Controllers
 
         [HttpGet("getallmessage")]
 
-        public  async Task <ApiReponseModel<ChatMessageVM>> GetChatMessageHistory (int targetUserId,[FromQuery]int pageNumber, [FromQuery] int pageSize)
+        public  async Task <ApiReponseModel<ChatMessageVM>> GetChatMessageHistory (int targetUserId,[FromQuery]int pageNumber = 1, [FromQuery] int pageSize =10)
         {
             var data = await MessageService.GetChatMessageHistory(CacheEx.DataUser.ID, targetUserId, pageNumber, pageSize);
             return data;

@@ -28,46 +28,46 @@ namespace Services
         /// <returns></returns>
         public static async Task<PaginatedResponse<PostFull>> GetAllPosts(int pageNumber, int pageSize)
         {
-                if (pageNumber < 1) pageNumber = 1;
-                if (pageSize < 1 || pageSize > 100) pageSize = 10;
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
-                string countSql = @"SELECT COUNT(p.ID) FROM Posts p JOIN Users u ON u.ID = p.UserId";
-                int totalCount = 0;
-                try
+            string countSql = @"SELECT COUNT(p.ID) FROM Posts p JOIN Users u ON u.ID = p.UserId";
+            int totalCount = 0;
+            try
+            {
+                string countJson = await connectDB.SelectJS(countSql);
+
+                if (!string.IsNullOrEmpty(countJson))
                 {
-                    string countJson = await connectDB.SelectJS(countSql);
-
-                    if (!string.IsNullOrEmpty(countJson))
+                    using (JsonDocument doc = JsonDocument.Parse(countJson))
                     {
-                        using (JsonDocument doc = JsonDocument.Parse(countJson))
+                        if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
                         {
-                            if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
+                            if (doc.RootElement[0].TryGetProperty("Column1", out JsonElement countElement))
                             {
-                                if (doc.RootElement[0].TryGetProperty("Column1", out JsonElement countElement))
-                                {
-                                    countElement.TryGetInt32(out totalCount);
-                                }
-                                else if (doc.RootElement[0].EnumerateObject().Any() && doc.RootElement[0].EnumerateObject().First().Value.ValueKind == JsonValueKind.Number)
-                                {
-                                    doc.RootElement[0].EnumerateObject().First().Value.TryGetInt32(out totalCount);
-                                }
+                                countElement.TryGetInt32(out totalCount);
                             }
-                            else if (doc.RootElement.ValueKind == JsonValueKind.Number)
+                            else if (doc.RootElement[0].EnumerateObject().Any() && doc.RootElement[0].EnumerateObject().First().Value.ValueKind == JsonValueKind.Number)
                             {
-                                doc.RootElement.TryGetInt32(out totalCount);
+                                doc.RootElement[0].EnumerateObject().First().Value.TryGetInt32(out totalCount);
                             }
+                        }
+                        else if (doc.RootElement.ValueKind == JsonValueKind.Number)
+                        {
+                            doc.RootElement.TryGetInt32(out totalCount);
                         }
                     }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Lỗi khi lấy tổng số bài viết: {ex.Message}");
-                    totalCount = 0;
-                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi khi lấy tổng số bài viết: {ex.Message}");
+                totalCount = 0;
+            }
 
-                int offset = (pageNumber - 1) * pageSize;
+            int offset = (pageNumber - 1) * pageSize;
 
-                string sql = $@"SELECT
+            string sql = $@"SELECT
                                     p.ID AS Id,
                                     p.Content,
                                     p.ImageUrl,
@@ -105,62 +105,62 @@ namespace Services
                                 OFFSET {offset} ROWS FETCH NEXT {pageSize} ROWS ONLY
                                 FOR JSON PATH";
 
-                List<PostFull> posts = new List<PostFull>();
-                string json = await connectDB.SelectJS(sql);
+            List<PostFull> posts = new List<PostFull>();
+            string json = await connectDB.SelectJS(sql);
 
-                if (!string.IsNullOrEmpty(json) && json != "[]")
+            if (!string.IsNullOrEmpty(json) && json != "[]")
+            {
+                try
                 {
-                    try
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    posts = JsonSerializer.Deserialize<List<PostFull>>(json, options) ?? new List<PostFull>();
+
+                    foreach (var post in posts)
                     {
-                        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                        posts = JsonSerializer.Deserialize<List<PostFull>>(json, options) ?? new List<PostFull>();
-
-                        foreach (var post in posts)
+                        if (!string.IsNullOrEmpty(post.ImageUrl))
                         {
-                            if (!string.IsNullOrEmpty(post.ImageUrl))
-                            {
-                                string[] fileNames = post.ImageUrl.Split(',');
+                            string[] fileNames = post.ImageUrl.Split(',');
 
-                                var fullImageUrls = fileNames.Select(fileName =>
-                                {
-                                    return $"{apiHost}/Media/ShowImage?fileName={Uri.EscapeDataString(fileName.Trim())}";
-                                }).ToList();
-                                post.ImageUrl = string.Join(",", fullImageUrls);
-                            }
-                            if (!string.IsNullOrEmpty(post.UserProfilePictureUrl))
+                            var fullImageUrls = fileNames.Select(fileName =>
                             {
-                                post.UserProfilePictureUrl = apiAvatar + post.UserProfilePictureUrl;
+                                return $"{apiHost}/Media/ShowImage?fileName={Uri.EscapeDataString(fileName.Trim())}";
+                            }).ToList();
+                            post.ImageUrl = string.Join(",", fullImageUrls);
+                        }
+                        if (!string.IsNullOrEmpty(post.UserProfilePictureUrl))
+                        {
+                            post.UserProfilePictureUrl = apiAvatar + post.UserProfilePictureUrl;
 
-                            }
+                        }
 
-                            foreach (var cmt in post.Comments)
+                        foreach (var cmt in post.Comments)
+                        {
+                            if (!string.IsNullOrEmpty(cmt.UserProfilePictureUrl))
                             {
-                                if (!string.IsNullOrEmpty(cmt.UserProfilePictureUrl))
-                                {
                                 cmt.UserProfilePictureUrl = apiAvatar + cmt.UserProfilePictureUrl;
 
-                                }
                             }
                         }
                     }
-                    catch (JsonException ex)
-                    {
-                        Console.WriteLine($"Lỗi Deserialize JSON trong PostService.GetAllPosts (data): {ex.Message}");
-                        Console.WriteLine($"JSON gây lỗi: {json}");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Lỗi không mong muốn khi deserialize posts: {ex.Message}");
-                    }
                 }
-
-                return new PaginatedResponse<PostFull>
+                catch (JsonException ex)
                 {
-                    Data = posts,
-                    PageNumber = pageNumber,
-                    PageSize = pageSize,
-                    TotalCount = totalCount
-                };
+                    Console.WriteLine($"Lỗi Deserialize JSON trong PostService.GetAllPosts (data): {ex.Message}");
+                    Console.WriteLine($"JSON gây lỗi: {json}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Lỗi không mong muốn khi deserialize posts: {ex.Message}");
+                }
+            }
+
+            return new PaginatedResponse<PostFull>
+            {
+                Data = posts,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
         }
         /// <summary>
         /// Đăng bài viết mới

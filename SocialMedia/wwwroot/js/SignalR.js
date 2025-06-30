@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (totalClicksElement) {
                 totalClicksElement.innerText = totalClicks;
             }
-            
+
         });
 
         connection.on("UserStatusChanged", (userId, isOnline) => {
@@ -73,7 +73,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.log(`[SignalR] Call declined by ${callerId}`);
         ChatManager.handleCallDeclined(callerId);
     });
-   
+
 
     window.signalRConnection = connection;
 
@@ -111,7 +111,7 @@ const SidebarManager = (() => {
     const createOnlineFriendItemHtml = (friend) => {
         const friendItem = document.createElement('div');
         friendItem.className = 'online-friend-item';
-        friendItem.dataset.userId = friend.userID; 
+        friendItem.dataset.userId = friend.userID;
         const avatar = document.createElement('img');
         avatar.className = 'avatar';
         avatar.src = friend.profilePictureUrl || '/images/default_avatar.png';
@@ -297,7 +297,7 @@ const ChatManager = (() => {
     const mediaConstraints = { video: true, audio: true };
     let callOfferSent = false;
     let bufferedIceCandidates = [];
-
+    const chatPaginationState = new Map();
     let remoteStream = null;
 
     const videoCallModal = document.getElementById('videoCallModal');
@@ -336,7 +336,7 @@ const ChatManager = (() => {
         chatBox.innerHTML = `
                 <div class="chat-box-header">
                     <div class="friend-info">
-                        <img src="${profilePictureUrl || '/images/default_avatar.png'}" alt="${fullName}" class="avatar">
+                        <img src="${profilePictureUrl }" alt="${fullName}" class="avatar">
                         <span class="friend-name">${fullName}</span>
                     </div>
                     <div class="chat-box-actions">
@@ -346,7 +346,6 @@ const ChatManager = (() => {
                     </div>
                 </div>
                 <div class="chat-box-messages" id="chat-messages-${userId}">
-                    <p class="uk-text-muted uk-text-small uk-text-center">Đang tải tin nhắn...</p>
                 </div>
                 <div class="chat-box-input">
                     <input type="text" placeholder="Nhập tin nhắn..." id="chat-input-${userId}">
@@ -356,7 +355,12 @@ const ChatManager = (() => {
 
         chatBoxesContainer.appendChild(chatBox);
         openChatBoxes.set(userId, chatBox);
-
+        chatPaginationState.set(userId, {
+            pageNumber: 1,
+            pageSize: 10,
+            hasMore: true,
+            isLoading: false
+        });
         setupChatBoxEvents(chatBox, userId, fullName);
         return chatBox;
     };
@@ -409,12 +413,27 @@ const ChatManager = (() => {
             }
         });
 
-        loadChatMessages(userId, messagesContainer);
+        messagesContainer.addEventListener('scroll', () => {
+            const threshold = 10; // Một khoảng cách nhỏ (pixels) từ mép trên để kích hoạt tải sớm hơn một chút
+            console.log('Scroll Height:', messagesContainer.scrollHeight);
+            console.log('Client Height:', messagesContainer.clientHeight);
+            console.log('Is Scrollable:', messagesContainer.scrollHeight > messagesContainer.clientHeight);
+            console.log('Current ScrollTop:', messagesContainer.scrollTop);
+            if (-messagesContainer.scrollTop >= (messagesContainer.scrollHeight - messagesContainer.clientHeight) - threshold) {
+                const pagination = chatPaginationState.get(userId);
+                if (pagination && !pagination.isLoading && pagination.hasMore) {
+                    loadMoreChatMessages(userId, messagesContainer);
+                }
+            }
+        });
+
+
+        loadChatMessages(userId, messagesContainer, true);
 
         const chatBoxHeader = chatBox.querySelector('.chat-box-header');
         chatBoxHeader.addEventListener('click', () => {
+            console.log("Đã mở box");
             chatBox.style.zIndex = getNextZIndex();
-            // Nếu box đang thu nhỏ, khôi phục nó khi click vào header
             if (chatBox.classList.contains('minimized')) {
                 chatBox.classList.remove('minimized');
                 const messagesContainer = chatBox.querySelector(`#chat-messages-${userId}`);
@@ -437,7 +456,6 @@ const ChatManager = (() => {
     const openChatBox = (userId, fullName, profilePictureUrl) => {
         console.log(`[ChatManager] Opening chat box for ${fullName} (ID: ${userId})`);
         const chatBox = createChatBoxHtml(userId, fullName, profilePictureUrl);
-        // Đảm bảo chatbox không bị thu nhỏ khi mở
         chatBox.classList.remove('minimized');
         const messagesContainer = chatBox.querySelector(`#chat-messages-${userId}`);
         if (messagesContainer) {
@@ -454,36 +472,122 @@ const ChatManager = (() => {
         }
     };
 
-    const loadChatMessages = (targetId, messagesContainer) => {
-        messagesContainer.innerHTML = '<p class="uk-text-muted uk-text-small uk-text-center">Đang tải tin nhắn...</p>'; // Hiển thị lại loading message
-        console.log(`[ChatManager] Loading messages for targetId: ${targetId}`);
-        fetch(`/Message/GetAllMessage?targetId=${targetId}&pageNumber=1&pageSize=10`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(result => {
-                console.log(`[ChatManager] Messages loaded for ${targetId}:`, result);
-                messagesContainer.innerHTML = ''; // Xóa "Đang tải tin nhắn..."
-                if (result.status > 0 && result.data && result.data.messages && result.data.messages.data.length > 0) {
-                    const currentLoggedInUserId = result.data.currentLoggedInUserId;
-                    result.data.messages.data.forEach(message => {
-                        const messageElement = document.createElement('div');
-                        messageElement.className = `message-item ${message.senderId == currentLoggedInUserId ? 'sent' : 'received'}`;
-                        messageElement.innerHTML = `<div class="message-content">${message.content}</div>`;
-                        messagesContainer.prepend(messageElement);
-                    });
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                } else {
+    const loadChatMessages = async (targetId, messagesContainer, initialLoad = true) => {
+        const pagination = chatPaginationState.get(targetId);
+        if (!pagination) {
+            console.error(`[ChatManager] Pagination state not found for user ${targetId}.`);
+            return;
+        }
+
+        if (pagination.isLoading || !pagination.hasMore) {
+            console.log(`[ChatManager] Already loading or no more messages for ${targetId}.`);
+            return;
+        }
+
+        pagination.isLoading = true;
+        const loadingIndicator = messagesContainer.querySelector('.chat-loading-indicator');
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'block';
+            loadingIndicator.textContent = 'Đang tải tin nhắn...';
+        } else {
+            const newLoadingIndicator = document.createElement('p');
+            newLoadingIndicator.className = 'uk-text-muted uk-text-small uk-text-center chat-loading-indicator';
+            newLoadingIndicator.textContent = 'Đang tải tin nhắn...';
+            // Thêm loading indicator vào đầu để nó xuất hiện ở trên cùng (với column-reverse)
+            messagesContainer.prepend(newLoadingIndicator);
+        }
+
+        console.log(`[ChatManager] Loading messages for targetId: ${targetId}, page: ${pagination.pageNumber}, pageSize: ${pagination.pageSize}`);
+        try {
+            const response = await fetch(`/Message/GetAllMessage?targetId=${targetId}&pageNumber=${pagination.pageNumber}&pageSize=${pagination.pageSize}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const result = await response.json();
+            console.log(`[ChatManager] Messages loaded for ${targetId}:`, result);
+
+            // Lấy chiều cao cuộn cũ *trước khi* thêm tin nhắn mới.
+            // Điều này rất quan trọng để duy trì vị trí cuộn cho các lần tải tiếp theo.
+            const oldScrollHeight = messagesContainer.scrollHeight;
+
+            if (result.status > 0 && result.data && result.data.messages && result.data.messages.data.length > 0) {
+                const currentLoggedInUserId = result.data.currentLoggedInUserId;
+                const fragment = document.createDocumentFragment();
+
+                // API của bạn trả về tin nhắn từ mới nhất đến cũ nhất.
+                // Để hiển thị tin nhắn cũ hơn ở phía trên khi dùng flex-direction: column-reverse,
+                // chúng ta cần thêm chúng vào fragment theo thứ tự cũ nhất trước.
+                // Vì API trả về mới nhất trước, chúng ta cần đảo ngược mảng để thêm vào fragment.
+                const messagesToDisplay = result.data.messages.data.reverse(); // Đã có .reverse()
+
+                messagesToDisplay.forEach(message => {
+                    const messageElement = document.createElement('div');
+                    messageElement.className = `message-item ${message.senderId == currentLoggedInUserId ? 'sent' : 'received'}`;
+                    messageElement.innerHTML = `<div class="message-content">${message.content}</div>`;
+                    fragment.appendChild(messageElement);
+                });
+                // Thêm fragment vào cuối container. Với column-reverse, điều này sẽ khiến
+                // các tin nhắn cũ hơn xuất hiện ở phía trên cùng của khung chat.
+                messagesContainer.appendChild(fragment);
+
+                pagination.pageNumber++;
+                pagination.hasMore = result.data.messages.data.length === pagination.pageSize;
+            } else {
+                pagination.hasMore = false; // Không còn tin nhắn để tải
+                if (initialLoad) {
                     messagesContainer.innerHTML = '<p class="uk-text-muted uk-text-small uk-text-center">Chưa có tin nhắn nào.</p>';
+                } else {
+                    const noMoreMessagesIndicator = document.createElement('p');
+                    noMoreMessagesIndicator.className = 'uk-text-muted uk-text-small uk-text-center chat-no-more-messages';
+                    noMoreMessagesIndicator.textContent = 'Đã hết tin nhắn.';
+                    // Thêm indicator này vào cuối container để nó xuất hiện ở phía trên cùng (với column-reverse)
+                    messagesContainer.appendChild(noMoreMessagesIndicator);
                 }
-            })
-            .catch(error => {
-                console.error(`Error loading messages for ${targetId}:`, error);
+            }
+
+            if (initialLoad) {
+                messagesContainer.scrollTop = 0;
+                if (pagination.hasMore && messagesContainer.scrollHeight <= messagesContainer.clientHeight) {
+                    console.log("[ChatManager] Container not full after initial load, and has more messages. Loading next batch immediately.");
+                    loadChatMessages(targetId, messagesContainer, false);
+                }
+            } else {
+                const newScrollHeight = messagesContainer.scrollHeight;
+                messagesContainer.scrollTop = newScrollHeight - oldScrollHeight;
+            }
+
+        } catch (error) {
+            console.error(`Error loading messages for ${targetId}:`, error);
+            if (initialLoad) {
                 messagesContainer.innerHTML = '<p class="uk-text-danger uk-text-small uk-text-center">Lỗi khi tải tin nhắn.</p>';
-            });
+            } else {
+                Toastify({
+                    text: "Lỗi khi tải thêm tin nhắn.",
+                    duration: 3000,
+                    backgroundColor: "#dc3545",
+                    gravity: "top",
+                    position: "right",
+                }).showToast();
+            }
+        } finally {
+            pagination.isLoading = false;
+            const currentLoadingIndicator = messagesContainer.querySelector('.chat-loading-indicator');
+            if (currentLoadingIndicator) {
+
+                if (!pagination.hasMore || (initialLoad && messagesContainer.children.length > 0 && !messagesContainer.querySelector('.chat-no-more-messages'))) {
+                    currentLoadingIndicator.remove();
+                } else {
+                }
+            }
+        }
+    };
+
+    const loadMoreChatMessages = (targetId, messagesContainer) => {
+        const pagination = chatPaginationState.get(targetId);
+        if (pagination && !pagination.isLoading && pagination.hasMore) {
+            console.log(`[ChatManager] Loading more messages for ${targetId}...`);
+            loadChatMessages(targetId, messagesContainer, false); 
+        }
     };
 
     const sendMessage = async (targetUserId, messageInput, messagesContainer) => {
@@ -534,12 +638,18 @@ const ChatManager = (() => {
             console.error("[ChatManager] addMessageToChat: messagesContainer is null or undefined! Cannot add message.");
             return;
         }
+
+        const noMessagesIndicator = messagesContainer.querySelector('.uk-text-muted.uk-text-small.uk-text-center:not(.chat-loading-indicator)');
+        if (noMessagesIndicator && noMessagesIndicator.textContent === 'Chưa có tin nhắn nào.') {
+            noMessagesIndicator.remove();
+        }
+
         const messageElement = document.createElement('div');
         messageElement.className = `message-item ${isSent ? 'sent' : 'received'}`;
         messageElement.innerHTML = `<div class="message-content">${content}</div>`;
         messagesContainer.prepend(messageElement);
-        // messagesContainer.scrollTop = messagesContainer.scrollHeight; // Có thể bỏ nếu dùng flex-direction: column-reverse và tin nhắn mới nhất nằm ở cuối
-    };
+        messagesContainer.scrollTop = 0;
+    }
 
     const receiveMessage = (senderId, content) => {
         console.log(`[ChatManager] receiveMessage called from SignalR. SenderId: ${senderId}, Content: ${content}`);
@@ -555,7 +665,7 @@ const ChatManager = (() => {
             const messagesContainer = chatBox.querySelector(`#chat-messages-${senderId}`);
             if (messagesContainer) {
                 addMessageToChat(senderId, content, messagesContainer, false); // false cho isSent
-                messagesContainer.scrollTop = messagesContainer.scrollHeight; // Đảm bảo cuộn xuống tin nhắn mới
+                messagesContainer.scrollTop = 0;
             } else {
                 console.error(`[ChatManager] messagesContainer not found for senderId ${senderId} inside chatBox.`);
             }
@@ -610,7 +720,7 @@ const ChatManager = (() => {
         peerConnection = new RTCPeerConnection(configuration);
 
         if (localStream) {
-                localStream.getTracks().forEach(track => {
+            localStream.getTracks().forEach(track => {
                 peerConnection.addTrack(track, localStream);
                 console.log(`[Debug] Adding local track to PeerConnection: ${track.kind}, ID: ${track.id}, Enabled: ${track.enabled}, ReadyState: ${track.readyState}`);
             });
@@ -1023,6 +1133,20 @@ const ChatManager = (() => {
         }
     });
 
+    document.body.addEventListener('click', (event) => {
+        const chatTrigger = event.target.closest('.open-chat-trigger');
+        if (chatTrigger) {
+            const targetUserId = parseInt(chatTrigger.dataset.userId);
+            const targetFullName = chatTrigger.dataset.fullName;
+            const targetProfilePictureUrl = chatTrigger.dataset.profilePictureUrl;
+            if (!isNaN(targetUserId)) {
+                openChatBox(targetUserId, targetFullName, targetProfilePictureUrl);
+            } else {
+                console.error("Invalid targetUserId for chat trigger.");
+            }
+        }
+    });
+
     return {
         openChatBox: openChatBox,
         receiveMessage: receiveMessage,
@@ -1036,6 +1160,7 @@ const ChatManager = (() => {
         handleCallEnded: handleCallEnded,
         handleCallDeclined: handleCallDeclined
     };
+
 })();
 
 document.addEventListener("DOMContentLoaded", () => {

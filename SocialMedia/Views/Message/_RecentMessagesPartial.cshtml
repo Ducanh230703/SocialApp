@@ -1,5 +1,5 @@
 ﻿@using Models.ReponseModel
-@using SocialMedia.Helper 
+@using SocialMedia.Helper
 
 @model PaginatedResponse<MessengerList>
 
@@ -7,7 +7,11 @@
 {
     @foreach (var message in Model.Data)
     {
-        <a href="/Messenger/Chat?otherUserId=@message.UserId" class="relative flex items-center gap-3 p-2 rounded-xl hover:bg-secondery">
+        <a href="javascript:void(0);"
+           class="relative flex items-center gap-3 p-2 rounded-xl hover:bg-secondery open-chat-trigger"
+           data-user-id="@message.UserId"
+           data-full-name="@message.FullName"
+           data-profile-picture-url="@message.ProfilePictureUrl">
             <img src="@message.ProfilePictureUrl" class="w-9 h-9 rounded-full" alt="Profile Picture">
             <div class="flex-1 text-sm pr-4">
                 <div class="font-semibold text-black">@message.FullName</div>

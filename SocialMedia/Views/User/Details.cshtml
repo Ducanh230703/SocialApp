@@ -8,7 +8,7 @@
     var currentPage = Model?.ListPost?.PageNumber ?? 1;
     var pageSize = Model?.ListPost?.PageSize ?? 10;
     var loggedInUserIdServer = (int?)ViewBag.LoggedInUserId;
-    var profileUserId = Model?.ID; 
+    var profileUserId = Model?.ID;
     var friendshipStatus = (int?)ViewBag.FriendshipStatus;
     var senderId = (int?)ViewBag.SenderId;
     var statusId = (int?)ViewBag.ID;
@@ -67,41 +67,64 @@
                 }
                 else
                 {
-                    <div class="mt-3">
-                            @if (friendshipStatus == 1)
-                            {
-                                <button id="unfriendBtn" class="button bg-blue-400 text-white py-2 px-4 rounded-full text-sm"
-                                        data-profile-status-id="@statusId">
-                                    Huỷ kết bạn
-                                </button>
-                            }
-                            else if (friendshipStatus == 0 && senderId == loggedInUserIdServer)
-                            {
-                                <button id="cancelRequestBtn" class="button bg-yellow-500 text-white py-2 px-4 rounded-full text-sm"
+                    <div class="mt-3 uk-flex uk-flex-wrap uk-gap-small">
+                        @* Thêm uk-flex và uk-gap-small để các nút nằm cùng dòng và có khoảng cách *@
+                        @if (friendshipStatus == 1)
+                        {
+                            <button id="unfriendBtn" class="button bg-blue-400 text-white py-2 px-4 rounded-full text-sm"
                                     data-profile-status-id="@statusId">
-                                    Huỷ lời mời
-                                </button>
-                            }
-                            else if (friendshipStatus == 0 && senderId != loggedInUserIdServer)
-                            {
-                                <div class="flex gap-2">
-                                    <button id="acceptRequestBtn" class="button bg-blue-600 text-white py-2 px-4 rounded-full text-sm"
-                                        data-profile-status-id="@statusId">
-                                        Xác nhận
-                                    </button>
-                                    <button id="declineRequestBtn" class="button bg-red-600 text-white py-2 px-4 rounded-full text-sm"
-                                        data-profile-status-id="@statusId">
-                                        Từ chối
-                                    </button>
-                                </div>
-                            }
-                            else
-                            {
-                                <button id="sendRequestBtn" class="button bg-blue-600 text-white py-2 px-4 rounded-full text-sm"
+                                Huỷ kết bạn
+                            </button>
+                            <button class="button bg-blue-600 text-white py-2 px-4 rounded-full text-sm open-chat-trigger"
+                                    data-user-id="@Model.ID"
+                                    data-full-name="@Model.FullName"
+                                    data-profile-picture-url="@(string.IsNullOrEmpty(Model.ProfilePictureUrl) ? Url.Content("~/images/avatar/user.png") : Model.ProfilePictureUrl)">
+                                <span uk-icon="icon: comments" class="uk-margin-small-right"></span> Nhắn tin
+                            </button>
+                        }
+                        else if (friendshipStatus == 0 && senderId == loggedInUserIdServer)
+                        {
+                            <button id="cancelRequestBtn" class="button bg-yellow-500 text-white py-2 px-4 rounded-full text-sm"
+                                    data-profile-status-id="@statusId">
+                                Huỷ lời mời
+                            </button>
+                            <button class="button bg-blue-600 text-white py-2 px-4 rounded-full text-sm open-chat-trigger"
+                                    data-user-id="@Model.ID"
+                                    data-full-name="@Model.FullName"
+                                    data-profile-picture-url="@(string.IsNullOrEmpty(Model.ProfilePictureUrl) ? Url.Content("~/images/avatar/user.png") : Model.ProfilePictureUrl)">
+                                <span uk-icon="icon: comments" class="uk-margin-small-right"></span> Nhắn tin
+                            </button>
+                        }
+                        else if (friendshipStatus == 0 && senderId != loggedInUserIdServer)
+                        {
+                            <button id="acceptRequestBtn" class="button bg-blue-600 text-white py-2 px-4 rounded-full text-sm"
+                                    data-profile-status-id="@statusId">
+                                Xác nhận
+                            </button>
+                            <button id="declineRequestBtn" class="button bg-red-600 text-white py-2 px-4 rounded-full text-sm"
+                                    data-profile-status-id="@statusId">
+                                Từ chối
+                            </button>
+                            <button class="button bg-blue-600 text-white py-2 px-4 rounded-full text-sm open-chat-trigger"
+                                    data-user-id="@Model.ID"
+                                    data-full-name="@Model.FullName"
+                                    data-profile-picture-url="@(string.IsNullOrEmpty(Model.ProfilePictureUrl) ? Url.Content("~/images/avatar/user.png") : Model.ProfilePictureUrl)">
+                                <span uk-icon="icon: comments" class="uk-margin-small-right"></span> Nhắn tin
+                            </button>
+                        }
+                        else
+                        {
+                            <button id="sendRequestBtn" class="button bg-blue-600 text-white py-2 px-4 rounded-full text-sm"
                                     data-profile-user-id="@profileUserId">
-                                    Kết bạn
-                                </button>
-                            }
+                                Kết bạn
+                            </button>
+                            <button class="button bg-blue-600 text-white py-2 px-4 rounded-full text-sm open-chat-trigger"
+                                    data-user-id="@Model.ID"
+                                    data-full-name="@Model.FullName"
+                                    data-profile-picture-url="@(string.IsNullOrEmpty(Model.ProfilePictureUrl) ? Url.Content("~/images/avatar/user.png") : Model.ProfilePictureUrl)">
+                                <span uk-icon="icon: comments" class="uk-margin-small-right"></span> Nhắn tin
+                            </button>
+                        }
                     </div>
                 }
 
@@ -168,7 +191,7 @@
                                 @foreach (var friend in Model.ListFriend)
                                 {
                                     <div>
-                                        <a href="/User/Details?userId=@friend.ID"> 
+                                        <a href="/User/Details?userId=@friend.ID">
                                             <div class="relative w-full aspect-square rounded-lg overflow-hidden">
                                                 <img src="@friend.ImageUrl" class="object-cover w-full h-full inset-0" alt="Friend's avatar" />
                                             </div>

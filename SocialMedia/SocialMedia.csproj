@@ -21,8 +21,4 @@
     <ProjectReference Include="..\Models\Models.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="Views\Test\Index.cshtml" />
-  </ItemGroup>
-
 </Project>

@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Cache;
+using Microsoft.AspNetCore.Mvc;
 using Models.ReponseModel;
 using Models.ViewModel.Chat;
+using Services;
 using SocialMedia.Helper;
 
 namespace SocialMedia.Controllers
@@ -12,41 +14,42 @@ namespace SocialMedia.Controllers
             return View();
         }
 
+
         public async Task<IActionResult> GetAllMessage(int targetId,int pageNumber,int pageSize)
-        {
-            var token = Request.Cookies["AuthToken"];
-            if (string.IsNullOrEmpty(token))
             {
-                return Json(new { success = false, message = "Chưa xác thực" });
-            }
-
-            try
-            {
-                var apiReponse = await ApiHelper.GetAsync<ApiReponseModel<ChatMessageVM>>($"/api/Message/getallMessage?targetUserId={targetId}&pageNumber={pageNumber}&pageSize={pageSize}", token);
-
-                if (apiReponse.Status == 1 && apiReponse.Data != null)
+                var token = Request.Cookies["AuthToken"];
+                if (string.IsNullOrEmpty(token))
                 {
-                        return Json(apiReponse);
+                    return Json(new { success = false, message = "Chưa xác thực" });
                 }
 
-                else
+                try
                 {
+                    var apiReponse = await ApiHelper.GetAsync<ApiReponseModel<ChatMessageVM>>($"/api/Message/getallMessage?targetUserId={targetId}&pageNumber={pageNumber}&pageSize={pageSize}", token);
 
-                    string errorMessage = apiReponse.Mess ?? "Không thể tải tin nhắn. Có lỗi từ API.";
-                    return Json(new { success = false, message = errorMessage });
+                    if (apiReponse.Status == 1 && apiReponse.Data != null)
+                    {
+                            return Json(apiReponse);
+                    }
+
+                    else
+                    {
+
+                        string errorMessage = apiReponse.Mess ?? "Không thể tải tin nhắn. Có lỗi từ API.";
+                        return Json(new { success = false, message = errorMessage });
+                    }
+                }
+                catch (HttpRequestException ex) 
+                {
+                    Console.WriteLine($"Lỗi HttpRequestException khi tải tin nhắn: {ex.Message}");
+                    return Json(new { success = false, message = "Không thể kết nối đến máy chủ API. Vui lòng thử lại sau." });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Lỗi không mong muốn khi tải tin nhắn: {ex.Message}");
+                    return Json(new { success = false, message = "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại." });
                 }
             }
-            catch (HttpRequestException ex) 
-            {
-                Console.WriteLine($"Lỗi HttpRequestException khi tải tin nhắn: {ex.Message}");
-                return Json(new { success = false, message = "Không thể kết nối đến máy chủ API. Vui lòng thử lại sau." });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Lỗi không mong muốn khi tải tin nhắn: {ex.Message}");
-                return Json(new { success = false, message = "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại." });
-            }
-        }
 
         public async Task<IActionResult> GetMessengerList(int pageNumber,int pageSize)
         {
