@@ -10,7 +10,7 @@ namespace Services
 {
     public class GroupMemberService
     {
-        public static async Task<ApiReponseModel> AddMember(int groupId, List<int> userId)
+        public static async Task<ApiReponseModel> JoinGroup(int groupId, List<int> userId)
         {
             var apiResponse = new ApiReponseModel();
             if (userId == null || !userId.Any())
