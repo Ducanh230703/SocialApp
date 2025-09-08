@@ -15,7 +15,7 @@ namespace Services
         {
             var sql = @"
                         SELECT ID, Status, SenderID, ReceiverID
-                        FROM FriendRequest
+                        FROM FriendRequests
                         WHERE (SenderID = @loggedInUserId AND ReceiverID = @profileUserId)
                            OR (SenderID = @profileUserId AND ReceiverID = @loggedInUserId);";
 
@@ -74,7 +74,7 @@ namespace Services
 
         public static async Task<ApiReponseModel> SendRequest(int status, int senderId, int receiverId)
         {
-            var sql = "INSERT INTO FriendRequest (Status,SenderID,ReceiverID) VALUES (@Status,@SenderID,@ReceiverID)";
+            var sql = "INSERT INTO FriendRequests (Status,SenderID,ReceiverID) VALUES (@Status,@SenderID,@ReceiverID)";
             var param = new System.Collections.SortedList
             {
                 {"Status", status },
@@ -123,7 +123,7 @@ namespace Services
             var rs = 0;
             if (status == 1)
             {
-                sql = @"UPDATE FriendRequest SET Status = @status WHERE ID =@id";
+                sql = @"UPDATE FriendRequests SET Status = @status WHERE ID =@id";
                 param = new System.Collections.SortedList
                 {
                     {"Status", status },
@@ -135,7 +135,7 @@ namespace Services
 
             else
             {
-                sql = "DELETE FROM FriendRequest WHERE ID=@id ;";
+                sql = "DELETE FROM FriendRequests WHERE ID=@id ;";
                 param = new System.Collections.SortedList
                 {
                     {"id",id }
@@ -313,7 +313,7 @@ namespace Services
             };
 
             string countSql = $@"SELECT COUNT(FR.ID) FROM
-                                        FriendRequest AS FR
+                                        FriendRequests AS FR
                                     JOIN
                                         [socialapp].[dbo].[Users] AS U ON
                                         (FR.SenderID = U.ID AND FR.ReceiverID = {loggedInUser})
@@ -384,7 +384,7 @@ namespace Services
                                         U.ProfilePictureUrl,
                                         FR.DateCreated AS DateCreated
                                     FROM
-                                        FriendRequest AS FR
+                                        FriendRequests AS FR
                                     JOIN
                                         [socialapp].[dbo].[Users] AS U ON
                                         (FR.SenderID = U.ID AND FR.ReceiverID = {loggedInUser})
@@ -448,7 +448,7 @@ namespace Services
                 Mess = "Lỗi không xác định."
             };
             string countSql = $@"SELECT COUNT(FR.ID) FROM
-                                                        FriendRequest AS FR
+                                                        FriendRequests AS FR
                                                     JOIN
                                                         Users AS U ON FR.SenderID = U.ID
                                                     WHERE
@@ -516,7 +516,7 @@ namespace Services
                                         U.ProfilePictureUrl,
                                         FR.DateCreated AS DateCreated
                                     FROM
-                                       FriendRequest AS FR
+                                       FriendRequests AS FR
                                     JOIN
                                         Users AS U ON FR.SenderID = U.ID
                                     WHERE
@@ -577,7 +577,7 @@ namespace Services
                 Mess = "Lỗi không xác định."
             };
             string countSql = $@"SELECT COUNT(FR.ID) FROM
-                                                        FriendRequest AS FR
+                                                        FriendRequests AS FR
                                                     JOIN
                                                         Users AS U ON FR.ReceiverID = U.ID
                                                     WHERE
@@ -646,7 +646,7 @@ namespace Services
                                         U.ProfilePictureUrl,
                                         FR.DateCreated AS DateCreated
                                     FROM
-                                       FriendRequest AS FR
+                                       FriendRequests AS FR
                                     JOIN
                                         Users AS U ON FR.ReceiverID = U.ID
                                     WHERE
@@ -719,7 +719,7 @@ namespace Services
                                 U.ProfilePictureUrl,
                                 FR.DateCreated AS DateCreated
                             FROM
-                                FriendRequest AS FR
+                                FriendRequests AS FR
                             JOIN
                                 [socialapp].[dbo].[Users] AS U ON
                                 (FR.SenderID = U.ID AND FR.ReceiverID = {loggedInUser})

@@ -37,7 +37,7 @@ namespace ApiApp.Hubs
                                 ELSE FS.SenderId
                             END AS FriendId
                         FROM
-                            FriendRequest AS FS
+                            FriendRequests AS FS
                         WHERE
                             (FS.SenderId = @UserId OR FS.ReceiverId = @UserId)
                             AND FS.Status = 1"; 
@@ -104,23 +104,19 @@ namespace ApiApp.Hubs
                         {
                             foreach (var connectionId in friendConnections)
                             {
-                                // Gửi thông báo tới từng connectionId của người bạn
                                 await Clients.Client(connectionId).SendAsync("UserStatusChanged", userId, true);
                                 Console.WriteLine($"[ChatHub] Đã gửi 'UserStatusChanged' (online) tới connection {connectionId} của bạn bè {friendId} về user {userId}.");
                             }
                         }
                         else
                         {
-                            // Log nếu người bạn không có kết nối nào đang online
                             Console.WriteLine($"[ChatHub] Bạn bè {friendId} của user {userId} không có kết nối online nào để nhận thông báo online.");
                         }
                     }
                 }
-                //Console.WriteLine($"User {user.ID} connected. ConnectionId: {Context.ConnectionId}. Total connections for user: {UserConnections[user.ID].Count}");
             }
             else
             {
-                //Console.WriteLine($"Unauthenticated or invalid user connected: {Context.ConnectionId}. Connection will be aborted.");
                 Context.Abort(); 
             }
 
@@ -148,7 +144,6 @@ namespace ApiApp.Hubs
                     if (!connections.Any())
                     {
                             UserConnections.TryRemove(userId, out _);
-                        //Console.WriteLine($"[ChatHub] User {user.ID} removed from UserConnections (no active connections left). ConnectionId: {Context.ConnectionId}.");
 
                         await UpdateUserOnlineStatusInDb(userId, false);
 
@@ -166,7 +161,6 @@ namespace ApiApp.Hubs
                             }
                             else
                             {
-                                // Log nếu người bạn không có kết nối nào đang online
                                 Console.WriteLine($"[ChatHub] Bạn bè {friendId} của user {userId} không có kết nối online nào để nhận thông báo offline.");
                             }
                         }

@@ -286,7 +286,6 @@ const SidebarManager = (() => {
     };
 })();
 
-// --- ChatManager ---
 const ChatManager = (() => {
     const chatBoxesContainer = document.getElementById('chatBoxesContainer');
     const openChatBoxes = new Map();

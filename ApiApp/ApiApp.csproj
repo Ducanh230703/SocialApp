@@ -23,7 +23,6 @@
     <ProjectReference Include="..\Cache\Cache.csproj" />
     <ProjectReference Include="..\Models\Models.csproj" />
     <ProjectReference Include="..\Services\Services.csproj" />
-    <ProjectReference Include="..\SocialApp\SocialApp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

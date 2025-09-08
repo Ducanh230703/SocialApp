@@ -92,7 +92,7 @@ namespace Services
                                                 c.UserId,
                                                 cu.FullName AS UserFullName,
                                                 ISNULL(cu.ProfilePictureUrl, '') AS UserProfilePictureUrl
-                                            FROM Comment c
+                                            FROM Comments c
                                             LEFT JOIN Users cu ON cu.ID = c.UserId
                                             WHERE c.PostId = p.ID
                                             ORDER BY c.DateCreated ASC

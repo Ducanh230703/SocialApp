@@ -384,7 +384,7 @@ namespace Services
                                         c.UserId,
                                         cu.FullName AS UserFullName,
                                         ISNULL(cu.ProfilePictureUrl, '') AS UserProfilePictureUrl
-                                    FROM Comment c
+                                    FROM Comments c
                                     LEFT JOIN Users cu ON cu.ID = c.UserId
                                     WHERE c.PostId = p.ID
                                     FOR JSON PATH
@@ -474,7 +474,7 @@ namespace Services
                                 END AS ID
                                     
                             FROM
-                                FriendRequest AS FR
+                                FriendRequests AS FR
                             JOIN
                                 Users AS U_Sender ON FR.SenderId = U_Sender.ID
                             JOIN
