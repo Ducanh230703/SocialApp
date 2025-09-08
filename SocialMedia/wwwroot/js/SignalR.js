@@ -122,7 +122,7 @@ const SidebarManager = (() => {
         friendName.textContent = friend.fullName;
 
         const statusDot = document.createElement('span');
-        statusDot.className = 'status-dot online-dot'; // Mặc định là online
+        statusDot.className = 'status-dot online-dot';
 
         friendItem.appendChild(avatar);
         friendItem.appendChild(friendName);
@@ -161,7 +161,7 @@ const SidebarManager = (() => {
         }
 
         onlineFriendListContainer.innerHTML = '<p class="uk-text-muted uk-text-small loading-message">Đang tải bạn bè online...</p>';
-        onlineFriendsMap.clear(); // Clear the map as we are reloading everything
+        onlineFriendsMap.clear();
 
         console.log("[SidebarManager] Initiating loadOnlineFriends fetch.");
 
@@ -175,7 +175,7 @@ const SidebarManager = (() => {
             })
             .then(result => {
                 console.log("[SidebarManager] LoadOnlineFriend fetch result:", result);
-                onlineFriendListContainer.innerHTML = ''; // Clear all content including loading message
+                onlineFriendListContainer.innerHTML = '';
 
                 if (result.status > 0 && result.data) {
                     result.data.forEach(friend => {
@@ -241,11 +241,11 @@ const SidebarManager = (() => {
                 existingFriendItem.querySelector('.status-dot').classList.add('online-dot');
             }
         }
-        else { // isOnline is false (offline)
+        else { 
             if (existingFriendItem) {
                 console.log(`[SidebarManager] User ${userId} is offline, removing from list.`);
                 existingFriendItem.remove();
-                onlineFriendsMap.delete(userId); // Remove from map
+                onlineFriendsMap.delete(userId);
                 updateNoFriendsMessage();
             } else {
                 console.log(`[SidebarManager] User ${userId} is offline, but not found in list (already removed or never added).`);
@@ -258,7 +258,7 @@ const SidebarManager = (() => {
             onlineFriendListContainer.addEventListener('click', function (event) {
                 const friendItem = event.target.closest('.online-friend-item');
                 if (friendItem) {
-                    const userId = parseInt(friendItem.dataset.userId); // Ensure userId is integer
+                    const userId = parseInt(friendItem.dataset.userId);
                     const userName = friendItem.querySelector('.friend-name').textContent;
                     const userAvatar = friendItem.querySelector('.avatar').src;
                     console.log(`Clicked on online friend: ${userName} (ID: ${userId})`);
@@ -602,7 +602,6 @@ const ChatManager = (() => {
         console.log("[ChatManager] Attempting to send message. Payload:", messagePayload);
 
         try {
-            // Đảm bảo connection đã được khởi tạo và kết nối
             if (connection && connection.state === signalR.HubConnectionState.Connected) {
                 await connection.invoke("SendMessage", messagePayload);
                 console.log("[ChatManager] SignalR invoke 'SendMessage' successful.");
@@ -652,18 +651,16 @@ const ChatManager = (() => {
 
     const receiveMessage = (senderId, content) => {
         console.log(`[ChatManager] receiveMessage called from SignalR. SenderId: ${senderId}, Content: ${content}`);
-        const chatBox = openChatBoxes.get(senderId); // senderId đã là số, không cần toString()
+        const chatBox = openChatBoxes.get(senderId); 
         if (chatBox) {
             console.log(`[ChatManager] Chat box found for senderId ${senderId}.`);
-            // Đảm bảo chat box không ở trạng thái minimized khi nhận tin nhắn mới
             if (chatBox.classList.contains('minimized')) {
                 chatBox.classList.remove('minimized');
-                // Đưa chatbox lên trên cùng nếu nó đang được thu nhỏ và nhận tin nhắn mới
                 chatBox.style.zIndex = getNextZIndex();
             }
             const messagesContainer = chatBox.querySelector(`#chat-messages-${senderId}`);
             if (messagesContainer) {
-                addMessageToChat(senderId, content, messagesContainer, false); // false cho isSent
+                addMessageToChat(senderId, content, messagesContainer, false); 
                 messagesContainer.scrollTop = 0;
             } else {
                 console.error(`[ChatManager] messagesContainer not found for senderId ${senderId} inside chatBox.`);
@@ -671,7 +668,7 @@ const ChatManager = (() => {
         } else {
             console.warn(`[ChatManager] Chat box not open for senderId ${senderId}. Displaying toast notification.`);
             Toastify({
-                text: `Tin nhắn mới từ ${senderId}: ${content}`, // Trong ứng dụng thực tế, hãy lấy tên người gửi
+                text: `Tin nhắn mới từ ${senderId}: ${content}`, 
                 duration: 5000,
                 close: true,
                 gravity: "top",
@@ -776,11 +773,11 @@ const ChatManager = (() => {
         callModalTitle.textContent = `Đang gọi ${targetUserName}...`;
         callStatusMessage.textContent = 'Đang chờ người nhận trả lời...';
         incomingCallActions.style.display = 'none';
-        UIkit.modal(videoCallModal).show(); // Show modal
+        UIkit.modal(videoCallModal).show(); 
 
         const streamGranted = await getLocalStream();
         if (!streamGranted) {
-            endCall(); // End the call if media access fails
+            endCall(); 
             return;
         }
 
@@ -791,7 +788,6 @@ const ChatManager = (() => {
             await peerConnection.setLocalDescription(offer);
             console.log("[WebRTC] Created and set local offer.");
 
-            // Send offer to the other peer via SignalR
             if (connection && connection.state === signalR.HubConnectionState.Connected) {
                 await connection.invoke("SendCallOffer", targetUserId, offer);
                 callOfferSent = true;
