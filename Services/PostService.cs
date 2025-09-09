@@ -288,7 +288,7 @@ namespace Services
                     FROM Posts p
                     INNER JOIN Users u ON p.UserId = u.ID
                     LEFT JOIN Likes l ON l.PostId = p.ID
-                    LEFT JOIN Comment c ON c.PostId = p.ID
+                    LEFT JOIN Comments c ON c.PostId = p.ID
                     LEFT JOIN Users cu ON c.UserId = cu.ID
                     WHERE p.ID = @PostId
                     ORDER BY c.DateCreated;";
@@ -375,7 +375,7 @@ namespace Services
         /// <returns></returns>
         public static async Task<ApiReponseModel> UserDeletePost(int PostId)
         {
-            var sql = "DELETE FROM Comment WHERE PostId = @PostId;" +
+            var sql = "DELETE FROM Comments WHERE PostId = @PostId;" +
                     "DELETE FROM Likes WHERE PostId = @PostId;"+
                     "DELETE FROM Posts WHERE ID = @PostId;";
             var param = new System.Collections.SortedList
@@ -407,7 +407,7 @@ namespace Services
         /// <returns></returns>
         public static async Task<ApiReponseModel> AddComment(int PostId, int UserId, string Content)
         {
-            var sql = "INSERT INTO Comment (PostId, UserId,Content) VALUES (@PostId,@UserId,@Content);";
+            var sql = "INSERT INTO Comments (PostId, UserId,Content) VALUES (@PostId,@UserId,@Content);";
             var param = new System.Collections.SortedList
             {
                 {"PostId",PostId },
@@ -437,7 +437,7 @@ namespace Services
         /// <returns></returns>
         public static async Task<ApiReponseModel> DeleteComment(int CommentId)
             {
-            var sql = "DELETE FROM Comment Where ID = @ID";
+            var sql = "DELETE FROM Comments Where ID = @ID";
             var param = new System.Collections.SortedList
             {
                 {"ID",CommentId },

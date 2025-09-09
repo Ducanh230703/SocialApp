@@ -54,14 +54,14 @@ namespace Services
             }
             int offset = (pageNumber - 1) * pageSize;
 
-            string sql = @"Select n.*, u_sender.ProfilePictureUrl
+            string sql = @" Select n.*, u_sender.ProfilePictureUrl
                             From Notifications n
                             join Users u_sender on u_sender.ID = n.SenderId
                             Where ReceiverId = @receiverId
-                            ORDER BY DateCreated DESC
+                            ORDER BY DateCreated ASC
                             OFFSET 0 ROWS FETCH NEXT 5 ROWS ONLY
                             FOR JSON PATH
-";
+                            ";
 
             string json = await connectDB.SelectJS(sql, param);
             List <Notification> notices = new List<Notification>();

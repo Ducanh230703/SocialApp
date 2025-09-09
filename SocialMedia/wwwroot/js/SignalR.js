@@ -9,15 +9,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             .configureLogging(signalR.LogLevel.Information)
             .build();
 
-        connection.on("ReceiveClickCount", (amountOfClicksReceived) => {
-            totalClicks += amountOfClicksReceived;
-            const totalClicksElement = document.getElementById("totalClicks");
-            if (totalClicksElement) {
-                totalClicksElement.innerText = totalClicks;
-            }
-
-        });
-
         connection.on("UserStatusChanged", (userId, isOnline) => {
             const event = new CustomEvent('userStatusUpdate', { detail: { userId, isOnline } });
             document.dispatchEvent(event);
@@ -73,32 +64,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.log(`[SignalR] Call declined by ${callerId}`);
         ChatManager.handleCallDeclined(callerId);
     });
-
-
-    window.signalRConnection = connection;
-
-    window.sendClickCount = async (userId, amount) => {
-        if (window.signalRConnection && window.signalRConnection.state === signalR.HubConnectionState.Connected) {
-            try {
-                await window.signalRConnection.invoke("SendClickCount", userId, amount);
-                console.log(`SignalR.js: Sent SendClickCount to Hub for user ${userId} with amount ${amount}!`);
-            } catch (err) {
-            }
-        } else {
-            console.warn("SignalR.js: SignalR connection not established. Cannot send click.");
-        }
-    };
-
-    const sendClickBtn = document.getElementById("sendClickBtn");
-    if (sendClickBtn) {
-        sendClickBtn.addEventListener("click", async () => {
-            const clicksToSend = 1;
-
-            await window.sendClickCount(4, clicksToSend);
-        });
-    } else {
-        console.warn("SignalR.js: Element with ID 'sendClickBtn' not found.");
-    }
 });
 
 const SidebarManager = (() => {

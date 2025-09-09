@@ -128,7 +128,7 @@
             </div>
         }
 
-        @if (Model.Comments.Count >= 1 && !showAllComments)
+        @if (Model.Comments.Count >= 2 && !showAllComments)
         {
             <div class="p-1.5">
                 <a asp-controller="Home" asp-action="Details" asp-route-postId="@Model.Id">

@@ -178,23 +178,6 @@ namespace ApiApp.Hubs
             await base.OnDisconnectedAsync(exception);
         }
 
-
-        public async Task SendClickCount(int receiverUserId, int totalClicks)
-        {
-            if (UserConnections.TryGetValue(receiverUserId, out var connections))
-            {
-                foreach (var connectionId in connections)
-                {
-                    await Clients.Client(connectionId).SendAsync("ReceiveClickCount", totalClicks);
-                }
-                Console.WriteLine($"Sent {totalClicks} clicks to all {connections.Count} connections of user {receiverUserId}.");
-            }
-            else
-            {
-                Console.WriteLine($"ReceiverUserId {receiverUserId} not found in UserConnections (not online or no active connections).");
-            }
-        }
-
         public async Task SendMessage(SendMessageMD sendMessageMD)
             {
                 var httpContext = Context.GetHttpContext();
