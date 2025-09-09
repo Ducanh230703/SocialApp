@@ -11,15 +11,15 @@ namespace Services
 {
     public class GroupMemberService
     {
-        public static async Task<ApiReponseModel> JoinGroup(GroupMember groupMember)
+        public static async Task<ApiReponseModel> JoinGroup(int UserID, int GroupID)
         {
             var apiResponse = new ApiReponseModel();
 
             StringBuilder sql = new StringBuilder("INSERT INTO GroupMembers (GroupId, UserId) VALUES (@GroupId, @UserId)");
             var parameters = new SortedList()
             {
-                { "GroupId", groupMember.GroupId },
-                { "UserId", groupMember.UserID }
+                { "GroupId", GroupID },
+                { "UserId", UserID }
             };
 
             try
@@ -47,15 +47,15 @@ namespace Services
             return apiResponse;
         }
 
-        public static async Task<ApiReponseModel> DeleteMember(int groupId, int userId)
+        public static async Task<ApiReponseModel> DeleteMember(GroupMember groupMember)
         {
             var apiResponse = new ApiReponseModel();
 
-            var sql = $"DELETE FROM GroupMembers Where GroupId ={groupId} AND UserId = {userId} AND (Role = 'Owner' OR Role = 'Admin'";
+            var sql = $"DELETE FROM GroupMembers Where GroupId ={groupMember.GroupId} AND UserId = {groupMember.UserID} AND (Role = 'Owner' OR Role = 'Admin'";
 
             try
             {
-                int rowsAffected = await connectDB.Insert(sql);
+                int rowsAffected = await connectDB.Delete(sql);
 
                 if (rowsAffected > 0)
                 {
@@ -78,20 +78,38 @@ namespace Services
             return apiResponse;
         }
 
-        public static async Task<ApiReponseModel> OutGroup(GroupMember groupMember)
+        public static async Task<ApiReponseModel> LeaveGroup(int UserID, int GroupID)
         {
+            var apiResponse = new ApiReponseModel();
             var sql = "DELETE FROM GroupMembers WHERE GroupId = @GroupId AND UserId = @UserId";
             var parameters = new SortedList()
             {
-                { "GroupId", groupMember.GroupId },
-                { "UserId", groupMember.UserID }
+                { "GroupId", GroupID },
+                { "UserId", UserID }
             };
 
             try
             {
                 var rs = await connectDB.Delete(sql, parameters);
-
+                if (rs > 0)
+                {
+                    apiResponse.Status = 1;
+                    apiResponse.Mess = $"Người dùng rời nhóm thành công";
+                }
+                else
+                {
+                    apiResponse.Status = 0;
+                    apiResponse.Mess = "Không có thành viên vào rời nhóm thành công";
+                }
             }
+            catch (Exception ex)
+            {
+                apiResponse.Status = -1;
+                apiResponse.Mess = $"Đã xảy ra lỗi khi rời nhóm: {ex.Message}";
+                Console.WriteLine($"Error in AddMember: {ex.Message}");
+            }
+
+            return apiResponse;
         }
 
     }
