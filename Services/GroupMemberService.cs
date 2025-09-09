@@ -78,39 +78,6 @@ namespace Services
             return apiResponse;
         }
 
-        public static async Task<ApiReponseModel> LeaveGroup(int UserID, int GroupID)
-        {
-            var apiResponse = new ApiReponseModel();
-            var sql = "DELETE FROM GroupMembers WHERE GroupId = @GroupId AND UserId = @UserId";
-            var parameters = new SortedList()
-            {
-                { "GroupId", GroupID },
-                { "UserId", UserID }
-            };
-
-            try
-            {
-                var rs = await connectDB.Delete(sql, parameters);
-                if (rs > 0)
-                {
-                    apiResponse.Status = 1;
-                    apiResponse.Mess = $"Người dùng rời nhóm thành công";
-                }
-                else
-                {
-                    apiResponse.Status = 0;
-                    apiResponse.Mess = "Không có thành viên vào rời nhóm thành công";
-                }
-            }
-            catch (Exception ex)
-            {
-                apiResponse.Status = -1;
-                apiResponse.Mess = $"Đã xảy ra lỗi khi rời nhóm: {ex.Message}";
-                Console.WriteLine($"Error in AddMember: {ex.Message}");
-            }
-
-            return apiResponse;
-        }
 
     }
 }
