@@ -1,4 +1,5 @@
-﻿using Models.ReponseModel;
+﻿using Models;
+using Models.ReponseModel;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,28 +11,16 @@ namespace Services
 {
     public class GroupMemberService
     {
-        public static async Task<ApiReponseModel> JoinGroup(int groupId, List<int> userId)
+        public static async Task<ApiReponseModel> JoinGroup(GroupMember groupMember)
         {
             var apiResponse = new ApiReponseModel();
-            if (userId == null || !userId.Any())
-            {
-                apiResponse.Mess = "Danh sách User ID không được để trống.";
-                return apiResponse;
-            }
-            StringBuilder sql = new StringBuilder("INSERT INTO GroupMembers (GroupId, UserId) VALUES ");
-            SortedList parameters = new SortedList();
 
-            for (int i = 0; i < userId.Count; i++)
+            StringBuilder sql = new StringBuilder("INSERT INTO GroupMembers (GroupId, UserId) VALUES (@GroupId, @UserId)");
+            var parameters = new SortedList()
             {
-                sql.Append($"(@GroupId{i}, @UserId{i})");
-                parameters.Add($"@GroupId{i}", groupId);
-                parameters.Add($"@UserId{i}", userId[i]);
-
-                if (i < userId.Count - 1)
-                {
-                    sql.Append(", "); 
-                }
-            }
+                { "GroupId", groupMember.GroupId },
+                { "UserId", groupMember.UserID }
+            };
 
             try
             {
@@ -40,12 +29,12 @@ namespace Services
                 if (rowsAffected > 0)
                 {
                     apiResponse.Status = 1;
-                    apiResponse.Mess = $"Đã thêm thành công {rowsAffected} thành viên vào nhóm.";
+                    apiResponse.Mess = "Tham gia nhóm thành công";
                 }
                 else
                 {
                     apiResponse.Status = 0;
-                    apiResponse.Mess = "Không có thành viên nào được thêm. Có thể đã tồn tại.";
+                    apiResponse.Mess = "Tham gia nhóm thất bại";
                 }
             }
             catch (Exception ex)
@@ -57,7 +46,7 @@ namespace Services
 
             return apiResponse;
         }
-        
+
         public static async Task<ApiReponseModel> DeleteMember(int groupId, int userId)
         {
             var apiResponse = new ApiReponseModel();
