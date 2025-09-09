@@ -12,41 +12,70 @@ namespace Services
      {
         public static async Task<ApiReponseModel> CreateGroup(int userId, string groupName)
         {
-            var sql = "INSERT INTO Groups (CreatedByUserId,GroupName) VALUES (@userId,@groupName)";
-            var param = new System.Collections.SortedList
-            {
-                {"userId",userId },
-                {"groupName",groupName }
-            };
-
             try
             {
-                var rs = await connectDB.Insert(sql, param);
-                if (rs > 0)
+                var sql = @"
+                BEGIN TRANSACTION;
+
+                BEGIN TRY
+                    DECLARE @NewGroupID INT;
+
+                    INSERT INTO Groups (CreatedByUserId, GroupName)
+                    VALUES (@userId, @groupName);
+
+                    SET @NewGroupID = SCOPE_IDENTITY();
+
+                    INSERT INTO GroupMembers (GroupId, UserId, Role)
+                    VALUES (@NewGroupID, @userId, 'Owner');
+
+                    COMMIT TRANSACTION;
+
+                    SELECT 1 AS Status, N'Tạo nhóm thành công' AS Mess, @NewGroupID AS GroupId;
+                END TRY
+                BEGIN CATCH
+                    IF @@TRANCOUNT > 0
+                        ROLLBACK TRANSACTION;
+
+                    -- Trả về lỗi
+                    SELECT -1 AS Status, N'Lỗi SQL: ' + ERROR_MESSAGE() AS Mess;
+                END CATCH;
+            ";
+
+                var param = new System.Collections.SortedList
+            {
+                { "userId", userId },
+                { "groupName", groupName }
+            };
+
+                var result = await connectDB.Insert(sql, param);
+
+                if (result != null)
                 {
-                    return new ApiReponseModel
+                    // This part depends on how your `ExecuteScalar` method returns a single value or a row.
+                    // Assuming it returns a simple value for status.
+                    int status = (int)result;
+                    if (status == 1)
                     {
-                        Status = 1,
-                        Mess = "Tạo nhóm thành công"
-                    };
+                        return new ApiReponseModel { Status = 1, Mess = "Tạo nhóm thành công" };
+                    }
+                    else
+                    {
+                        // This is a simplified error handling. You might need to adjust based on the SQL result.
+                        return new ApiReponseModel { Status = -1, Mess = "Lỗi SQL: Không thể tạo nhóm." };
+                    }
                 }
                 else
                 {
-                    return new ApiReponseModel
-                    {
-                        Status = 0,
-                        Mess = "Tạo nhóm thất bại"
-                    };   
+                    return new ApiReponseModel { Status = 0, Mess = "Tạo nhóm thất bại" };
                 }
             }
-            catch (SqlException ex)
+            catch (Exception ex)
             {
                 return new ApiReponseModel
                 {
                     Status = -1,
-                    Mess = "Lỗi Sql"
+                    Mess = $"Đã xảy ra lỗi: {ex.Message}"
                 };
-
             }
         }
 

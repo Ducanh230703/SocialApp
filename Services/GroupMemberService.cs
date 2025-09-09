@@ -51,7 +51,7 @@ namespace Services
         {
             var apiResponse = new ApiReponseModel();
 
-            var sql = $"DELETE FROM GroupMembers Where GroupId ={groupId} AND UserId = {userId}";
+            var sql = $"DELETE FROM GroupMembers Where GroupId ={groupId} AND UserId = {userId} AND (Role = 'Owner' OR Role = 'Admin'";
 
             try
             {
@@ -76,6 +76,22 @@ namespace Services
             }
 
             return apiResponse;
+        }
+
+        public static async Task<ApiReponseModel> OutGroup(GroupMember groupMember)
+        {
+            var sql = "DELETE FROM GroupMembers WHERE GroupId = @GroupId AND UserId = @UserId";
+            var parameters = new SortedList()
+            {
+                { "GroupId", groupMember.GroupId },
+                { "UserId", groupMember.UserID }
+            };
+
+            try
+            {
+                var rs = await connectDB.Delete(sql, parameters);
+
+            }
         }
 
     }
