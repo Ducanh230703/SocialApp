@@ -1401,3 +1401,35 @@ input:checked + .switch-button:before {
 .video-container.hidden {
     display: none;
 }
+
+/* Thêm đoạn CSS này vào file CSS của bạn (ví dụ: Site.css hoặc trong thẻ <style> của file .cshtml) */
+.password-container {
+    position: relative; /* Quan trọng để định vị tuyệt đối cho nút */
+    display: flex; /* Sử dụng flexbox để dễ dàng căn chỉnh */
+    align-items: center; /* Căn giữa theo chiều dọc */
+    width: 100%; /* Đảm bảo container chiếm toàn bộ chiều rộng */
+}
+
+    .password-container input[type="password"],
+    .password-container input[type="text"] {
+        flex-grow: 1; /* Cho phép input chiếm phần lớn không gian */
+        padding-right: 40px; /* Tạo khoảng trống cho nút */
+        box-sizing: border-box; /* Đảm bảo padding không làm thay đổi kích thước */
+    }
+
+    .password-container button {
+        position: absolute; /* Định vị nút tuyệt đối */
+        right: 10px; /* Cách mép phải 10px */
+        top: 50%; /* Căn giữa theo chiều dọc */
+        transform: translateY(-50%); /* Điều chỉnh để căn chính xác */
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.2em; /* Kích thước biểu tượng */
+        color: #6b7280; /* Màu sắc của biểu tượng (tương ứng với text-gray-700) */
+    }
+
+    /* Tùy chỉnh class !w-full của Tailwind CSS nếu nó đang xung đột */
+    .password-container .!w-full {
+        width: 100% !important; /* Override nếu cần */
+    }
