@@ -83,30 +83,4 @@
         </div>
     </div>
 </div>
-<script>
-    function togglePasswordVisibility(inputId) {
-        const input = document.getElementById(inputId);
-        const type = input.getAttribute('type');
-
-        if (type === 'password') {
-            input.setAttribute('type', 'text');
-        } else {
-            input.setAttribute('type', 'password');
-        }
-    }
-    function loginWithGoogle() {
-        const url = 'https://localhost:7024/api/User/login/google'; // Thay bằng URL API của bạn
-        const newWindow = window.open(url, 'GoogleLogin', 'width=500,height=600');
-
-        // Lắng nghe thông điệp từ cửa sổ popup
-        window.addEventListener('message', (event) => {
-            // Kiểm tra nguồn gốc của message để đảm bảo an toàn
-            if (event.origin === 'https://localhost:7024' && event.data.token) {
-                // Lưu JWT vào Local Storage hoặc Session Storage
-                localStorage.setItem('jwt_token', event.data.token);
-                // Chuyển hướng người dùng đến trang chính
-                window.location.href = '/dashboard'; // Thay bằng URL trang chính của bạn
-            }
-        });
-    }
-</script>
+<script src="~/js/home/index.js"></script>

@@ -17,13 +17,20 @@ UserSerivce.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihos
 NotificationService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
 FriendRequestService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
 MessageService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
-builder.Services.AddAuthentication()
-    .AddGoogle(options =>
-    {
-        options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
-        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
-    });
-builder.Services.AddSignalR();
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = "Google";
+})
+.AddCookie()
+.AddGoogle(options =>
+{
+    options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
+    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
+    options.CallbackPath = "/api/User/signin-google";
+});
+builder.Services.AddSignalR();  
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigins",
@@ -42,6 +49,7 @@ if (app.Environment.IsDevelopment())
 }
 app.UseCors("AllowSpecificOrigins");
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<Middleware>();
 

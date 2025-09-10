@@ -167,12 +167,12 @@ namespace ApiApp.Controllers
         {   
             var properties = new AuthenticationProperties
             {
-                RedirectUri = "https://localhost:7024/api/User/google-callback"
+                RedirectUri = "https://localhost:7024/api/User/signin-google    "
             };
             return Challenge(properties, "Google");
         }
 
-        [HttpGet("google-callback")]
+        [HttpGet("signin-google")]
         public async Task<IActionResult> GoogleCallback()
         {
             var result = await HttpContext.AuthenticateAsync("Google");
@@ -181,11 +181,33 @@ namespace ApiApp.Controllers
             {
                 var claims = result.Principal.Claims;
                 var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
-                return Ok();
+                var fullName = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+
+                if (string.IsNullOrEmpty(email))
+                {
+                    return BadRequest("Đăng nhập Google thất bại: Không lấy được email.");
+                }
+
+                var loginResult = await UserSerivce.LoginOrRegisterWithGoogle(email, fullName);
+
+                if (loginResult.Status == 1 && loginResult.Data != null)
+                {
+                    var token = loginResult.Data.Token;
+                    return Content($@"
+                <script>
+                    if (window.opener) {{
+                        window.opener.postMessage({{ token: '{token}' }}, '{Request.Scheme}://{Request.Host}');
+                        window.close();
+                    }}
+                </script>", "text/html");
+                }
+                else
+                {
+                    return BadRequest(loginResult.Mess);
+                }
             }
 
             return BadRequest("Đăng nhập Google thất bại.");
         }
-
     }
 }
