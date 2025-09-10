@@ -48,8 +48,7 @@
                     <hr class="flex-1 border-slate-200">
                 </div>
                 <div class="flex gap-2">
-                    <a asp-controller="Authentication" asp-action="ExternalLogin" asp-route-provider="Google" class="button flex-1 flex items-center gap-2 bg-primary text-white text-sm"> <ion-icon name="logo-google" class="text-lg"></ion-icon> google </a>
-                    <a asp-controller="Authentication" asp-action="ExternalLogin" asp-route-provider="GitHub" class="button flex-1 flex items-center gap-2 bg-black text-white text-sm"><ion-icon name="logo-github" class="text-lg"></ion-icon> github </a>
+                    <a href="javascript:void(0);" onclick="loginWithGoogle()" class="button flex-1 flex items-center gap-2 bg-primary text-white text-sm"> <ion-icon name="logo-google" class="text-lg"></ion-icon> google </a>                    <a asp-controller="Authentication" asp-action="ExternalLogin" asp-route-provider="GitHub" class="button flex-1 flex items-center gap-2 bg-black text-white text-sm"><ion-icon name="logo-github" class="text-lg"></ion-icon> github </a>
                 </div>
             </form>
     </div>
@@ -94,5 +93,20 @@
         } else {
             input.setAttribute('type', 'password');
         }
+    }
+    function loginWithGoogle() {
+        const url = 'https://localhost:7024/api/User/login/google'; // Thay bằng URL API của bạn
+        const newWindow = window.open(url, 'GoogleLogin', 'width=500,height=600');
+
+        // Lắng nghe thông điệp từ cửa sổ popup
+        window.addEventListener('message', (event) => {
+            // Kiểm tra nguồn gốc của message để đảm bảo an toàn
+            if (event.origin === 'https://localhost:7024' && event.data.token) {
+                // Lưu JWT vào Local Storage hoặc Session Storage
+                localStorage.setItem('jwt_token', event.data.token);
+                // Chuyển hướng người dùng đến trang chính
+                window.location.href = '/dashboard'; // Thay bằng URL trang chính của bạn
+            }
+        });
     }
 </script>

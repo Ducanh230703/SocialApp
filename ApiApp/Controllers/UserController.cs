@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Models.ReponseModel;
 using Models.ViewModel.Users;
 using Services;
 using System.Runtime;
+using System.Security.Claims;
 using Umbraco.Core.Models.Membership;
 using User = Models.User;
 
@@ -158,6 +160,31 @@ namespace ApiApp.Controllers
         {
             var rs = await UserSerivce.GetUserById(userId);
             return rs;
+        }
+
+        [HttpGet("login/google")]
+        public IActionResult LoginGoogle()
+        {   
+            var properties = new AuthenticationProperties
+            {
+                RedirectUri = "https://localhost:7024/api/User/google-callback"
+            };
+            return Challenge(properties, "Google");
+        }
+
+        [HttpGet("google-callback")]
+        public async Task<IActionResult> GoogleCallback()
+        {
+            var result = await HttpContext.AuthenticateAsync("Google");
+
+            if (result.Succeeded)
+            {
+                var claims = result.Principal.Claims;
+                var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+                return Ok();
+            }
+
+            return BadRequest("Đăng nhập Google thất bại.");
         }
 
     }
