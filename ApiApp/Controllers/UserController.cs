@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Models.ReponseModel;
 using Models.ViewModel.Users;
 using Services;
 using System.Runtime;
+using System.Security.Claims;
 using Umbraco.Core.Models.Membership;
 using User = Models.User;
 
@@ -160,5 +162,52 @@ namespace ApiApp.Controllers
             return rs;
         }
 
+        [HttpGet("login/google")]
+        public IActionResult LoginGoogle()
+        {   
+            var properties = new AuthenticationProperties
+            {
+                RedirectUri = "https://localhost:7024/api/User/signin-google    "
+            };
+            return Challenge(properties, "Google");
+        }
+
+        [HttpGet("signin-google")]
+        public async Task<IActionResult> GoogleCallback()
+        {
+            var result = await HttpContext.AuthenticateAsync("Google");
+
+            if (result.Succeeded)
+            {
+                var claims = result.Principal.Claims;
+                var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+                var fullName = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+
+                if (string.IsNullOrEmpty(email))
+                {
+                    return BadRequest("Đăng nhập Google thất bại: Không lấy được email.");
+                }
+
+                var loginResult = await UserSerivce.LoginOrRegisterWithGoogle(email, fullName);
+
+                if (loginResult.Status == 1 && loginResult.Data != null)
+                {
+                    var token = loginResult.Data.Token;
+                    return Content($@"
+                <script>
+                    if (window.opener) {{
+                        window.opener.postMessage({{ token: '{token}' }}, '{Request.Scheme}://{Request.Host}');
+                        window.close();
+                    }}
+                </script>", "text/html");
+                }
+                else
+                {
+                    return BadRequest(loginResult.Mess);
+                }
+            }
+
+            return BadRequest("Đăng nhập Google thất bại.");
+        }
     }
 }

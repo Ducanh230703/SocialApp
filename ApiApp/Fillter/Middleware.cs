@@ -16,7 +16,7 @@ namespace ApiApp.Fillter
         {
             var path = context.Request.Path.ToString().ToLower();
 
-            if (path.StartsWith("/swagger") || path.StartsWith("/favicon") || path.Contains("swagger") || path.Contains("media/") || path.Contains("/chathub"))
+            if (path.StartsWith("/swagger") || path.StartsWith("/favicon") || path.Contains("swagger") || path.Contains("media/") || path.Contains("/chathub")||path.Contains("google-callback"))
             {
                 await _next(context);
                 return;

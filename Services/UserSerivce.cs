@@ -620,10 +620,84 @@ namespace Services
                     Data = null
                 };
             }
+        }
 
+        public static async Task<ApiReponseModel<UserReponseModel>> LoginOrRegisterWithGoogle(string email, string fullName)
+        {
+            var existingUserResult = await Login(email, null); 
 
+            if (existingUserResult.Status == 1 && existingUserResult.Data != null && existingUserResult.Data.Email.Equals(email, StringComparison.OrdinalIgnoreCase))
+            {
+                var user = new User
+                {
+                    ID = existingUserResult.Data.ID,
+                    Email = existingUserResult.Data.Email,
+                    FullName = existingUserResult.Data.FullName,
+                    Bio = existingUserResult.Data.Bio,
+                    ProfilePictureUrl = existingUserResult.Data.ProfilePictureUrl
+                };
+                string token = Cache.CacheEx.SetTokenEx(user); 
 
+                if (token != null)
+                {
+                    var userResponse = new UserReponseModel
+                    {
+                        ID = user.ID,
+                        Email = user.Email,
+                        FullName = user.FullName,
+                        Bio = user.Bio,
+                        ProfilePictureUrl = user.ProfilePictureUrl,
+                        Token = token
+                    };
+                    return new ApiReponseModel<UserReponseModel>
+                    {
+                        Status = 1,
+                        Mess = "Đăng nhập Google thành công.",
+                        Data = userResponse
+                    };
+                }
+                else
+                {
+                    return new ApiReponseModel<UserReponseModel>
+                    {
+                        Status = 0,
+                        Mess = "Đã xảy ra lỗi khi tạo token sau khi đăng nhập Google."
+                    };
+                }
+            }
+            else
+            {
+                string tempPassword = Guid.NewGuid().ToString();
+                string hashedPassword = BCrypt.Net.BCrypt.HashPassword(tempPassword);
 
+                var registrationResult = await UserRegister(email, hashedPassword, fullName ?? "Người dùng Google");
+
+                if (registrationResult.Status == 1)
+                {
+
+                    var loginResult = await Login(email, tempPassword); 
+                    if (loginResult.Status == 1 && loginResult.Data != null)
+                    {
+                        return loginResult;
+                    }
+                    else
+                    {
+                        return new ApiReponseModel<UserReponseModel>
+                        {
+                            Status = 0,
+                            Mess = "Đăng ký Google thành công nhưng đăng nhập lại thất bại."
+                        };
+                    }
+                }
+                else
+                {
+                    return new ApiReponseModel<UserReponseModel>
+                    {
+                        Status = 0,
+                        Mess = $"Đăng ký Google thất bại: {registrationResult.Mess}"
+                    };
+                }
+            }
         }
     }
 }
