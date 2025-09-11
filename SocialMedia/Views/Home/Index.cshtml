@@ -103,7 +103,6 @@
         `;
     }
 
-    // Listener cho sự kiện SignalR (Đã sửa)
     if (typeof connection !== 'undefined' && connection) {
         connection.on("ReceiveNewComment", (postId, newComment) => {
             console.log("SignalR.js: Received a new comment.", newComment);
@@ -138,6 +137,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         const postsContainer = document.getElementById('posts-container');
         const loadMoreBtn = document.getElementById('loadMorePostsBtn');
+        let isFetching = false;
 
         if (postsContainer) {
             postsContainer.addEventListener('click', function (event) {
@@ -355,46 +355,47 @@
             });
         }
 
-        if (loadMoreBtn) {
-            loadMoreBtn.addEventListener('click', function () {
-                const nextPage = parseInt(this.getAttribute('data-next-page'));
-                const pageSize = parseInt(this.getAttribute('data-page-size'));
+        // Thêm đoạn mã xử lý cuộn trang để tải thêm bài viết
+        if (loadMoreBtn && postsContainer) {
+            window.addEventListener('scroll', function () {
+                // Kiểm tra nếu người dùng cuộn đến cuối trang
+                const isAtBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight;
+                if (isAtBottom && !isFetching) {
+                    isFetching = true;
 
-                console.log('nextPage:', nextPage, 'pageSize:', pageSize);
+                    const nextPage = parseInt(loadMoreBtn.getAttribute('data-next-page'));
+                    const pageSize = parseInt(loadMoreBtn.getAttribute('data-page-size'));
 
-                if (isNaN(nextPage) || nextPage < 1) {
-                    console.warn('Giá trị nextPage không hợp lệ:', nextPage);
-                    return;
+                    if (isNaN(nextPage) || nextPage < 1) {
+                        console.warn('Giá trị nextPage không hợp lệ:', nextPage);
+                        isFetching = false;
+                        return;
+                    }
+
+                    fetch(`/Home/GetMorePosts?pageNumber=${nextPage}&pageSize=${pageSize}`)
+                        .then(res => res.text())
+                        .then(html => {
+                            if (html.trim() === "") {
+                                postsContainer.insertAdjacentHTML('beforeend', '<div>Đã hết bài viết.</div>');
+                            } else {
+                                postsContainer.insertAdjacentHTML('beforeend', html);
+                                loadMoreBtn.setAttribute('data-next-page', nextPage + 1);
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            Toastify({
+                                text: "Có lỗi xảy ra khi tải thêm bài viết.",
+                                duration: 3000,
+                                backgroundColor: "#f44336",
+                                gravity: "top",
+                                position: "center",
+                            }).showToast();
+                        })
+                        .finally(() => {
+                            isFetching = false;
+                        });
                 }
-
-                this.disabled = true;
-                this.querySelector('span').textContent = 'Đang tải...';
-
-                fetch(`/Home/GetMorePosts?pageNumber=${nextPage}&pageSize=${pageSize}`)
-                    .then(res => res.text())
-                    .then(html => {
-                        if (html.trim() === "") {
-                            loadMoreBtn.querySelector('span').textContent = "Đã hết bài viết";
-                            loadMoreBtn.disabled = true;
-                        } else {
-                            postsContainer.insertAdjacentHTML('beforeend', html);
-                            loadMoreBtn.setAttribute('data-next-page', nextPage + 1);
-                            loadMoreBtn.querySelector('span').textContent = "Tải thêm";
-                            loadMoreBtn.disabled = false;
-                        }
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        loadMoreBtn.querySelector('span').textContent = "Tải thêm";
-                        loadMoreBtn.disabled = false;
-                        Toastify({
-                            text: "Có lỗi xảy ra khi tải thêm bài viết.",
-                            duration: 3000,
-                            backgroundColor: "#f44336",
-                            gravity: "top",
-                            position: "center",
-                        }).showToast();
-                    });
             });
         }
 
