@@ -27,7 +27,7 @@ builder.Services.AddAuthentication(options =>
 {
     options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
-    options.CallbackPath = "/api/User/signin-google";
+    options.CallbackPath = "/api/User/GoogleCallback";
 });
 builder.Services.AddSignalR();  
 
@@ -49,6 +49,7 @@ if (app.Environment.IsDevelopment())
 }
 app.UseCors("AllowSpecificOrigins");
 app.UseHttpsRedirection();
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<Middleware>();

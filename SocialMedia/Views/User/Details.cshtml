@@ -139,6 +139,7 @@
                                    { "ShowAllComment", false },
                                    { "ShowDetails", false }
                                }' />
+
                         }
                     }
                     else
@@ -326,9 +327,6 @@
                     return;
                 }
                 const statusId = $(this).data('profile-status-id');
-                // Status -1: Tạm định nghĩa cho "hủy kết bạn" (backend sẽ xóa mối quan hệ bạn bè)
-                // Backend cần điều chỉnh FriendRequestService.AnswerRequest để xử lý việc xóa mối quan hệ từ cả hai chiều.
-                // Gửi ID của người đang đăng nhập làm SenderId và ID của người trên profile làm ReceiverId (hoặc ngược lại, backend cần xử lý linh hoạt).
                 sendFriendAnswer(-1,parseInt(statusId));
             });
         });
@@ -344,7 +342,6 @@
             return new Date(dateString).toLocaleDateString(undefined, options);
         }
 
-        // Hàm tạo HTML cho bài viết với dropdown tùy chọn
         function createPostHtml(post, currentLoggedInUserId) {
             const imageUrls = post.imageUrl ? post.imageUrl.split(',') : [];
             const imageHtml = imageUrls.length > 0 ? `
@@ -737,7 +734,5 @@
             });
             }
         });
-
-    
     </script>
 }

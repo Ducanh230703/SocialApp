@@ -58,7 +58,7 @@ namespace Services
                             From Notifications n
                             join Users u_sender on u_sender.ID = n.SenderId
                             Where ReceiverId = @receiverId
-                            ORDER BY DateCreated ASC
+                            ORDER BY NotificationDate DESC
                             OFFSET 0 ROWS FETCH NEXT 5 ROWS ONLY
                             FOR JSON PATH
                             ";

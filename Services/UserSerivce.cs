@@ -28,11 +28,10 @@ namespace Services
         /// <param name="Password"></param>
         /// <param name="FullName"></param>
         /// <returns></returns>
-        public static async Task<ApiReponseModel> UserRegister(string Email, string Password, string FullName)
+        public static async Task<ApiReponseModel> UserRegister(string Email, string? Password, string FullName)
         {
             string PasswordHash = null;
 
-            // Các kiểm tra đầu vào phía ứng dụng (Frontend/API)
             if (string.IsNullOrEmpty(Email))
             {
                 return new ApiReponseModel
@@ -75,7 +74,7 @@ namespace Services
             var inParams = new SortedList
         {
             {"@Email", Email},
-            {"@Password", PasswordHash },
+            {"@Password",(object) PasswordHash ?? DBNull.Value},
             {"@FullName", FullName }
         };
 
@@ -624,79 +623,92 @@ namespace Services
 
         public static async Task<ApiReponseModel<UserReponseModel>> LoginOrRegisterWithGoogle(string email, string fullName)
         {
-            var existingUserResult = await Login(email, null); 
+            var sql = "SELECT TOP 1 * FROM Users WHERE Email = @Email";
+            var param = new SortedList { { "Email", email } };
+            DataTable dt = await connectDB.Select(sql, param);
 
-            if (existingUserResult.Status == 1 && existingUserResult.Data != null && existingUserResult.Data.Email.Equals(email, StringComparison.OrdinalIgnoreCase))
+            if (dt.Rows.Count > 0) 
             {
+                DataRow row = dt.Rows[0];
                 var user = new User
                 {
-                    ID = existingUserResult.Data.ID,
-                    Email = existingUserResult.Data.Email,
-                    FullName = existingUserResult.Data.FullName,
-                    Bio = existingUserResult.Data.Bio,
-                    ProfilePictureUrl = existingUserResult.Data.ProfilePictureUrl
+                    ID = Convert.ToInt32(row["ID"]),
+                    Email = row["Email"].ToString(),
+                    FullName = row["FullName"].ToString(),
+                    Bio = row["Bio"].ToString(),
+                    ProfilePictureUrl = row["ProfilePictureUrl"].ToString()
                 };
-                string token = Cache.CacheEx.SetTokenEx(user); 
 
-                if (token != null)
+                string token = Cache.CacheEx.SetTokenEx(user);
+
+                var userResponse = new UserReponseModel
                 {
-                    var userResponse = new UserReponseModel
-                    {
-                        ID = user.ID,
-                        Email = user.Email,
-                        FullName = user.FullName,
-                        Bio = user.Bio,
-                        ProfilePictureUrl = user.ProfilePictureUrl,
-                        Token = token
-                    };
-                    return new ApiReponseModel<UserReponseModel>
-                    {
-                        Status = 1,
-                        Mess = "Đăng nhập Google thành công.",
-                        Data = userResponse
-                    };
-                }
-                else
+                    ID = user.ID,
+                    Email = user.Email,
+                    FullName = user.FullName,
+                    Bio = user.Bio,
+                    ProfilePictureUrl = user.ProfilePictureUrl,
+                    Token = token
+                };
+
+                return new ApiReponseModel<UserReponseModel>
                 {
-                    return new ApiReponseModel<UserReponseModel>
-                    {
-                        Status = 0,
-                        Mess = "Đã xảy ra lỗi khi tạo token sau khi đăng nhập Google."
-                    };
-                }
+                    Status = 1,
+                    Mess = "Đăng nhập Google thành công.",
+                    Data = userResponse
+                };
             }
             else
             {
-                string tempPassword = Guid.NewGuid().ToString();
-                string hashedPassword = BCrypt.Net.BCrypt.HashPassword(tempPassword);
-
-                var registrationResult = await UserRegister(email, hashedPassword, fullName ?? "Người dùng Google");
-
-                if (registrationResult.Status == 1)
-                {
-
-                    var loginResult = await Login(email, tempPassword); 
-                    if (loginResult.Status == 1 && loginResult.Data != null)
-                    {
-                        return loginResult;
-                    }
-                    else
-                    {
-                        return new ApiReponseModel<UserReponseModel>
-                        {
-                            Status = 0,
-                            Mess = "Đăng ký Google thành công nhưng đăng nhập lại thất bại."
-                        };
-                    }
-                }
-                else
+                var registerResult = await UserRegister(email,null,fullName);
+                if (registerResult.Status != 1)
                 {
                     return new ApiReponseModel<UserReponseModel>
                     {
                         Status = 0,
-                        Mess = $"Đăng ký Google thất bại: {registrationResult.Mess}"
+                        Mess = $"Đăng ký Google thất bại: {registerResult.Mess}"
                     };
                 }
+
+                // Lấy user vừa tạo
+                dt = await connectDB.Select(sql, param);
+                if (dt.Rows.Count == 0)
+                {
+                    return new ApiReponseModel<UserReponseModel>
+                    {
+                        Status = 0,
+                        Mess = "Đã xảy ra lỗi khi lấy thông tin user sau khi đăng ký."
+                    };
+                }
+
+                DataRow newRow = dt.Rows[0];
+                var newUser = new User
+                {
+                    ID = Convert.ToInt32(newRow["ID"]),
+                    Email = newRow["Email"].ToString(),
+                    FullName = newRow["FullName"].ToString(),
+                    Bio = newRow["Bio"].ToString(),
+                    ProfilePictureUrl = newRow["ProfilePictureUrl"].ToString()
+                };
+
+                string newToken = Cache.CacheEx.SetTokenEx(newUser);
+
+                var newUserResponse = new UserReponseModel
+                {
+                    ID = newUser.ID,
+                    Email = newUser.Email,
+                    FullName = newUser.FullName,
+                    Bio = newUser.Bio,
+                    ProfilePictureUrl = newUser.ProfilePictureUrl,
+                    Token = newToken
+                };
+
+                return new ApiReponseModel<UserReponseModel>
+                {
+                    Status = 1,
+                    Mess = "Đăng ký và đăng nhập Google thành công.",
+                    Data = newUserResponse
+                };
             }
         }
     }

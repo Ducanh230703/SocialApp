@@ -64,6 +64,47 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.log(`[SignalR] Call declined by ${callerId}`);
         ChatManager.handleCallDeclined(callerId);
     });
+
+    function createCommentHtml(comment) {
+        let removeButtonHtml = '';
+
+        if (loggedInUserId && loggedInUserId == comment.userId) {
+            removeButtonHtml = `
+            <form class="remove-comment-form" data-comment-id="${comment.id}" action="/Home/RemovePostComment">
+                <button type="submit" class="text-red-500 text-xs ml-2" title="Remove post comment">
+                    <ion-icon name="trash-outline"></ion-icon>
+                </button>
+            </form>
+        `;
+        }
+        return `
+        <div class="flex items-start gap-3 relative">
+            <img src="${comment.userProfilePictureUrl || '/images/avatar/user.png'}" class="w-6 h-6 mt-1 rounded-full" />
+            <div class="flex-1">
+                <div class="flex justify-between">
+                    <span class="text-black font-medium inline-block flex-grow">${comment.userFullName}</span>
+                    <small>Just now</small>
+                </div>
+                <p class="mt-0.5">${comment.content}</p>
+                ${removeButtonHtml}
+            </div>
+        </div>
+    `;
+    }
+
+    connection.on("ReceiveNewComment", (postId, newComment) => {
+        console.log("SignalR.js: Received a new comment.", newComment);
+
+        const postElement = document.getElementById(`post-${postId}`);
+        if (postElement) {
+            const commentsList = postElement.querySelector('.comments-list');
+            if (commentsList) {
+                // Gọi hàm mới để tạo HTML
+                const newCommentHtml = createCommentHtml(newComment);
+                commentsList.insertAdjacentHTML('afterbegin', newCommentHtml);
+            }
+        }
+    });
 });
 
 const SidebarManager = (() => {

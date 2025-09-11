@@ -21,7 +21,7 @@
     string[] imageUrls = string.IsNullOrEmpty(Model.ImageUrl) ? new string[0] : Model.ImageUrl.Split(',');
 }
 
-<div id="post-@Model.Id" class="bg-white rounded-xl shadow-sm text-sm font-medium border1">
+<div id="post-@Model.Id" class="bg-white rounded-xl shadow-sm text-sm font-medium border1 post-item">
     <div class="flex gap-3 sm:p-4 p-2.5 text-sm font-medium">
         <a href="/User/Details?userId=@Model.UserId">
             <img src="@(!string.IsNullOrEmpty(Model.UserProfilePictureUrl) ? Model.UserProfilePictureUrl : Url.Content("~/images/avatar/user.png"))" class="w-9 h-9 rounded-full" />
@@ -88,7 +88,7 @@
         <div class="ml-auto"></div>
     </div>
 
-    <div class="p-2.5 border-t border-gray-100 font-normal space-y-3 relative">
+    <div class="p-2.5 border-t border-gray-100 font-normal space-y-3 relative comments-list">
         @foreach (var comment in showAllComments
         ? Model.Comments.OrderByDescending(n => n.DateCreated)
         : Model.Comments.OrderByDescending(n => n.DateCreated).Take(2))

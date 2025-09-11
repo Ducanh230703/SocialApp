@@ -1,4 +1,4 @@
-﻿﻿@using Models.ReponseModel
+﻿@using Models.ReponseModel
 @using Models.ViewModel.Home
 @using Models.ViewModel.Story
 @model PaginatedResponse<PostFull>
@@ -11,12 +11,12 @@
 }
 
 <main id="site__main" class="2xl:ml-[--w-side] xl:ml-[--w-side-sm] p-2.5 h-[calc(100vh-var(--m-top))] mt-[--m-top]">
-    <div class="lg:flex 2xl:gap-16 gap-12 max-w-[1065px] mx-auto" id="js-oversized">
-        <div class="max-w-[680px] mx-auto">
+    <div class="lg:flex 2xl:gap-16 gap-12 max-w-[1065px]" style="background-color:rgb(249, 250, 251)" id="js-oversized">
+        <div class="max-w-[680px] mx-auto" style="margin-left:120px">
             @* Stories Component *@
             @await Component.InvokeAsync("Stories")
 
-            <div class="mx-auto flex-1 xl:space-y-6 space-y-3" style="width: 580px;>
+            <div class="mx-auto flex-1 xl:space-y-6 space-y-3" style="width: 580px;">
                 @* Create Status Section *@
                 <div class="bg-white rounded-xl shadow-sm md:p-4 p-2 space-y-4 text-sm font-medium border1">
                     <div class="flex items-center md:gap-3 gap-1">
@@ -35,7 +35,7 @@
                     </div>
                 </div>
 
-                <div id="posts-container" class="space-y-4">
+                <div id="posts-container" style="width:580px" class="space-y-4">
                     @if (Model != null && Model.Data != null && Model.Data.Any())
                     {
                         @foreach (var post in Model.Data)
@@ -64,7 +64,6 @@
             </div>
         </div>
     </div>
-
 </main>
 
 @* Modals *@
@@ -73,48 +72,60 @@
 <partial name="_Createstory" model="new StoryVM()" />
 <partial name="_EditStatus" model="new PostEditVM()" />
 
-
 <script>
-    // let connection;
-    // let totalClicks = 0;
     let loggedInUserId = @(loggedInUserId.HasValue? loggedInUserId.Value.ToString() : "null");
 
-    // document.addEventListener("DOMContentLoaded", async () => {
-    //     Khởi tạo kết nối
-    //     connection = new signalR.HubConnectionBuilder()
-    //         .withUrl(`https:localhost:7024/chathub`)
-    //         .configureLogging(signalR.LogLevel.Information)
-    //         .build();
+    // Hàm tạo HTML cho bình luận mới (Đã sửa)
+    function createCommentHtml(comment) {
+        let removeButtonHtml = '';
+        if (loggedInUserId && loggedInUserId == comment.userId) {
+            removeButtonHtml = `
+                <form class="remove-comment-form" data-comment-id="${comment.id}" action="/Home/RemovePostComment">
+                    <button type="submit" class="text-red-500 text-xs ml-2" title="Remove post comment">
+                        <ion-icon name="trash-outline"></ion-icon>
+                    </button>
+                </form>
+            `;
+        }
 
-    //     connection.on("ReceiveClickCount", (amountOfClicksReceived) => {
-    //     totalClicks += amountOfClicksReceived;
-    //     document.getElementById("totalClicks").innerText = totalClicks;
-    //     console.log(`Nhận thêm ${amountOfClicksReceived} click. Tổng cộng: ${totalClicks}`);
+        return `
+            <div class="flex items-start gap-3 relative">
+                <img src="${comment.userProfilePictureUrl || '/images/avatar/user.png'}" class="w-6 h-6 mt-1 rounded-full" />
+                <div class="flex-1">
+                    <div class="flex justify-between">
+                        <span class="text-black font-medium inline-block flex-grow">${comment.userFullName}</span>
+                        <small>Just now</small>
+                    </div>
+                    <p class="mt-0.5">${comment.content}</p>
+                    ${removeButtonHtml}
+                </div>
+            </div>
+        `;
+    }
 
-    //     Toastify({
-    //         text: `Bạn vừa nhận thêm ${amountOfClicksReceived} click!`,
-    //         duration: 2000,
-    //         backgroundColor: "#28a745",
-    //         gravity: "top",
-    //         position: "right",
-    //     }).showToast();
-    // });
+    // Listener cho sự kiện SignalR (Đã sửa)
+    if (typeof connection !== 'undefined' && connection) {
+        connection.on("ReceiveNewComment", (postId, newComment) => {
+            console.log("SignalR.js: Received a new comment.", newComment);
 
-    //     try {
-    //         await connection.start();
-    //         console.log("SignalR connected:", connection.connectionId);
-    //     } catch (err) {
-    //         console.error("SignalR connection error:", err);
-    //     }
-    //     document.getElementById("sendClickBtn").addEventListener("click", async () => {
-    //         try {
-    //             await .invoke("SendClickCount", 4, 1);
-    //             console.log("Click sent!");
-    //         } catch (err) {
-    //             console.error("Error sending click:", err);
-    //         }
-    //     });
-    // });
+            Toastify({
+                text: "Bình luận thành công!",
+                duration: 3000,
+                backgroundColor: "#4CAF50",
+                gravity: "top",
+                position: "center",
+            }).showToast();
+
+            const postElement = document.getElementById(`post-${postId}`);
+            if (postElement) {
+                const commentsList = postElement.querySelector('.comments-list');
+                if (commentsList) {
+                    const newCommentHtml = createCommentHtml(newComment);
+                    commentsList.insertAdjacentHTML('afterbegin', newCommentHtml);
+                }
+            }
+        });
+    }
 
 
     function openPostDeleteConfirmation(postId) {
@@ -122,6 +133,7 @@
         document.getElementById('deleteConfirmationPostId').value = postId;
         UIkit.modal('#postDeleteDialog').show();
     }
+
 
     document.addEventListener('DOMContentLoaded', function () {
         const postsContainer = document.getElementById('posts-container');
@@ -157,59 +169,34 @@
                         return;
                     }
 
-                    const formData = new FormData();
-                    formData.append("PostId", postId);
-                    formData.append("Content", content);
-
-                    fetch('/Home/AddPostComment', {
-                        method: 'POST',
-                        body: formData,
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.status === 1) {
-                            Toastify({
-                                text: data.message || "Bình luận thành công!",
-                                duration: 3000,
-                                backgroundColor: "#4CAF50",
-                                gravity: "top",
-                                position: "center",
-                            }).showToast();
-                            textarea.value = "";
-                            if (data.data) {
-                            const postElement = document.querySelector(`.post-item[data-post-id="${postId}"]`);
-                            if (postElement) {
-                                const commentsList = postElement.querySelector('.comments-list');
-                                if (commentsList) {
-                                    const newCommentHtml = createCommentHtml(data.data);
-
-                                    commentsList.insertAdjacentHTML('afterbegin', newCommentHtml);
-                                }
-                            }
-                        }
-                        } else {
-                            Toastify({
-                                text: data.message || "Không thể thêm bình luận.",
-                                duration: 3000,
-                                backgroundColor: "#f44336",
-                                gravity: "top",
-                                position: "center",
-                            }).showToast();
-                        }
-                    })
-                    .catch(err => {
-                        console.error(err);
+                    if (connection && connection.state === signalR.HubConnectionState.Connected) {
+                        connection.invoke("AddComment", parseInt(postId), content)
+                            .then(() => {
+                                console.log("Comment request sent via SignalR.");
+                                textarea.value = '';
+                            })
+                            .catch(err => {
+                                console.error("Failed to add comment via SignalR: " + err);
+                                Toastify({
+                                    text: "Đã xảy ra lỗi khi gửi yêu cầu bình luận.",
+                                    duration: 3000,
+                                    backgroundColor: "#f44336",
+                                    gravity: "top",
+                                    position: "center",
+                                }).showToast();
+                            });
+                    } else {
+                        console.error("SignalR connection is not established.");
                         Toastify({
-                            text: "Đã xảy ra lỗi khi thêm bình luận.",
+                            text: "Kết nối SignalR không khả dụng. Vui lòng thử lại sau.",
                             duration: 3000,
                             backgroundColor: "#f44336",
                             gravity: "top",
                             position: "center",
                         }).showToast();
-                    });
+                    }
                 }
 
-                // Xóa bình luận
                 if (e.target.classList.contains('remove-comment-form')) {
                     e.preventDefault();
 
@@ -220,38 +207,38 @@
                     fetch(actionUrl, {
                         method: 'DELETE',
                     })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 1) {
-                            Toastify({
-                                text: data.message || "Xóa bình luận thành công.",
-                                duration: 3000,
-                                backgroundColor: "#4CAF50",
-                                gravity: "top",
-                                position: "center"
-                            }).showToast();
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 1) {
+                                Toastify({
+                                    text: data.message || "Xóa bình luận thành công.",
+                                    duration: 3000,
+                                    backgroundColor: "#4CAF50",
+                                    gravity: "top",
+                                    position: "center"
+                                }).showToast();
 
-                            form.closest('.flex.items-start.gap-3.relative')?.remove();
-                        } else {
+                                form.closest('.flex.items-start.gap-3.relative')?.remove();
+                            } else {
+                                Toastify({
+                                    text: data.message || "Không thể xóa bình luận.",
+                                    duration: 3000,
+                                    backgroundColor: "#f44336",
+                                    gravity: "top",
+                                    position: "center"
+                                }).showToast();
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Lỗi:", error);
                             Toastify({
-                                text: data.message || "Không thể xóa bình luận.",
+                                text: "Đã xảy ra lỗi khi gửi yêu cầu xóa bình luận.",
                                 duration: 3000,
                                 backgroundColor: "#f44336",
                                 gravity: "top",
                                 position: "center"
                             }).showToast();
-                        }
-                    })
-                    .catch(error => {
-                        console.error("Lỗi:", error);
-                        Toastify({
-                            text: "Đã xảy ra lỗi khi gửi yêu cầu xóa bình luận.",
-                            duration: 3000,
-                            backgroundColor: "#f44336",
-                            gravity: "top",
-                            position: "center"
-                        }).showToast();
-                    });
+                        });
                 }
             });
 
@@ -304,48 +291,138 @@
                     method: 'POST',
                     body: formdata,
                 })
-                .then(response => {
-                    if (!response.ok) {
-                        if (response.status === 401) {
+                    .then(response => {
+                        if (!response.ok) {
+                            if (response.status === 401) {
+                                Toastify({
+                                    text: "Bạn cần đăng nhập để thực hiện hành động này.",
+                                    duration: 3000,
+                                    backgroundColor: "#f44336",
+                                    gravity: "top",
+                                    position: "center",
+                                }).showToast();
+                                return Promise.reject("Unauthorized");
+                            }
+                            return response.json().then(err => Promise.reject(err.message || 'Lỗi server không xác định'));
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.status === 1) {
                             Toastify({
-                                text: "Bạn cần đăng nhập để thực hiện hành động này.",
+                                text: successMessage,
+                                duration: 3000,
+                                backgroundColor: "#4CAF50",
+                                gravity: "top",
+                                position: "center",
+                            }).showToast();
+
+                            const likeCountElement = likeButton.nextElementSibling;
+                            let currentLikes = parseInt(likeCountElement.textContent);
+
+                            if (newClassListAction === 'add') {
+                                likeButton.classList.add('text-red-500', 'bg-red-100');
+                                currentLikes++;
+                            } else {
+                                likeButton.classList.remove('text-red-500', 'bg-red-100');
+                                currentLikes--;
+                            }
+                            likeButton.querySelector('ion-icon').setAttribute('name', newIconName);
+                            likeCountElement.textContent = currentLikes;
+
+                        } else {
+                            Toastify({
+                                text: data.message || errorMessage,
                                 duration: 3000,
                                 backgroundColor: "#f44336",
                                 gravity: "top",
                                 position: "center",
                             }).showToast();
-                            return Promise.reject("Unauthorized");
                         }
-                        return response.json().then(err => Promise.reject(err.message || 'Lỗi server không xác định'));
-                    }
-                    return response.json();
-                })
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        if (err !== "Unauthorized") {
+                            Toastify({
+                                text: err || errorMessage,
+                                duration: 3000,
+                                backgroundColor: "#f44336",
+                                gravity: "top",
+                                position: "center",
+                            }).showToast();
+                        }
+                    });
+            });
+        }
+
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', function () {
+                const nextPage = parseInt(this.getAttribute('data-next-page'));
+                const pageSize = parseInt(this.getAttribute('data-page-size'));
+
+                console.log('nextPage:', nextPage, 'pageSize:', pageSize);
+
+                if (isNaN(nextPage) || nextPage < 1) {
+                    console.warn('Giá trị nextPage không hợp lệ:', nextPage);
+                    return;
+                }
+
+                this.disabled = true;
+                this.querySelector('span').textContent = 'Đang tải...';
+
+                fetch(`/Home/GetMorePosts?pageNumber=${nextPage}&pageSize=${pageSize}`)
+                    .then(res => res.text())
+                    .then(html => {
+                        if (html.trim() === "") {
+                            loadMoreBtn.querySelector('span').textContent = "Đã hết bài viết";
+                            loadMoreBtn.disabled = true;
+                        } else {
+                            postsContainer.insertAdjacentHTML('beforeend', html);
+                            loadMoreBtn.setAttribute('data-next-page', nextPage + 1);
+                            loadMoreBtn.querySelector('span').textContent = "Tải thêm";
+                            loadMoreBtn.disabled = false;
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        loadMoreBtn.querySelector('span').textContent = "Tải thêm";
+                        loadMoreBtn.disabled = false;
+                        Toastify({
+                            text: "Có lỗi xảy ra khi tải thêm bài viết.",
+                            duration: 3000,
+                            backgroundColor: "#f44336",
+                            gravity: "top",
+                            position: "center",
+                        }).showToast();
+                    });
+            });
+        }
+
+
+        document.getElementById("confirmDeleteBtn").addEventListener("click", function () {
+            const postId = document.getElementById("deleteConfirmationPostId").value;
+
+            if (!postId) return;
+
+            fetch(`/Home/DeletePost?postId=${postId}`, {
+                method: "DELETE"
+            })
+                .then(res => res.json())
                 .then(data => {
                     if (data.status === 1) {
                         Toastify({
-                            text: successMessage,
+                            text: data.message || "Xóa bài viết thành công.",
                             duration: 3000,
                             backgroundColor: "#4CAF50",
                             gravity: "top",
                             position: "center",
                         }).showToast();
 
-                        const likeCountElement = likeButton.nextElementSibling;
-                        let currentLikes = parseInt(likeCountElement.textContent);
-
-                        if (newClassListAction === 'add') {
-                            likeButton.classList.add('text-red-500', 'bg-red-100');
-                            currentLikes++;
-                        } else {
-                            likeButton.classList.remove('text-red-500', 'bg-red-100');
-                            currentLikes--;
-                        }
-                        likeButton.querySelector('ion-icon').setAttribute('name', newIconName);
-                        likeCountElement.textContent = currentLikes;
-
+                        UIkit.modal('#postDeleteDialog').hide();
+                        document.querySelector(`.post-container[data-post-id="${postId}"]`)?.remove();
                     } else {
                         Toastify({
-                            text: data.message || errorMessage,
+                            text: data.message || "Không thể xóa bài viết.",
                             duration: 3000,
                             backgroundColor: "#f44336",
                             gravity: "top",
@@ -353,55 +430,10 @@
                         }).showToast();
                     }
                 })
-                .catch(err => {
-                    console.error(err);
-                    if (err !== "Unauthorized") {
-                        Toastify({
-                            text: err || errorMessage,
-                            duration: 3000,
-                            backgroundColor: "#f44336",
-                            gravity: "top",
-                            position: "center",
-                        }).showToast();
-                    }
-                });
-            });
-        }
-
-            if (loadMoreBtn) {
-            loadMoreBtn.addEventListener('click', function () {
-            const nextPage = parseInt(this.getAttribute('data-next-page'));
-            const pageSize = parseInt(this.getAttribute('data-page-size'));
-
-            console.log('nextPage:', nextPage, 'pageSize:', pageSize);
-
-            if (isNaN(nextPage) || nextPage < 1) {
-                console.warn('Giá trị nextPage không hợp lệ:', nextPage);
-                return;
-            }
-
-            this.disabled = true;
-            this.querySelector('span').textContent = 'Đang tải...';
-
-            fetch(`/Home/GetMorePosts?pageNumber=${nextPage}&pageSize=${pageSize}`)
-                .then(res => res.text())
-                .then(html => {
-                    if (html.trim() === "") {
-                        loadMoreBtn.querySelector('span').textContent = "Đã hết bài viết";
-                        loadMoreBtn.disabled = true;
-                    } else {
-                        postsContainer.insertAdjacentHTML('beforeend', html);
-                        loadMoreBtn.setAttribute('data-next-page', nextPage + 1);
-                        loadMoreBtn.querySelector('span').textContent = "Tải thêm";
-                        loadMoreBtn.disabled = false;
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    loadMoreBtn.querySelector('span').textContent = "Tải thêm";
-                    loadMoreBtn.disabled = false;
+                .catch(error => {
+                    console.error("Lỗi:", error);
                     Toastify({
-                        text: "Có lỗi xảy ra khi tải thêm bài viết.",
+                        text: "Có lỗi xảy ra khi xóa bài viết.",
                         duration: 3000,
                         backgroundColor: "#f44336",
                         gravity: "top",
@@ -409,56 +441,11 @@
                     }).showToast();
                 });
         });
-    }
-
-
-        document.getElementById("confirmDeleteBtn").addEventListener("click", function () {
-        const postId = document.getElementById("deleteConfirmationPostId").value;
-
-        if (!postId) return;
-
-        fetch(`/Home/DeletePost?postId=${postId}`, {
-            method: "DELETE"
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === 1) {
-                Toastify({
-                    text: data.message || "Xóa bài viết thành công.",
-                    duration: 3000,
-                    backgroundColor: "#4CAF50",
-                    gravity: "top",
-                    position: "center",
-                }).showToast();
-
-                UIkit.modal('#postDeleteDialog').hide();
-                document.querySelector(`.post-container[data-post-id="${postId}"]`)?.remove();
-            } else {
-                Toastify({
-                    text: data.message || "Không thể xóa bài viết.",
-                    duration: 3000,
-                    backgroundColor: "#f44336",
-                    gravity: "top",
-                    position: "center",
-                }).showToast();
-            }
-        })
-        .catch(error => {
-            console.error("Lỗi:", error);
-            Toastify({
-                text: "Có lỗi xảy ra khi xóa bài viết.",
-                duration: 3000,
-                backgroundColor: "#f44336",
-                gravity: "top",
-                position: "center",
-            }).showToast();
-        });
-    });
 
     });
 
     if (window.history && window.history.replaceState) {
-            window.history.replaceState(null, document.title, window.location.href);
-        }
+        window.history.replaceState(null, document.title, window.location.href);
+    }
 
 </script>

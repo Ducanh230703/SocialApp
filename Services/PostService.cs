@@ -26,7 +26,7 @@ namespace Services
         /// Lấy tất cả bài viết
         /// </summary>
         /// <returns></returns>
-        public static async Task<PaginatedResponse<PostFull>> GetAllPosts(int pageNumber, int pageSize)
+        public static async Task<PaginatedResponse<PostFull>> GetAllPosts(int pageNumber, int pageSize,int loggedInUserId)
         {
             if (pageNumber < 1) pageNumber = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
@@ -68,45 +68,60 @@ namespace Services
             int offset = (pageNumber - 1) * pageSize;
 
             string sql = $@"SELECT
-                                    p.ID AS Id,
-                                    p.Content,
-                                    p.ImageUrl,
-                                    p.IsPrivate,
-                                    p.DateCreated,
-                                    p.DateUpdated,
-                                    p.IsDeleted,
-                                    p.UserId,
-                                    u.FullName AS UserFullName,
-                                    ISNULL(u.ProfilePictureUrl, '') AS UserProfilePictureUrl,
-                                    (
-                                        SELECT JSON_QUERY('[' + STRING_AGG(CAST(l.UserId AS NVARCHAR(MAX)), ',') + ']')
-                                        FROM Likes l
-                                        WHERE l.PostId = p.ID
-                                    ) AS LikeUserIds,
-                                    CAST(
-                                        (
-                                            SELECT TOP 2 
-                                                c.ID,
-                                                c.Content,
-                                                c.DateCreated,
-                                                c.UserId,
-                                                cu.FullName AS UserFullName,
-                                                ISNULL(cu.ProfilePictureUrl, '') AS UserProfilePictureUrl
-                                            FROM Comments c
-                                            LEFT JOIN Users cu ON cu.ID = c.UserId
-                                            WHERE c.PostId = p.ID
-                                            ORDER BY c.DateCreated ASC
-                                            FOR JSON PATH
-                                        ) AS NVARCHAR(MAX)
-                                        ) AS Comments
-                                FROM Posts p
-                                JOIN Users u ON u.ID = p.UserId
-                                ORDER BY p.DateCreated DESC
-                                OFFSET {offset} ROWS FETCH NEXT {pageSize} ROWS ONLY
-                                FOR JSON PATH";
-
+                            p.ID AS Id,
+                            p.Content,
+                            p.ImageUrl,
+                            p.IsPrivate,
+                            p.DateCreated,
+                            p.DateUpdated,
+                            p.IsDeleted,
+                            p.UserId,
+                            u.FullName AS UserFullName,
+                            ISNULL(u.ProfilePictureUrl, '') AS UserProfilePictureUrl,
+                            (
+                                SELECT JSON_QUERY('[' + STRING_AGG(CAST(l.UserId AS NVARCHAR(MAX)), ',') + ']')
+                                FROM Likes l
+                                WHERE l.PostId = p.ID
+                            ) AS LikeUserIds,
+                            CAST(
+                                (
+                                    SELECT TOP 2 
+                                        c.ID,
+                                        c.Content,
+                                        c.DateCreated,
+                                        c.UserId,
+                                        cu.FullName AS UserFullName,
+                                        ISNULL(cu.ProfilePictureUrl, '') AS UserProfilePictureUrl
+                                    FROM Comments c
+                                    LEFT JOIN Users cu ON cu.ID = c.UserId
+                                    WHERE c.PostId = p.ID
+                                    ORDER BY c.DateCreated ASC
+                                    FOR JSON PATH
+                                ) AS NVARCHAR(MAX)
+                            ) AS Comments
+                        FROM Posts p
+                        JOIN Users u ON u.ID = p.UserId
+                        WHERE p.UserId IN (
+                            SELECT @loggedInUserId AS FriendId
+                            UNION
+                            SELECT CASE 
+                                       WHEN SenderID = @loggedInUserId THEN ReceiverID
+                                       ELSE SenderID
+                                   END AS FriendId
+                            FROM FriendRequests
+                            WHERE Status = 1
+                              AND (SenderID = @loggedInUserId OR ReceiverID = @loggedInUserId)
+                        )
+                        ORDER BY p.DateCreated DESC
+                        OFFSET {offset} ROWS FETCH NEXT {pageSize} ROWS ONLY
+                        FOR JSON PATH;
+                        ";
+            var param = new System.Collections.SortedList
+            {
+                {"loggedInUserId",loggedInUserId }
+            };
             List<PostFull> posts = new List<PostFull>();
-            string json = await connectDB.SelectJS(sql);
+            string json = await connectDB.SelectJS(sql,param    );
 
             if (!string.IsNullOrEmpty(json) && json != "[]")
             {
@@ -319,17 +334,35 @@ namespace Services
                     {
                         Id = Convert.ToInt32(row["PostID"]),
                         Content = row["Content"] + "",
-                        ImageUrl = row["ImageUrl"] + "",
                         IsPrivate = Convert.ToBoolean(row["IsPrivate"]),
                         DateCreated = Convert.ToDateTime(row["DateCreated"]),
                         DateUpdated = Convert.ToDateTime(row["DateUpdated"]),
                         IsDeleted = Convert.ToBoolean(row["IsDeleted"]),
                         UserId = Convert.ToInt32(row["UserId"]),
                         UserFullName = row["UserFullName"] + "",
-                        UserProfilePictureUrl = row["UserProfilePictureUrl"] + "",
+                        UserProfilePictureUrl =apiAvatar+ row["UserProfilePictureUrl"] + "",
                         LikeUserIds = new List<int>(),
                         Comments = new List<CommentDetail>()
                     };
+                }
+
+                string postImageUrl = row["ImageUrl"].ToString();
+                if (!string.IsNullOrEmpty(postImageUrl))
+                {
+                    var imageUrls = postImageUrl.Split(',');
+                    var prefixedImageUrls = new List<string>();
+                    foreach (var url in imageUrls)
+                    {
+                        if (!url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                        {
+                            prefixedImageUrls.Add(apiHost+ "/Media/ShowImage?fileName=" + url.Trim());
+                        }
+                        else
+                        {
+                            prefixedImageUrls.Add(url.Trim());
+                        }
+                    }
+                    post.ImageUrl = string.Join(",", prefixedImageUrls);
                 }
 
                 if (row["LikeUserId"] != DBNull.Value)
@@ -405,29 +438,90 @@ namespace Services
         /// <param name="UserId"></param>
         /// <param name="Content"></param>
         /// <returns></returns>
-        public static async Task<ApiReponseModel> AddComment(int PostId, int UserId, string Content)
+        public static async Task<ApiReponseModel<CommentDetail>> AddComment(int PostId, int UserId, string Content)
         {
-            var sql = "INSERT INTO Comments (PostId, UserId,Content) VALUES (@PostId,@UserId,@Content);";
-            var param = new System.Collections.SortedList
-            {
-                {"PostId",PostId },
-                {"UserId", UserId },
-                {"Content",Content }
-            };
+            var insertSql = "INSERT INTO Comments (PostId, UserId, Content, DateCreated) VALUES (@PostId, @UserId, @Content, GETDATE()); SELECT SCOPE_IDENTITY();";
+            var insertParam = new System.Collections.SortedList
+        {
+            {"PostId", PostId},
+            {"UserId", UserId},
+            {"Content", Content}
+        };
 
-            var rs = await connectDB.Insert(sql, param);
-            if (rs > 0)
-                return new ApiReponseModel
+                try
                 {
-                    Status = 1,
-                    Mess = "Bình luận thành công"
-                };
-            else
-                return new ApiReponseModel
+                    var result = await connectDB.InsertAndGetId(insertSql, insertParam);
+                    if (result == null || result <= 0)
+                    {
+                        return new ApiReponseModel<CommentDetail>
+                        {
+                            Status = 0,
+                            Mess = "Bình luận thất bại",
+                            Data = null
+                        };
+                    }
+
+                    int newCommentId = (int)result;
+
+                    var selectSql = @"
+                                    SELECT
+                                        c.ID,
+                                        c.Content,
+                                        c.DateCreated,
+                                        c.UserId,
+                                        cu.FullName AS UserFullName,
+                                        ISNULL(cu.ProfilePictureUrl, '') AS UserProfilePictureUrl
+                                    FROM [socialapp].[dbo].Comments c
+                                    JOIN [socialapp].[dbo].Users cu ON cu.ID = c.UserId
+                                    WHERE c.ID = @CommentId";
+
+                    var selectParam = new System.Collections.SortedList
+                    {
+                        {"CommentId", newCommentId}
+                    };
+
+                    DataTable dt = await connectDB.Select(selectSql, selectParam);
+
+                    if (dt.Rows.Count > 0)
+                    {
+                        var row = dt.Rows[0];
+                        var commentDetail = new CommentDetail
+                        {
+                            ID = Convert.ToInt32(row["ID"]),
+                            Content = row["Content"].ToString(),
+                            DateCreated = Convert.ToDateTime(row["DateCreated"]),
+                            UserId = Convert.ToInt32(row["UserId"]),
+                            UserFullName = row["UserFullName"].ToString(),
+                            UserProfilePictureUrl = apiAvatar + row["UserProfilePictureUrl"].ToString()
+                        };
+
+                        return new ApiReponseModel<CommentDetail>
+                        {
+                            Status = 1,
+                            Mess = "Bình luận thành công",
+                            Data = commentDetail
+                        };
+                    }
+                    else
+                    {
+                        return new ApiReponseModel<CommentDetail>
+                        {
+                            Status = 0,
+                            Mess = "Bình luận được thêm nhưng không thể lấy thông tin chi tiết",
+                            Data = null
+                        };
+                    }
+                }
+                catch (Exception ex)
                 {
-                    Status = 0,
-                    Mess = "Bình luận thất bại"
-                };
+                    Console.WriteLine($"Lỗi khi thêm bình luận: {ex.Message}");
+                    return new ApiReponseModel<CommentDetail>
+                    {
+                        Status = 0,
+                        Mess = $"Lỗi hệ thống: {ex.Message}",
+                        Data = null
+                    };
+                }
         }
 
         /// <summary>

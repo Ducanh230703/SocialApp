@@ -109,7 +109,7 @@ public class HomeController : Controller
             {
                 var postResponse = await ApiHelper.GetAsync<ApiReponseModel<PostFull>>($"/api/Post/getpostbyid/{postId}", token);
 
-                if (postResponse == null || postResponse.Data == null)
+                    if (postResponse == null || postResponse.Data == null)
                 {
                     TempData["Error"] = "Bài viết không tồn tại.";
                     return RedirectToAction("Index");

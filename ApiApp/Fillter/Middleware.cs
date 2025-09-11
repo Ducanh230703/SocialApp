@@ -16,7 +16,16 @@ namespace ApiApp.Fillter
         {
             var path = context.Request.Path.ToString().ToLower();
 
-            if (path.StartsWith("/swagger") || path.StartsWith("/favicon") || path.Contains("swagger") || path.Contains("media/") || path.Contains("/chathub")||path.Contains("google-callback"))
+            if (path.StartsWith("/swagger") || path.StartsWith("/favicon") || path.Contains("swagger") || path.Contains("media/") || path.Contains("/chathub"))
+            {
+                await _next(context);
+                return;
+            }
+
+            if (path.Contains("/signin-google")
+                || path.Contains("/signin-google-callback")
+                || path.Contains("/GoogleLoginCallback")
+                || path.Contains("/GoogleCallback"))
             {
                 await _next(context);
                 return;
@@ -29,6 +38,13 @@ namespace ApiApp.Fillter
             }
 
             var token = context.Request.Headers["Authorization"].FirstOrDefault();
+
+            if (context.User?.Identity?.IsAuthenticated == true)
+            {
+                await _next(context);
+                return;
+            }
+
 
             if (!string.IsNullOrEmpty(token))
             {

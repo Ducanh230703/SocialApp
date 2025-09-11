@@ -87,6 +87,56 @@ namespace Services
             return rs;
         }
 
+        public static async Task<int> InsertAndGetId(string sql, SortedList param = null)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(conStr))
+                {
+                    throw new InvalidOperationException("Connection string (conStr) is null or empty.");
+                }
+
+                using var conn = new SqlConnection(conStr);
+                using var cmd = new SqlCommand(sql, conn);
+
+                if (param != null)
+                {
+                    foreach (DictionaryEntry item in param)
+                    {
+                        cmd.Parameters.AddWithValue(item.Key.ToString(), item.Value);
+                    }
+                }
+
+                await conn.OpenAsync();
+
+                // Sử dụng ExecuteScalarAsync để lấy ID của bản ghi vừa được chèn
+                var result = await cmd.ExecuteScalarAsync();
+
+                if (result != null && result != DBNull.Value)
+                {
+                    return Convert.ToInt32(result);
+                }
+
+                return -1; // Trả về -1 nếu không lấy được ID
+            }
+            catch (InvalidOperationException ex)
+            {
+                Console.WriteLine($"[Connection Error] {ex.Message}");
+                return -2;
+            }
+            catch (SqlException ex)
+            {
+                Console.WriteLine($"[SQL Error] {ex.Message}");
+                return -3;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[General Error] {ex.Message}");
+                return -4;
+            }
+        }
+
+
         public static async Task<int> Update(string sql, SortedList param = null)
         {
             int rs = 0;
@@ -122,7 +172,7 @@ namespace Services
             return rs;
         }
 
-        public static async Task<int> Delete(string sql, SortedList param = null)   
+        public static async Task<int> Delete(string sql, SortedList param = null)
         {
             int rs = 0;
             try
@@ -200,7 +250,8 @@ namespace Services
 
             return json;
         }
-        public static async Task<Dictionary<string, object>> ExecuteStoredProcedure(string procedureName,SortedList inParams = null,string[] outParamNames = null)
+
+        public static async Task<Dictionary<string, object>> ExecuteStoredProcedure(string procedureName, SortedList inParams = null, string[] outParamNames = null)
         {
             var result = new Dictionary<string, object>();
             try
@@ -240,7 +291,7 @@ namespace Services
                         else
                         {
                             cmd.Parameters.Add(paramName, SqlDbType.NVarChar, 255).Direction = ParameterDirection.Output;
-                        }   
+                        }
                     }
                 }
 

@@ -162,8 +162,23 @@ namespace Services
 
         public static async Task<ApiReponseModel> DeleteGroup(int groupId)
         {
-            var sql = @"DELETE FROM Groups WHERE GroupId = @groupId;
-                        DELETE FROM GroupMembers WHERE GroupId = @groupId ";
+            var sql = @"BEGIN TRANSACTION;
+                        BEGIN TRY
+                            DELETE FROM GroupMembers WHERE GroupId = @groupId;
+                            DELETE FROM Groups WHERE ID = @groupId;
+                            COMMIT TRANSACTION;
+                        END TRY
+                        BEGIN CATCH
+                            ROLLBACK TRANSACTION;
+                            DECLARE @ErrorMessage NVARCHAR(4000);
+                            DECLARE @ErrorSeverity INT;
+                            DECLARE @ErrorState INT;
+                            SELECT 
+                                @ErrorMessage = ERROR_MESSAGE(),
+                                @ErrorSeverity = ERROR_SEVERITY(),
+                                @ErrorState = ERROR_STATE();
+                            RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
+                        END CATCH";
             var param = new System.Collections.SortedList
             {
                 {"groupId",groupId }

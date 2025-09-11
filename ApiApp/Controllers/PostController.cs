@@ -19,7 +19,7 @@ namespace ApiApp.Controllers
         {
             if (pageNumber < 1) pageNumber = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
-            var data = await PostService.GetAllPosts(pageNumber, pageSize);
+            var data = await PostService.GetAllPosts(pageNumber, pageSize,CacheEx.DataUser.ID);
             return data; 
         }
 
@@ -114,9 +114,8 @@ namespace ApiApp.Controllers
 
 
         [HttpPost("addcomment/{postId}")]
-        public async Task<ApiReponseModel> AddComment([FromBody] PostCommentVM postCommentVM)
+        public async Task<ApiReponseModel<CommentDetail>> AddComment([FromBody] PostCommentVM postCommentVM)
         {
-            var token = Request.Headers["Authorization"].ToString().Replace("Authorization ", "");
             var user = CacheEx.DataUser;
             var data = await PostService.AddComment(postCommentVM.PostId, user.ID, postCommentVM.Content);
             return data;

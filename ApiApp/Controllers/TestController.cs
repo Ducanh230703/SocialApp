@@ -15,8 +15,8 @@
 
 //            var clientID = domainInfo?.ClientId;
 //            var clientSecret = domainInfo?.GG_secret_clientId;
-//            //var clientID = "64774674383-hhm717530pqsdkcr421hnp1o1l36k9ul.apps.googleusercontent.com";
-//            //var clientSecret = "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";
+//            var clientID = "64774674383-hhm717530pqsdkcr421hnp1o1l36k9ul.apps.googleusercontent.com";
+//            var clientSecret = "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";
 
 //            if (string.IsNullOrEmpty(clientID) || string.IsNullOrEmpty(clientSecret))
 //            {
@@ -58,29 +58,29 @@
 //    }
 
 //    public IActionResult LoginWithGoogle()
-//    {
-
-//        var clientID = domainInfo.ClientId;
-//        if (!string.IsNullOrEmpty(clientID))
 //        {
-//            var redirectUri = Url.Action("GoogleResponse", "Account", null, Request.Scheme);
-//            var googleAuthUrl = $"https://accounts.google.com/o/oauth2/auth?client_id={clientID}&redirect_uri={redirectUri}&scope=https://www.googleapis.com/auth/userinfo.email&response_type=code&state=custom_state";
-//            return Redirect(googleAuthUrl);
+
+//            var clientID = domainInfo.ClientId;
+//            if (!string.IsNullOrEmpty(clientID))
+//            {
+//                var redirectUri = Url.Action("GoogleResponse", "Account", null, Request.Scheme);
+//                var googleAuthUrl = $"https://accounts.google.com/o/oauth2/auth?client_id={clientID}&redirect_uri={redirectUri}&scope=https://www.googleapis.com/auth/userinfo.email&response_type=code&state=custom_state";
+//                return Redirect(googleAuthUrl);
+//            }
+
+//            return RedirectToAction("Login", "Account");
 //        }
 
-//        return RedirectToAction("Login", "Account");
-//    }
-
-//    [HttpGet]
-//    public async Task GoogleResponse(string code, string state)
-//    {
-//        var result = await _authService.AuthenticateWithGoogle(HttpContext, code);
-//        if (!result.IsSuccess)
+//        [HttpGet]
+//        public async Task GoogleResponse(string code, string state)
 //        {
-//            return RedirectToAction("Login", "Account", new { msgErr = result.Message });
+//            var result = await _authService.AuthenticateWithGoogle(HttpContext, code);
+//            if (!result.IsSuccess)
+//            {
+//                return RedirectToAction("Login", "Account", new { msgErr = result.Message });
+//            }
+
+//            return RedirectToAction("Index", "Home", new { area = "" });
 //        }
 
-//        return RedirectToAction("Index", "Home", new { area = "" });
 //    }
-
-//}

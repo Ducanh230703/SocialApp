@@ -2,7 +2,17 @@
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = "Google";
+})
+.AddCookie()
+.AddGoogle(options =>
+ {
+     options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+ });
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

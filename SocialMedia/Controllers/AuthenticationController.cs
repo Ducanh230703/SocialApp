@@ -136,5 +136,34 @@ namespace SocialMedia.Controllers
 
             return View(registerModel);
         }
+
+        public IActionResult LoginWithGoogle()
+        {
+            // Chuyển hướng tới API backend (Google auth)
+            return Redirect("https://localhost:7024/api/User/login/google");
+        }
+
+
+        [HttpGet]
+        public IActionResult GoogleLoginCallback(string token, int id)
+        {
+            if (!string.IsNullOrEmpty(token))
+            {
+                Response.Cookies.Append("AuthToken", token, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTimeOffset.UtcNow.AddHours(1)
+                });
+
+                Response.Cookies.Append("LoggedInUserId", id.ToString(), new CookieOptions { });
+
+                return RedirectToAction("Index", "Home");
+            }
+
+            return RedirectToAction("Login", "Authentication", new { error = "google_failed" });
+        }
+
     }
 }

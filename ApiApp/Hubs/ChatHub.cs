@@ -1,14 +1,15 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using System.Collections.Concurrent;
+﻿using Cache;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR;
 using Models;
-using Services;
+using Models.ViewModel.Chat;
 using Models.ViewModel.Friend;
+using Models.ViewModel.Home;
+using Services;
+using System.Collections.Concurrent;
+using System.Linq;
 using Umbraco.Core.Collections;
 using Umbraco.Core.Models.Membership;
-using System.Linq;
-using Models.ViewModel.Chat;
-using Cache;
-using Microsoft.AspNetCore.Http;
 
 namespace ApiApp.Hubs
 {
@@ -351,6 +352,36 @@ namespace ApiApp.Hubs
             else
             {
                 Console.WriteLine($"[ChatHub] Target user {targetUserId} not found or offline. CallEnded not sent from {senderUserId}.");
+            }
+        }
+
+        public async Task AddComment(int postId, string content)
+        {
+            var httpContext = Context.GetHttpContext();
+            if (httpContext == null)
+            {
+                Context.Abort();
+                return;
+            }
+
+            var userId = GetUserIdFromAuthToken(httpContext);
+            if (userId == 0)
+            {
+                Console.WriteLine($"[ChatHub] Unauthenticated user {Context.ConnectionId} attempted to add a comment.");
+                return;
+            }
+
+            var result = await PostService.AddComment(postId, userId, content);
+
+            if (result.Status == 1)
+            {
+                var newComment = result.Data;
+                await Clients.All.SendAsync("ReceiveNewComment", postId, newComment);
+                Console.WriteLine($"[ChatHub] User {userId} added a comment to post {postId}. Broadcasting new comment to all clients.");
+            }
+            else
+            {
+                Console.WriteLine($"[ChatHub] Failed to add comment for user {userId} on post {postId}: {result.Mess}");
             }
         }
     }

@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Models.ReponseModel;
 using Models.ViewModel.Users;
+using NPoco.fastJSON;
 using Services;
 using System.Runtime;
 using System.Security.Claims;
@@ -164,50 +167,41 @@ namespace ApiApp.Controllers
 
         [HttpGet("login/google")]
         public IActionResult LoginGoogle()
-        {   
-            var properties = new AuthenticationProperties
+        {
+            var props = new AuthenticationProperties
             {
-                RedirectUri = "https://localhost:7024/api/User/signin-google    "
+                RedirectUri = Url.Action("GoogleCallback", "User", null, Request.Scheme)
             };
-            return Challenge(properties, "Google");
+
+            return Challenge(props, GoogleDefaults.AuthenticationScheme);
         }
 
-        [HttpGet("signin-google")]
         public async Task<IActionResult> GoogleCallback()
         {
-            var result = await HttpContext.AuthenticateAsync("Google");
+            var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
 
-            if (result.Succeeded)
+            if (!result.Succeeded || result.Principal == null)
             {
-                var claims = result.Principal.Claims;
-                var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
-                var fullName = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
-
-                if (string.IsNullOrEmpty(email))
-                {
-                    return BadRequest("Đăng nhập Google thất bại: Không lấy được email.");
-                }
-
-                var loginResult = await UserSerivce.LoginOrRegisterWithGoogle(email, fullName);
-
-                if (loginResult.Status == 1 && loginResult.Data != null)
-                {
-                    var token = loginResult.Data.Token;
-                    return Content($@"
-                <script>
-                    if (window.opener) {{
-                        window.opener.postMessage({{ token: '{token}' }}, '{Request.Scheme}://{Request.Host}');
-                        window.close();
-                    }}
-                </script>", "text/html");
-                }
-                else
-                {
-                    return BadRequest(loginResult.Mess);
-                }
+                return Redirect("https://localhost:7080/Authentication/Login?error=google_failed");
             }
 
-            return BadRequest("Đăng nhập Google thất bại.");
+            var claims = result.Principal.Claims;
+            var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+            var fullName = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+
+            if (string.IsNullOrEmpty(email))
+            {
+                return Redirect("https://localhost:7080/Authentication/Login?error=no_email");
+            }
+
+            var loginResult = await UserSerivce.LoginOrRegisterWithGoogle(email, fullName);
+
+            if (loginResult.Status == 1 && loginResult.Data != null)
+            {
+                return Redirect($"https://localhost:7080/Authentication/GoogleLoginCallback?token={loginResult.Data.Token}&id={loginResult.Data.ID}");
+            }
+
+            return Redirect("https://localhost:7080/Authentication/Login?error=google_failed");
         }
     }
 }
