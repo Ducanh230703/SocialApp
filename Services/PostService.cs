@@ -95,7 +95,7 @@ namespace Services
                                     FROM Comments c
                                     LEFT JOIN Users cu ON cu.ID = c.UserId
                                     WHERE c.PostId = p.ID
-                                    ORDER BY c.DateCreated ASC
+                                    ORDER BY c.DateCreated DESC
                                     FOR JSON PATH
                                 ) AS NVARCHAR(MAX)
                             ) AS Comments
@@ -121,7 +121,7 @@ namespace Services
                 {"loggedInUserId",loggedInUserId }
             };
             List<PostFull> posts = new List<PostFull>();
-            string json = await connectDB.SelectJS(sql,param    );
+            string json = await connectDB.SelectJS(sql,param);
 
             if (!string.IsNullOrEmpty(json) && json != "[]")
             {

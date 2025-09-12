@@ -386,6 +386,7 @@ namespace Services
                                     FROM Comments c
                                     LEFT JOIN Users cu ON cu.ID = c.UserId
                                     WHERE c.PostId = p.ID
+                                    ORDER BY c.DateCreated DESC
                                     FOR JSON PATH
                                 ) AS NVARCHAR(MAX)
                             ) AS Comments

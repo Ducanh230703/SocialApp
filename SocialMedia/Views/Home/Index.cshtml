@@ -40,9 +40,7 @@
                     {
                         @foreach (var post in Model.Data)
                         {
-                            <div id="post-@post.Id" class="bg-white rounded-xl shadow-sm text-sm font-medium border1">
                                 @await Html.PartialAsync("_Post", post, new ViewDataDictionary(ViewData) { { "ShowAllComment", true } })
-                            </div>
                         }
                     }
                     else
@@ -56,7 +54,8 @@
                     <button id="loadMorePostsBtn"
                             class="button lg:text-lg lg:py-4 flex items-center justify-center gap-2"
                             data-next-page="@(currentPage + 1)"
-                            data-page-size="@pageSize">
+                            data-page-size="@pageSize"
+                            data-has-next-page="@(Model.HasNextPage.ToString().ToLower())">
                         <ion-icon name="sync-outline" class="text-xl"></ion-icon>
                         <span>Tải thêm</span>
                     </button>
@@ -75,7 +74,6 @@
 <script>
     let loggedInUserId = @(loggedInUserId.HasValue? loggedInUserId.Value.ToString() : "null");
 
-    // Hàm tạo HTML cho bình luận mới (Đã sửa)
     function createCommentHtml(comment) {
         let removeButtonHtml = '';
         if (loggedInUserId && loggedInUserId == comment.userId) {
@@ -355,10 +353,8 @@
             });
         }
 
-        // Thêm đoạn mã xử lý cuộn trang để tải thêm bài viết
-        if (loadMoreBtn && postsContainer) {
-            window.addEventListener('scroll', function () {
-                // Kiểm tra nếu người dùng cuộn đến cuối trang
+            if (loadMoreBtn && postsContainer) {
+                window.addEventListener('scroll', function () {
                 const isAtBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight;
                 if (isAtBottom && !isFetching) {
                     isFetching = true;
@@ -371,19 +367,36 @@
                         isFetching = false;
                         return;
                     }
+                    const hasNextPage = loadMoreBtn.getAttribute('data-has-next-page') === 'true';
+
+                    if (!hasNextPage) {
+                        const noMorePostsDiv = document.createElement('div');
+                        noMorePostsDiv.className = "uk-flex uk-flex-center text-gray-500 mt-4";
+                        noMorePostsDiv.innerHTML = "<span>Đã hết bài viết.</span>";
+                        loadMoreBtn.parentNode.replaceChild(noMorePostsDiv, loadMoreBtn);
+                        return; 
+                    }
+                    loadMoreBtn.style.display = 'none';
 
                     fetch(`/Home/GetMorePosts?pageNumber=${nextPage}&pageSize=${pageSize}`)
                         .then(res => res.text())
                         .then(html => {
                             if (html.trim() === "") {
-                                postsContainer.insertAdjacentHTML('beforeend', '<div>Đã hết bài viết.</div>');
+                                const noMorePostsDiv = document.createElement('div');
+                                noMorePostsDiv.className = "uk-flex uk-flex-center text-gray-500 mt-4";
+                                noMorePostsDiv.innerHTML = "<span>Đã hết bài viết.</span>";
+                                if (loadMoreBtn.parentNode) {
+                                    loadMoreBtn.parentNode.replaceChild(noMorePostsDiv, loadMoreBtn);
+                                    }
                             } else {
                                 postsContainer.insertAdjacentHTML('beforeend', html);
                                 loadMoreBtn.setAttribute('data-next-page', nextPage + 1);
+                                loadMoreBtn.style.display = 'flex'; 
                             }
                         })
                         .catch(err => {
                             console.error(err);
+                            loadMoreBtn.style.display = 'flex';
                             Toastify({
                                 text: "Có lỗi xảy ra khi tải thêm bài viết.",
                                 duration: 3000,
