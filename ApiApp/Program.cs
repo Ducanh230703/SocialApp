@@ -42,11 +42,11 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+//if (app.Environment.IsDevelopment())
+//{
+//    app.UseSwagger();
+//    app.UseSwaggerUI();
+//}
 app.UseCors("AllowSpecificOrigins");
 app.UseHttpsRedirection();
 
@@ -55,7 +55,6 @@ app.UseAuthorization();
 app.UseMiddleware<Middleware>();
 
 
-// Hoặc nếu bạn dùng default route cho tất cả MVC controllers:
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}"

@@ -41,7 +41,6 @@
         const createPostForm = document.getElementById('createPostForm');
         let previewFiles = [];
 
-        // Ngăn chặn hành vi mặc định của trình duyệt khi kéo và thả file vào form
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             createPostForm.addEventListener(eventName, preventDefaults, false);
         });
@@ -51,19 +50,16 @@
             e.stopPropagation();
         }
 
-        // Thêm hiệu ứng viền khi kéo file vào form
         createPostForm.addEventListener('dragenter', () => {
             createPostForm.classList.add('border-blue-500');
             createPostForm.classList.remove('border-gray-300');
         }, false);
 
-        // Bỏ hiệu ứng viền khi file rời khỏi form
         createPostForm.addEventListener('dragleave', () => {
             createPostForm.classList.remove('border-blue-500');
             createPostForm.classList.add('border-gray-300');
         }, false);
 
-        // Xử lý files khi được thả vào form
         createPostForm.addEventListener('drop', handleDrop, false);
 
         function handleDrop(e) {
@@ -82,54 +78,69 @@
             imageUpload.click();
         });
 
-        imageUpload.addEventListener('change', (event) => {
-            console.log('Files selected:', event.target.files);
+            imageUpload.addEventListener('change', (event) => {
+        console.log('Files selected:', event.target.files);
 
-            const files = Array.from(event.target.files);
-            previewFiles = files;
+        const newFiles = Array.from(event.target.files);
 
-            imagePreviewContainer.classList.toggle('hidden', files.length === 0);
-            imagePreviewContainer.innerHTML = '';
-
-            files.forEach((file, index) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const previewItem = document.createElement('div');
-                    previewItem.classList.add('relative');
-
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.classList.add('w-24', 'h-24', 'rounded');
-                    previewItem.appendChild(img);
-
-                    const removeButton = document.createElement('button');
-                    removeButton.innerHTML = `
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>`;
-                    removeButton.classList.add('absolute', 'top-0', 'right-0', '-mt-1', '-mr-1', 'bg-white', 'rounded-full', 'w-6', 'h-6', 'flex', 'items-center', 'justify-center', 'shadow');
-
-                    removeButton.addEventListener('click', (e) => {
-                        e.preventDefault(); // Ngăn form submit
-                        previewFiles.splice(index, 1);
-
-                        const dt = new DataTransfer();
-                        previewFiles.forEach(f => dt.items.add(f));
-                        imageUpload.files = dt.files;
-
-                        previewItem.remove();
-                        if (dt.files.length === 0) {
-                            imageUpload.value = '';
-                            imagePreviewContainer.classList.add('hidden');
-                        }
-                    });
-
-                    previewItem.appendChild(removeButton);
-                    imagePreviewContainer.appendChild(previewItem);
-                };
-                reader.readAsDataURL(file);
-            });
+        // Lọc ảnh trùng bằng cách so sánh name + size
+        newFiles.forEach(file => {
+            const exists = previewFiles.some(f => f.name === file.name && f.size === file.size);
+            if (!exists) {
+                previewFiles.push(file);
+            }
         });
+
+        // Tạo lại FileList cho input
+        const dt = new DataTransfer();
+        previewFiles.forEach(f => dt.items.add(f));
+        imageUpload.files = dt.files;
+
+        imagePreviewContainer.classList.toggle('hidden', previewFiles.length === 0);
+        imagePreviewContainer.innerHTML = '';
+
+        previewFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const previewItem = document.createElement('div');
+                previewItem.classList.add('relative');
+
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.classList.add('w-24', 'h-24', 'rounded');
+                previewItem.appendChild(img);
+
+                const removeButton = document.createElement('button');
+                removeButton.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>`;
+                removeButton.classList.add('absolute', 'top-0', 'right-0', '-mt-1', '-mr-1', 'bg-white', 'rounded-full', 'w-6', 'h-6', 'flex', 'items-center', 'justify-center', 'shadow');
+
+                removeButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    previewFiles.splice(index, 1);
+
+                    const newDt = new DataTransfer();
+                    previewFiles.forEach(f => newDt.items.add(f));
+                    imageUpload.files = newDt.files;
+
+                    previewItem.remove();
+                    if (previewFiles.length === 0) {
+                        imageUpload.value = '';
+                        imagePreviewContainer.classList.add('hidden');
+                    }
+                });
+
+                previewItem.appendChild(removeButton);
+                imagePreviewContainer.appendChild(previewItem);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        imageUpload.value = '';
+    });
+
 
         createPostForm.addEventListener('submit', (event) => {
             const content = createPostForm.querySelector('#Content').value.trim();
