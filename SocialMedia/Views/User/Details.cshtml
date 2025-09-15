@@ -216,225 +216,90 @@
 <partial name="/Views/Home/_CreateStatus.cshtml" model="new PostVM()" />
 <partial name="/Views/Home/_PostDeleteConfirmation.cshtml" />
 <partial name="/Views/Home/_Createstory.cshtml" model="new StoryVM()" />
+<partial name="/Views/Home/_EditStatus.cshtml" model="new PostEditVM()" />
 
 
-@section Scripts {
-    <script>
-        var loggedInUserIdClient = @(ViewBag.LoggedInUserId?.ToString() ?? "null");
-        var profileUserIdClient = @(Model.ID.ToString() ?? "null");
+<script>
+    let loggedInUserId = @(loggedInUserIdServer.HasValue ? loggedInUserIdServer.Value.ToString() : "null");
 
-        function createCommentHtml(comment) {
-            let removeButtonHtml = '';
-            if (loggedInUserIdClient && loggedInUserIdClient == comment.userId) {
-                        removeButtonHtml = `
-                    <form class="remove-comment-form" data-comment-id="${comment.id}" action="/Home/RemovePostComment">
-                        <button type="submit" class="text-red-500 text-xs ml-2" title="Remove post comment">
-                            <ion-icon name="trash-outline"></ion-icon>
-                        </button>
-                    </form>
-                `;
-                }
+    function createCommentHtml(comment) {
+        let removeButtonHtml = '';
+        if (loggedInUserId && loggedInUserId == comment.userId) {
+            removeButtonHtml = `
+                <form class="remove-comment-form" data-comment-id="${comment.id}" action="/Home/RemovePostComment">
+                    <button type="submit" class="text-red-500 text-xs ml-2" title="Remove post comment">
+                        <ion-icon name="trash-outline"></ion-icon>
+                    </button>
+                </form>
+            `;
+        }
 
-                return `
-                    <div class="flex items-start gap-3 relative">
-                        <img src="${comment.userProfilePictureUrl || '/images/avatar/user.png'}" class="w-6 h-6 mt-1 rounded-full" />
-                        <div class="flex-1">
-                            <div class="flex justify-between">
-                                <span class="text-black font-medium inline-block flex-grow">${comment.userFullName}</span>
-                                <small>Just now</small>
-                            </div>
-                            <p class="mt-0.5">${comment.content}</p>
-                            ${removeButtonHtml}
-                        </div>
+        return `
+            <div class="flex items-start gap-3 relative">
+                <img src="${comment.userProfilePictureUrl || '/images/avatar/user.png'}" class="w-6 h-6 mt-1 rounded-full" />
+                <div class="flex-1">
+                    <div class="flex justify-between">
+                        <span class="text-black font-medium inline-block flex-grow">${comment.userFullName}</span>
+                        <small>Just now</small>
                     </div>
-                `;
+                    <p class="mt-0.5">${comment.content}</p>
+                    ${removeButtonHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    if (typeof connection !== 'undefined' && connection) {
+        connection.on("ReceiveNewComment", (postId, newComment) => {
+            console.log("SignalR.js: Received a new comment.", newComment);
+
+            Toastify({
+                text: "Bình luận thành công!",
+                duration: 3000,
+                backgroundColor: "#4CAF50",
+                gravity: "top",
+                position: "center",
+            }).showToast();
+
+            const postElement = document.getElementById(`post-${postId}`);
+            if (postElement) {
+                const commentsList = postElement.querySelector('.comments-list');
+                if (commentsList) {
+                    const newCommentHtml = createCommentHtml(newComment);
+                    commentsList.insertAdjacentHTML('afterbegin', newCommentHtml);
+                }
             }
-
-
-        $(document).ready(function() {
-            if (typeof connection !== 'undefined' && connection) {
-                connection.on("ReceiveNewComment", (postId, newComment) => {
-                console.log("SignalR.js: Received a new comment.", newComment);
-
-                Toastify({
-                    text: "Bình luận thành công!",
-                    duration: 3000,
-                    backgroundColor: "#4CAF50",
-                    gravity: "top",
-                    position: "center",
-                }).showToast();
-
-                const postElement = document.getElementById(`post-${postId}`);
-                if (postElement) {
-                    const commentsList = postElement.querySelector('.comments-list');
-                    if (commentsList) {
-                        const newCommentHtml = createCommentHtml(newComment);
-                        commentsList.insertAdjacentHTML('afterbegin', newCommentHtml);
-                    }
-                    }
-                });
-            }
-
-            function sendFriendRequest(status,senderId,receiverId) {
-                $.ajax({
-                    url: '/FriendRequest/FriendRequest',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        Status: status,
-                        SenderId: senderId,
-                        ReceiverId: receiverId
-                    }),
-                    success: function(response) {
-                        if (response.status === 1) {
-                            alert(response.mess);
-                            location.reload(); // Tải lại trang để cập nhật trạng thái nút
-                        } else {
-                            alert('Lỗi: ' + response.mess);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Lỗi AJAX cho friendrequest:', status, error, xhr.responseText);
-                        alert('Đã xảy ra lỗi khi gửi yêu cầu kết bạn.');
-                    }
-                });
-            }
-
-            function sendFriendAnswer(status,statusId) {
-                $.ajax({
-                    url: '/FriendRequest/FriendAnswer',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        ID: statusId,
-                        Status : status
-                    }),
-                    success: function(response) {
-                        if (response.status === 1) {
-                            alert(response.mess);
-                            location.reload();
-                        } else {
-                            alert('Lỗi: ' + response.mess);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Lỗi AJAX cho friendanswer:', status, error, xhr.responseText);
-                        alert('Đã xảy ra lỗi khi thực hiện hành động.');
-                    }
-                });
-            }
-
-
-            $(document).on('click', '#sendRequestBtn', function() {
-                if (loggedInUserIdClient === "null" || loggedInUserIdClient === null) {
-                    alert('Bạn cần đăng nhập để thực hiện hành động này.');
-                    return;
-                }
-                const targetUser = $(this).data('profile-user-id');
-                sendFriendRequest(0,parseInt(loggedInUserIdClient), parseInt(targetUser));
-            });
-
-            $(document).on('click', '#cancelRequestBtn', function() {
-                if (loggedInUserIdClient === "null" || loggedInUserIdClient === null) {
-                    alert('Bạn cần đăng nhập để thực hiện hành động này.');
-                    return;
-                }
-                const statusId = $(this).data('profile-status-id');
-                sendFriendAnswer(0, parseInt(statusId));
-            });
-
-            $(document).on('click', '#acceptRequestBtn', function() {
-                if (loggedInUserIdClient === "null" || loggedInUserIdClient === null) {
-                    alert('Bạn cần đăng nhập để thực hiện hành động này.');
-                    return;
-                }
-                const statusId = $(this).data('profile-status-id'); 
-                sendFriendAnswer(1 ,parseInt(statusId));
-            });
-
-            $(document).on('click', '#declineRequestBtn', function() {
-                if (loggedInUserIdClient === "null" || loggedInUserIdClient === null) {
-                    alert('Bạn cần đăng nhập để thực hiện hành động này.');
-                    return;
-                }
-                const statusId = $(this).data('profile-status-id'); 
-                sendFriendAnswer(0,parseInt(statusId));
-            });
-
-            $(document).on('click', '#unfriendBtn', function() {
-                if (loggedInUserIdClient === "null" || loggedInUserIdClient === null) {
-                    alert('Bạn cần đăng nhập để thực hiện hành động này.');
-                    return;
-                }
-                const statusId = $(this).data('profile-status-id');
-                sendFriendAnswer(-1,parseInt(statusId));
-            });
         });
+    }
 
-        function openPostDeleteConfirmation(postId) {
-            UIkit.dropdown('.uk-dropdown.uk-open')?.hide?.();
-            document.getElementById('deleteConfirmationPostId').value = postId;
-            UIkit.modal('#postDeleteDialog').show();
-        }
 
-        function formatDate(dateString) {
-            const options = { year: 'numeric', month: 'numeric', day: 'numeric' };
-            return new Date(dateString).toLocaleDateString(undefined, options);
-        }
+    function openPostDeleteConfirmation(postId) {
+        UIkit.dropdown('.post-options-dropdown')?.hide?.();
+        document.getElementById('deleteConfirmationPostId').value = postId;
+        UIkit.modal('#postDeleteDialog').show();
+    }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const postsContainer = document.getElementById('posts-container');
-            const friendshipStatusBtn = document.getElementById('friendshipStatusBtn');
+    function openEditModal(postId) {
+        UIkit.dropdown('.post-options-dropdown')?.hide?.();
+        document.getElementById('editPostForm').value = postId;
+        UIkit.modal('#editPostModal').show();
+    }       
 
-            postsContainer.addEventListener('click', function (event) {
-                const deleteButton = event.target.closest('a[onclick^="openPostDeleteConfirmation"]');
-                if (deleteButton) {
-                }
-            });
 
-            document.getElementById("confirmDeleteBtn").addEventListener("click", function () {
-                const postId = document.getElementById('deleteConfirmationPostId').value;
-                fetch(`/Home/DeletePost?PostId=${postId}`, {
-                    method: 'DELETE',
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(data => Promise.reject(data.message || "Xóa bài viết không thành công."));
+    document.addEventListener('DOMContentLoaded', function () {
+        const postsContainer = document.getElementById('posts-container');
+        const loadMoreBtn = document.getElementById('loadMorePostsBtn');
+        let isFetching = false;
+
+            if (postsContainer) {
+                postsContainer.addEventListener('click', function (event) {
+                    const editButton = event.target.closest('a[data-edit-post-id]');
+                    if (editButton) {
+                        event.preventDefault();
+                        const postId = editButton.getAttribute('data-edit-post-id');
+                        window.location.href = `/Home/Index?editId=${postId}`;
                     }
-                    return response.json();
-                })
-                .then(data => {
-                    UIkit.modal('#postDeleteDialog').hide();
-                    if (data.status === 1) {
-                        document.getElementById(`post-${postId}`)?.remove();
-                        Toastify({
-                            text: data.message || "Xóa bài viết thành công.",
-                            duration: 3000,
-                            gravity: "top",
-                            position: "center",
-                            backgroundColor: "#4CAF50",
-                        }).showToast();
-                    } else {
-                        Toastify({
-                            text: data.message || "Xóa bài viết không thành công.",
-                            duration: 3000,
-                            gravity: "top",
-                            position: "center",
-                            backgroundColor: "#f44336",
-                        }).showToast();
-                    }
-                })
-                .catch(error => {
-                    console.error("Lỗi khi xóa bài viết:", error);
-                    Toastify({
-                        text: error || "Đã xảy ra lỗi khi xóa bài viết.",
-                        duration: 3000,
-                        gravity: "top",
-                        position: "center",
-                        backgroundColor: "#f44336",
-                    }).showToast();
                 });
-            });
 
             postsContainer.addEventListener('submit', function (e) {
                 if (e.target.classList.contains('add-comment-form')) {
@@ -529,35 +394,55 @@
                 }
             });
 
+
+
+            // Thích/Bỏ thích bài viết
             postsContainer.addEventListener('click', function (e) {
                 const likeButton = e.target.closest('.like-button');
-                if (likeButton) {
-                    const postId = likeButton.getAttribute('data-post-id');
-                    const isCurrentlyLiked = likeButton.classList.contains('text-red-500');
+                if (!likeButton) return;
 
-                    let url = '';
-                    let successMessage = '';
-                    let errorMessage = '';
-                    let newIconName = '';
+                const postId = likeButton.getAttribute('data-post-id');
 
-                    if (isCurrentlyLiked) {
-                        url = '/Home/Unlike';
-                        successMessage = "Đã bỏ thích bài viết!";
-                        errorMessage = "Không thể bỏ thích bài viết.";
-                        newIconName = 'heart-outline';
-                    } else {
-                        url = '/Home/LikePost';
-                        successMessage = "Đã thích bài viết!";
-                        errorMessage = "Không thể thích bài viết.";
-                        newIconName = 'heart';
-                    }
+                if (loggedInUserId === null || isNaN(parseInt(loggedInUserId))) {
+                    Toastify({
+                        text: "Bạn cần đăng nhập để thực hiện hành động này.",
+                        duration: 3000,
+                        backgroundColor: "#f44336",
+                        gravity: "top",
+                        position: "center",
+                    }).showToast();
+                    return;
+                }
 
-                    const formdata = new FormData();
-                    formdata.append("postId", postId);
-                    fetch(url, {
-                        method: 'POST',
-                        body: formdata,
-                    })
+                const isCurrentlyLiked = likeButton.classList.contains('text-red-500');
+
+                let url = '';
+                let successMessage = '';
+                let errorMessage = '';
+                let newIconName = '';
+                let newClassListAction = '';
+
+                if (isCurrentlyLiked) {
+                    url = '/Home/Unlike';
+                    successMessage = "Đã bỏ thích bài viết!";
+                    errorMessage = "Không thể bỏ thích bài viết.";
+                    newIconName = 'heart-outline';
+                    newClassListAction = 'remove';
+                } else {
+                    url = '/Home/LikePost';
+                    successMessage = "Đã thích bài viết!";
+                    errorMessage = "Không thể thích bài viết.";
+                    newIconName = 'heart';
+                    newClassListAction = 'add';
+                }
+
+                const formdata = new FormData();
+                formdata.append("postId", postId);
+
+                fetch(url, {
+                    method: 'POST',
+                    body: formdata,
+                })
                     .then(response => {
                         if (!response.ok) {
                             if (response.status === 401) {
@@ -587,12 +472,12 @@
                             const likeCountElement = likeButton.nextElementSibling;
                             let currentLikes = parseInt(likeCountElement.textContent);
 
-                            if (isCurrentlyLiked) {
-                                likeButton.classList.remove('text-red-500', 'bg-red-100');
-                                currentLikes--;
-                            } else {
+                            if (newClassListAction === 'add') {
                                 likeButton.classList.add('text-red-500', 'bg-red-100');
                                 currentLikes++;
+                            } else {
+                                likeButton.classList.remove('text-red-500', 'bg-red-100');
+                                currentLikes--;
                             }
                             likeButton.querySelector('ion-icon').setAttribute('name', newIconName);
                             likeCountElement.textContent = currentLikes;
@@ -607,63 +492,128 @@
                             }).showToast();
                         }
                     })
-                    .catch(error => {
-                        console.error("Lỗi khi gửi yêu cầu:", error);
+                    .catch(err => {
+                        console.error(err);
+                        if (err !== "Unauthorized") {
+                            Toastify({
+                                text: err || errorMessage,
+                                duration: 3000,
+                                backgroundColor: "#f44336",
+                                gravity: "top",
+                                position: "center",
+                            }).showToast();
+                        }
+                    });
+            });
+        }
+
+            if (loadMoreBtn && postsContainer) {
+                window.addEventListener('scroll', function () {
+                const isAtBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight;
+                if (isAtBottom && !isFetching) {
+                    isFetching = true;
+
+                    const nextPage = parseInt(loadMoreBtn.getAttribute('data-next-page'));
+                    const pageSize = parseInt(loadMoreBtn.getAttribute('data-page-size'));
+
+                    if (isNaN(nextPage) || nextPage < 1) {
+                        console.warn('Giá trị nextPage không hợp lệ:', nextPage);
+                        isFetching = false;
+                        return;
+                    }
+                    const hasNextPage = loadMoreBtn.getAttribute('data-has-next-page') === 'true';
+
+                    if (!hasNextPage) {
+                        const noMorePostsDiv = document.createElement('div');
+                        noMorePostsDiv.className = "uk-flex uk-flex-center text-gray-500 mt-4";
+                        noMorePostsDiv.innerHTML = "<span>Đã hết bài viết.</span>";
+                        loadMoreBtn.parentNode.replaceChild(noMorePostsDiv, loadMoreBtn);
+                        return; 
+                    }
+                    loadMoreBtn.style.display = 'none';
+
+                    fetch(`/Home/GetMorePosts?pageNumber=${nextPage}&pageSize=${pageSize}`)
+                        .then(res => res.text())
+                        .then(html => {
+                            if (html.trim() === "") {
+                                const noMorePostsDiv = document.createElement('div');
+                                noMorePostsDiv.className = "uk-flex uk-flex-center text-gray-500 mt-4";
+                                noMorePostsDiv.innerHTML = "<span>Đã hết bài viết.</span>";
+                                if (loadMoreBtn.parentNode) {
+                                    loadMoreBtn.parentNode.replaceChild(noMorePostsDiv, loadMoreBtn);
+                                    }
+                            } else {
+                                postsContainer.insertAdjacentHTML('beforeend', html);
+                                loadMoreBtn.setAttribute('data-next-page', nextPage + 1);
+                                loadMoreBtn.style.display = 'flex'; 
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            loadMoreBtn.style.display = 'flex';
+                            Toastify({
+                                text: "Có lỗi xảy ra khi tải thêm bài viết.",
+                                duration: 3000,
+                                backgroundColor: "#f44336",
+                                gravity: "top",
+                                position: "center",
+                            }).showToast();
+                        })
+                        .finally(() => {
+                            isFetching = false;
+                        });
+                }
+            });
+        }
+
+
+        document.getElementById("confirmDeleteBtn").addEventListener("click", function () {
+            const postId = document.getElementById("deleteConfirmationPostId").value;
+
+            if (!postId) return;
+
+            fetch(`/Home/DeletePost?postId=${postId}`, {
+                method: "DELETE"
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 1) {
                         Toastify({
-                            text: error || "Đã xảy ra lỗi không mong muốn.",
+                            text: data.message || "Xóa bài viết thành công.",
+                            duration: 3000,
+                            backgroundColor: "#4CAF50",
+                            gravity: "top",
+                            position: "center",
+                        }).showToast();
+
+                        UIkit.modal('#postDeleteDialog').hide();
+                        document.querySelector(`.post-container[data-post-id="${postId}"]`)?.remove();
+                    } else {
+                        Toastify({
+                            text: data.message || "Không thể xóa bài viết.",
                             duration: 3000,
                             backgroundColor: "#f44336",
                             gravity: "top",
                             position: "center",
                         }).showToast();
-                    });
-                }
-            });
-
-            const loadMoreBtn = document.getElementById('loadMorePostsBtn');
-            if (loadMoreBtn && postsContainer) {
-                window.addEventListener('scroll', function () {
-                    const isAtBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight;
-                    if (isAtBottom && !isFetching) {
-                        isFetching = true;
-
-                        const nextPage = parseInt(loadMoreBtn.getAttribute('data-next-page'));
-                        const pageSize = parseInt(loadMoreBtn.getAttribute('data-page-size'));
-
-                        if (isNaN(nextPage) || nextPage < 1) {
-                            console.warn('Giá trị nextPage không hợp lệ:', nextPage);
-                            isFetching = false;
-                            return;
-                        }
-
-                        fetch(`/User/GetMoreUserPosts?userId=${userId}&pageNumber=${nextPage}&pageSize=${pageSize}`)
-                            .then(res => res.text())
-                            .then(html => {
-                                if (html.trim() === "") {
-                                    loadMoreBtn.querySelector('span').textContent = "Đã hết bài viết";
-                                    loadMoreBtn.disabled = true;
-                                } else {
-                                    postsContainer.insertAdjacentHTML('beforeend', html);
-                                    loadMoreBtn.setAttribute('data-next-page', nextPage + 1);
-                                    loadMoreBtn.querySelector('span').textContent = "Tải thêm";
-                                    loadMoreBtn.disabled = false;
-                                }
-                            })
-                            .catch(err => {
-                                console.error(err);
-                                Toastify({
-                                    text: "Có lỗi xảy ra khi tải thêm bài viết.",
-                                    duration: 3000,
-                                    backgroundColor: "#f44336",
-                                    gravity: "top",
-                                    position: "center",
-                                }).showToast();
-                            })
-                            .finally(() => {
-                                isFetching = false;
-                            });
                     }
+                })
+                .catch(error => {
+                    console.error("Lỗi:", error);
+                    Toastify({
+                        text: "Có lỗi xảy ra khi xóa bài viết.",
+                        duration: 3000,
+                        backgroundColor: "#f44336",
+                        gravity: "top",
+                        position: "center",
+                    }).showToast();
                 });
-            }
-    </script>
-}
+        });
+
+    });
+
+    if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, document.title, window.location.href);
+    }
+
+</script>

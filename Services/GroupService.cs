@@ -51,8 +51,7 @@ namespace Services
 
                 if (result != null)
                 {
-                    // This part depends on how your `ExecuteScalar` method returns a single value or a row.
-                    // Assuming it returns a simple value for status.
+
                     int status = (int)result;
                     if (status == 1)
                     {
@@ -60,7 +59,6 @@ namespace Services
                     }
                     else
                     {
-                        // This is a simplified error handling. You might need to adjust based on the SQL result.
                         return new ApiReponseModel { Status = -1, Mess = "Lỗi SQL: Không thể tạo nhóm." };
                     }
                 }
@@ -120,7 +118,7 @@ namespace Services
             }
         }
 
-        public static async Task<ApiReponseModel> ChangeName(int groupId, string groupName)
+        public static async Task<ApiReponseModel> ChangeName(int groupId, string groupName) 
         {
             var sql = "UPDATE SET GroupName = @groupName WHERE GroupId = @groupId";
             var param = new System.Collections.SortedList

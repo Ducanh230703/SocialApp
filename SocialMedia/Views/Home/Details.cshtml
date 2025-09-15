@@ -1,4 +1,5 @@
 ﻿@model Models.ReponseModel.PostFull
+@using Models.ViewModel.Home
 
 <main id="site__main" class="2xl:ml-[--w-side] xl:ml-[--w-side-sm] p-2.5 h-[calc(100vh-var(--m-top))] mt-[--m-top]">
     <div style="width:700px" id="js-oversized">
@@ -8,11 +9,10 @@
         </div>
     </div>
 </main>
+<partial name="_EditStatus" model="new PostEditVM()" />
 
 <script>
     let loggedInUserId = @(ViewBag.LoggedInUserId != null ? ViewBag.LoggedInUserId.ToString() : "null");
-
-    document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.add-comment-form').forEach(form => {
             form.addEventListener('submit', async function (event) {
                 event.preventDefault();
