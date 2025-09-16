@@ -1,7 +1,9 @@
 ﻿using Microsoft.Data.SqlClient;
+using Models;
 using Models.ReponseModel;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,7 +12,7 @@ namespace Services
 {
      public class GroupService
      {
-        public static async Task<ApiReponseModel> CreateGroup(int userId, string groupName)
+        public static async Task<ApiReponseModel> CreateGroup(Group group )
         {
             try
             {
@@ -20,8 +22,8 @@ namespace Services
                 BEGIN TRY
                     DECLARE @NewGroupID INT;
 
-                    INSERT INTO Groups (CreatedByUserId, GroupName)
-                    VALUES (@userId, @groupName);
+                    INSERT INTO Groups (CreatedByUserId, GroupName,IsPrivate)
+                    VALUES (@userId, @groupName,@IsPrivate);
 
                     SET @NewGroupID = SCOPE_IDENTITY();
 
@@ -43,8 +45,9 @@ namespace Services
 
                 var param = new System.Collections.SortedList
             {
-                { "userId", userId },
-                { "groupName", groupName }
+                { "userId", group.CreatedByUserId },
+                { "groupName", group.GroupName },
+                {"IsPrivate",group.IsPrivate }
             };
 
                 var result = await connectDB.Insert(sql, param);
@@ -212,5 +215,61 @@ namespace Services
 
             }
         }
-    }
+
+        public static async Task<ApiReponseModel<List<Group>>> GetListGroup(int userId)
+        {
+            var sql = $@"Select g.* from Groups g
+                        left join GroupMembers gm ON g.ID = gm.GroupId
+                        Where gm.UserId = {userId};";
+
+            try
+            {
+                DataTable dt = await connectDB.Select(sql);
+                var groupList = new List<Group>() ;
+                if (dt.Rows.Count > 0)
+                {
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        groupList.Add(new Group
+                        {
+                            ID = Convert.ToInt32(row["ID"]),
+                            IsPrivate = Convert.ToBoolean(row["IsPrivate"]),
+                            GroupName = row["GroupName"].ToString(),
+                            GroupPictureUrl = row["GroupPictureUrl"] != DBNull.Value ? row["GroupPictureUrl"].ToString() : null,
+                            CreatedByUserId = Convert.ToInt32(row["CreatedByUserId"]),
+                            CreatedDate = Convert.ToDateTime(row["CreatedDate"])
+                        });
+                    }
+                }
+
+                return new ApiReponseModel<List<Group>>
+                {
+                    Status = 1,
+                    Mess = "Lấy danh sách nhóm thành công",
+                    Data = groupList
+                };
+            }
+            catch (SqlException sqlEx) 
+            {
+                return new ApiReponseModel<List<Group>>
+                {
+                    Status = -1,
+                    Mess = $"Lỗi cơ sở dữ liệu: {sqlEx.Message}", 
+                    Data = null
+                };
+            }
+            catch (Exception ex) 
+            {
+                return new ApiReponseModel<List<Group>>
+                {
+                    Status = -2, 
+                    Mess = $"Đã xảy ra lỗi không xác định: {ex.Message}",
+                    Data = null
+                };
+            }
+
+
+
+        }
+     }
 }

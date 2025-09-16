@@ -100,7 +100,7 @@
                 filenames.forEach(filename => {
                     const trimmedFilename = filename.trim();
                     if (trimmedFilename === '') return;
-                    const imageUrl = `https://localhost:7024/Media/ShowImage?fileName=${trimmedFilename}`;
+                    const imageUrl = trimmedFilename;
                     const imageDiv = document.createElement("div");
                     imageDiv.className = "existing-image relative";
                     imageDiv.dataset.url = trimmedFilename;

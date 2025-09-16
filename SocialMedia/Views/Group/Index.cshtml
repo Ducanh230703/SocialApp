@@ -1,61 +1,60 @@
-﻿@{
-    ViewData["Title"] = "Trang chủ";
-    var currentPage = (int)ViewBag.CurrentPage;
-    var pageSize = (int)ViewBag.PageSize;
-    var loggedInUserId = (int?)ViewBag.LoggedInUserId;
+﻿@using Models
+@model List<Group?>
+@{
+    ViewData["Title"] = "Danh sách nhóm của tôi";
 }
 
 <main id="site__main" class="2xl:ml-[--w-side] xl:ml-[--w-side-sm] p-2.5 h-[calc(100vh-var(--m-top))] mt-[--m-top]">
-    <div class="lg:flex 2xl:gap-16 gap-12 max-w-[1065px]" style="background-color:rgb(249, 250, 251)" id="js-oversized">
-        <div class="max-w-[680px] mx-auto" style="margin-left:120px">
-            @* Stories Component *@
-            @await Component.InvokeAsync("Stories")
+    <div class="lg:flex 2xl:gap-16 gap-12 max-w-[1065px] mx-auto" style="background-color:rgb(249, 250, 251)">
+        <div class="max-w-[680px] mx-auto">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Nhóm của tôi</h2>
 
-            <div class="mx-auto flex-1 xl:space-y-6 space-y-3" style="width: 580px;">
-                @* Create Status Section *@
-                <div class="bg-white rounded-xl shadow-sm md:p-4 p-2 space-y-4 text-sm font-medium border1">
-                    <div class="flex items-center md:gap-3 gap-1">
-                        <div class="flex-1 bg-slate-100 hover:bg-opacity-80 transition-all rounded-lg cursor-pointer" uk-toggle="target: #create-status">
-                            <div c  lass="py-2.5 text-center">What do you have in mind?</div>
-                        </div>
-                        <div class="cursor-pointer hover:bg-opacity-80 p-1 px-1.5 rounded-xl transition-all bg-pink-100/60 hover:bg-pink-100" uk-toggle="target: #create-status">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 stroke-pink-600 fill-pink-200/70" viewBox="0 0 24 24" stroke-width="1.5" stroke="#2c3e50" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                                <path d="M15 8h.01" />
-                                <path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" />
-                                <path d="M3.5 15.5l4.5 -4.5c.928 -.893 2.072 -.893 3 0l5 5" />
-                                <path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l2.5 2.5" />
-                            </svg>
-                        </div>
-                    </div>
-                </div>
+            <div class="mb-6">
+                <a href="/Group/Create" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                    </svg>
+                    Tạo nhóm mới
+                </a>
+            </div>
 
-                <div id="posts-container" style="width:580px" class="space-y-4">
-                    @if (Model != null && Model.Data != null && Model.Data.Any())
+            @if (Model != null && Model.Any())
+            {
+                <div class="flex flex-col gap-6">
+                    @foreach (var group in Model)
                     {
-                        @foreach (var post in Model.Data)
+                        if (group != null)
                         {
-                            @await Html.PartialAsync("_Post", post, new ViewDataDictionary(ViewData) { { "ShowAllComment", true } })
+                            <div class="bg-white rounded-lg shadow-md overflow-hidden flex items-center">
+                                <img src="@(string.IsNullOrEmpty(group.GroupPictureUrl) ? "/images/default_group_image.png" : group.GroupPictureUrl)" alt="Hình ảnh nhóm" class="w-32 h-32 object-cover rounded-l-lg mr-4"> <div class="p-4 flex-grow">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-2">@group.GroupName</h3>
+                                    <p class="text-sm text-gray-500 mb-2">
+                                        <i class="fas fa-users"></i>
+                                        @if (group.IsPrivate)
+                                        {
+                                            <span class="ml-1 text-red-500">Nhóm riêng tư</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="ml-1 text-green-500">Nhóm công khai</span>
+                                        }
+                                    </p>
+                                    <p class="text-xs text-gray-400">Tạo bởi: @group.CreatedByUserId</p>
+                                    <p class="text-xs text-gray-400">Ngày tạo: @group.CreatedDate.ToShortDateString()</p>
+                                    <a href="/Group/Details/@group.ID" class="mt-4 inline-block text-blue-600 hover:underline">Xem chi tiết</a>
+                                </div>
+                            </div>
                         }
                     }
-                    else
-                    {
-                        <div class="bg-white rounded-xl shadow-sm md:p-4 p-2 space-y-4 text-sm font-medium border1" style="width: 580px;">
-                            Hiện tại không có bài viết nào. Bạn có muốn tạo bài viết đầu tiên không?
-                        </div>
-                    }
                 </div>
-                <div class="uk-flex uk-flex-center mt-6">
-                    <button id="loadMorePostsBtn"
-                            class="button lg:text-lg lg:py-4 flex items-center justify-center gap-2"
-                            data-next-page="@(currentPage + 1)"
-                            data-page-size="@pageSize"
-                            data-has-next-page="@(Model.HasNextPage.ToString().ToLower())">
-                        <ion-icon name="sync-outline" class="text-xl"></ion-icon>
-                        <span>Tải thêm</span>
-                    </button>
+            }
+            else
+            {
+                <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
+                    <p class="font-bold">Chưa có nhóm nào</p>
+                    <p>Bạn chưa tham gia hoặc tạo bất kỳ nhóm nào. Hãy tạo nhóm đầu tiên của bạn!</p>
                 </div>
-            </div>
+            }
         </div>
     </div>
 </main>

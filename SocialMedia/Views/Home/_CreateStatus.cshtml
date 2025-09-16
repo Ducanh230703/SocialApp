@@ -41,7 +41,7 @@
         const createPostForm = document.getElementById('createPostForm');
         let previewFiles = [];
 
-        // Ngăn chặn hành vi mặc định khi kéo thả
+        // Prevent default drag-and-drop behavior
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             createPostForm.addEventListener(eventName, preventDefaults, false);
         });
@@ -51,7 +51,7 @@
             e.stopPropagation();
         }
 
-        // Đổi màu border khi kéo file vào
+        // Change border color on drag enter/leave
         createPostForm.addEventListener('dragenter', () => {
             createPostForm.classList.add('border-blue-500');
             createPostForm.classList.remove('border-gray-300');
@@ -62,34 +62,50 @@
             createPostForm.classList.add('border-gray-300');
         }, false);
 
-        // Xử lý khi thả file vào form
+        // Handle drop event
         createPostForm.addEventListener('drop', handleDrop, false);
 
         function handleDrop(e) {
             createPostForm.classList.remove('border-blue-500');
             createPostForm.classList.add('border-gray-300');
 
-            // Cập nhật input files và kích hoạt sự kiện change
-            imageUpload.files = e.dataTransfer.files;
-            const changeEvent = new Event('change');
-            imageUpload.dispatchEvent(changeEvent);
+            const droppedFiles = e.dataTransfer.files;
+
+            // Call the function to handle file addition and merging
+            handleNewFiles(droppedFiles);
         }
 
-        // Mở hộp thoại chọn file khi nhấn nút "Image"
+        // Open file selection dialog on button click
         imageUploadBtn.addEventListener('click', () => {
             imageUpload.click();
         });
 
-        // Xử lý khi người dùng chọn file
+        // Handle file selection from the input
         imageUpload.addEventListener('change', (event) => {
-            // Lấy danh sách file mới và gán trực tiếp cho mảng previewFiles
-            previewFiles = Array.from(event.target.files);
+            const selectedFiles = event.target.files;
 
-            // Cập nhật giao diện xem trước ảnh
-            updateImagePreview();
+            // Call the function to handle file addition and merging
+            handleNewFiles(selectedFiles);
         });
 
-        // Hàm cập nhật giao diện xem trước ảnh
+        // This is the core function for adding new files without losing old ones
+        function handleNewFiles(files) {
+            const newFiles = Array.from(files);
+
+            newFiles.forEach(file => {
+                // Check if the file already exists in our array to prevent duplicates
+                const exists = previewFiles.some(f => f.name === file.name && f.size === file.size);
+                if (!exists) {
+                    previewFiles.push(file);
+                }
+            });
+
+            // Update both the input's FileList and the UI
+            updateInputFiles();
+            updateImagePreview();
+        }
+
+        // Function to update the image preview UI
         function updateImagePreview() {
             imagePreviewContainer.innerHTML = '';
             imagePreviewContainer.classList.toggle('hidden', previewFiles.length === 0);
@@ -114,8 +130,11 @@
 
                     removeButton.addEventListener('click', (e) => {
                         e.preventDefault();
-                        // Xóa file khỏi mảng và cập nhật lại FileList
+
+                        // Remove the file from our main array
                         previewFiles.splice(index, 1);
+
+                        // Update the input's FileList and the UI
                         updateInputFiles();
                         updateImagePreview();
                     });
@@ -127,19 +146,19 @@
             });
         }
 
-        // Hàm cập nhật FileList của input file
+        // Function to update the input's FileList object
         function updateInputFiles() {
             const dt = new DataTransfer();
             previewFiles.forEach(f => dt.items.add(f));
             imageUpload.files = dt.files;
 
-            // Đặt lại giá trị input nếu không có file nào
+            // Clear the input's value if there are no files, to allow re-uploading the same file
             if (previewFiles.length === 0) {
                 imageUpload.value = '';
             }
         }
 
-        // Ngăn form submit nếu không có nội dung hoặc ảnh
+        // Prevent form submission if content and files are empty
         createPostForm.addEventListener('submit', (event) => {
             const content = createPostForm.querySelector('#Content').value.trim();
             const files = imageUpload.files;
@@ -156,7 +175,7 @@
             }
         });
 
-        // Xử lý thông báo thành công/thất bại từ TempData
+        // Handle success/error messages from TempData
         const successMessage = "@TempData["Success"]";
         const errorMessage = "@TempData["Error"]";
 

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Models;
+using Models.ReponseModel;
 using Services;
 
 namespace ApiApp.Controllers
@@ -12,7 +13,8 @@ namespace ApiApp.Controllers
         [HttpPost("creategr")]
         public async Task<Models.ReponseModel.ApiReponseModel> CreateGroup([FromBody] Group group)
         {
-            return await GroupService.CreateGroup(Cache.CacheEx.DataUser.ID, group.GroupName);
+            group.CreatedByUserId = Cache.CacheEx.DataUser.ID;
+            return await GroupService.CreateGroup(group);
         }
 
         [HttpDelete("deletegr")]
@@ -31,6 +33,13 @@ namespace ApiApp.Controllers
         public async Task<Models.ReponseModel.ApiReponseModel> UpdateName([FromBody] Group group)
         {
             return await GroupService.ChangeName(group.ID, group.GroupName);
+        }
+
+        [HttpGet("listgr")] 
+        public  async Task<ApiReponseModel<List<Group>>> GetListGroup()
+        {
+            return await GroupService.GetListGroup(Cache.CacheEx.DataUser.ID);
+
         }
     }
 }
