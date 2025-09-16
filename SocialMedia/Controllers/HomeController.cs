@@ -270,7 +270,7 @@ public class HomeController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> EditPost(PostEditVM postEditVM)
+    public async Task<IActionResult> EditPost(PostEditVM postEditVM)    
     {
         var token = Request.Cookies["AuthToken"];
         if (string.IsNullOrEmpty(token))
