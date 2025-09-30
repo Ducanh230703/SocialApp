@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿    using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Models;
 using Models.ReponseModel;
 using SocialMedia.Helper;
 using System.Security.Claims;
@@ -63,6 +64,11 @@ namespace SocialMedia.Controllers
 
                         Response.Cookies.Append("LoggedInUserId", result.Data.ID.ToString(), new CookieOptions
                         {
+                            HttpOnly = false,
+                            Secure = true,  // ✅ bắt buộc trên HTTPS
+                            SameSite = SameSiteMode.None, // ✅ để gửi cookie cross-origin
+                            Domain = ".azurewebsites.net", // để FE và API dùng chung domain gốc
+                            Path = "/"
                         });
 
                         return RedirectToAction("Index", "Home");
@@ -139,8 +145,7 @@ namespace SocialMedia.Controllers
 
         public IActionResult LoginWithGoogle()
         {
-            // Chuyển hướng tới API backend (Google auth)
-            return Redirect("https://localhost:7024/api/User/login/google");
+            return Redirect("https://apiapp20250930133943-a3ewemhsd2egfgeq.canadacentral-01.azurewebsites.net/api/User/login/google");
         }
 
 

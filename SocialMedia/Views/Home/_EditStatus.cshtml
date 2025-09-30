@@ -93,30 +93,56 @@
             existingImagesContainer.innerHTML = "";
         }
 
-        function renderExistingImagesFromApi(imageUrlsString) {
-            existingImagesContainer.innerHTML = '';
-            if (imageUrlsString && typeof imageUrlsString === 'string') {
-                const filenames = imageUrlsString.split(',');
-                filenames.forEach(filename => {
-                    const trimmedFilename = filename.trim();
-                    if (trimmedFilename === '') return;
-                    const imageUrl = trimmedFilename;
-                    const imageDiv = document.createElement("div");
-                    imageDiv.className = "existing-image relative";
-                    imageDiv.dataset.url = trimmedFilename;
-                    const img = document.createElement("img");
-                    img.src = imageUrl;
-                    img.className = "w-20 h-20 object-cover rounded border";
-                    const removeBtn = document.createElement("button");
-                    removeBtn.type = "button";
-                    removeBtn.innerText = "×";
-                    removeBtn.className = "remove-old-image absolute top-0 right-0 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs";
-                    imageDiv.appendChild(img);
-                    imageDiv.appendChild(removeBtn);
-                    existingImagesContainer.appendChild(imageDiv);
-                });
-            }
+            function renderExistingImagesFromApi(imageUrlsString) {
+        existingImagesContainer.innerHTML = '';
+
+        if (imageUrlsString && typeof imageUrlsString === 'string') {
+            // Tách chuỗi URL (ngăn cách bởi dấu phẩy) thành mảng các URL riêng lẻ
+            const filenames = imageUrlsString.split(',');
+
+            filenames.forEach(filename => {
+                const trimmedFilename = filename.trim();
+                if (trimmedFilename === '') return;
+
+                // ✨ LOGIC TRÍCH XUẤT TÊN FILE (chuỗi sau fileName=) ✨
+                let fileNameOnly = trimmedFilename;
+                const parts = trimmedFilename.split('fileName='); // Cắt chuỗi tại 'fileName='
+
+                if (parts.length > 1) {
+                    // Lấy phần thứ hai của mảng (phần sau 'fileName=')
+                    fileNameOnly = parts[1];
+
+                    // Nếu có các tham số khác theo sau (ví dụ: &amp;width=...), cắt chúng đi
+                    const otherParamsIndex = fileNameOnly.indexOf('&');
+                    if (otherParamsIndex !== -1) {
+                        fileNameOnly = fileNameOnly.substring(0, otherParamsIndex);
+                    }
+                }
+                // **********************************
+
+                // 1. Dùng URL đầy đủ để hiển thị ảnh
+                const imageUrlFull = trimmedFilename;
+
+                const imageDiv = document.createElement("div");
+                imageDiv.className = "existing-image relative";
+                // 2. LƯU CHUỖI ĐÃ CẮT (tên file) vào data-url để gửi lên API
+                imageDiv.dataset.url = fileNameOnly; // <-- ĐÂY LÀ PHẦN BẠN CẦN
+
+                const img = document.createElement("img");
+                img.src = imageUrlFull;
+                img.className = "w-20 h-20 object-cover rounded border";
+
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.innerText = "×";
+                removeBtn.className = "remove-old-image absolute top-0 right-0 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs";
+
+                imageDiv.appendChild(img);
+                imageDiv.appendChild(removeBtn);
+                existingImagesContainer.appendChild(imageDiv);
+            });
         }
+    }
 
         window.openEditModal = function (postId) {
             resetEditForm();

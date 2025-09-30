@@ -19,7 +19,7 @@ namespace Services
 { 
     public class PostService
     {
-        public static string apiHost = "https://localhost:7024";
+        public static string apiHost = "https://apiapp20250930133943-a3ewemhsd2egfgeq.canadacentral-01.azurewebsites.net";
         public static string apiAvatar;
 
         /// <summary>
