@@ -1,8 +1,6 @@
-﻿using Cache;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Models.ReponseModel;
 using Models.ViewModel.Chat;
-using Services;
 using SocialMedia.Helper;
 
 namespace SocialMedia.Controllers

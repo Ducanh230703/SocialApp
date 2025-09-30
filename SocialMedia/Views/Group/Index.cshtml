@@ -1,7 +1,10 @@
 ﻿@using Models
+@using Models.ViewModel.Group
+
 @model List<Group?>
 @{
     ViewData["Title"] = "Danh sách nhóm của tôi";
+    var loggedInUserId = (int?)ViewBag.LoggedInUserId;
 }
 
 <main id="site__main" class="2xl:ml-[--w-side] xl:ml-[--w-side-sm] p-2.5 h-[calc(100vh-var(--m-top))] mt-[--m-top]">
@@ -9,13 +12,11 @@
         <div class="max-w-[680px] mx-auto">
             <h2 class="text-2xl font-bold text-gray-800 mb-4">Nhóm của tôi</h2>
 
-            <div class="mb-6">
-                <a href="/Group/Create" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>
-                    Tạo nhóm mới
-                </a>
+            <div class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" uk-toggle="target: #create-group-modal">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                </svg>
+                Tạo nhóm mới
             </div>
 
             @if (Model != null && Model.Any())
@@ -39,10 +40,26 @@
                                             <span class="ml-1 text-green-500">Nhóm công khai</span>
                                         }
                                     </p>
-                                    <p class="text-xs text-gray-400">Tạo bởi: @group.CreatedByUserId</p>
                                     <p class="text-xs text-gray-400">Ngày tạo: @group.CreatedDate.ToShortDateString()</p>
                                     <a href="/Group/Details/@group.ID" class="mt-4 inline-block text-blue-600 hover:underline">Xem chi tiết</a>
+                                    @if (group.CreatedByUserId == loggedInUserId)
+                                    {
+                                        <a href="javascript:void(0)" onclick="openGroupDeleteConfirmation('@group.ID')" class="ml-4 inline-block px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                            Xóa nhóm
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <button onclick="leaveGroup('@group.ID')"
+                                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m-6-1V7a2 2 0 012-2h4a2 2 0 012 2v10a2 2 0 01-2 2h-4a2 2 0 01-2-2z" />
+                                            </svg>
+                                            Rời nhóm
+                                        </button>
+                                    }
                                 </div>
+
                             </div>
                         }
                     }
@@ -58,3 +75,95 @@
         </div>
     </div>
 </main>
+
+<div id="create-group-modal" uk-modal>
+    <div class="uk-modal-dialog uk-modal-body uk-margin-auto-vertical rounded-xl p-0 md:w-[600px] 2xl:w-[700px]">
+        <button class="uk-modal-close-default m-4" type="button" uk-close></button>
+        @await Html.PartialAsync("_CreateGroup", new Models.ViewModel.Group.CreateGroupForm())
+    </div>
+</div>
+<partial name="_confirmDelete" />
+
+
+@section Scripts {
+    <script>
+
+        window.openGroupDeleteConfirmation = function (groupId) {
+            UIkit.dropdown('.post-options-dropdown')?.hide?.();
+            document.getElementById('deleteConfirmationGroupId').value = groupId;
+            UIkit.modal('#groupDeleteDialog').show();
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var successMessage = '@TempData["Success"]';
+            var errorMessage = '@TempData["Error"]';
+
+            if (successMessage) {
+                alert(successMessage);
+            }
+
+            if (errorMessage) {
+                alert(errorMessage);
+            }
+
+            document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
+                var groupId = document.getElementById('deleteConfirmationGroupId').value;
+
+                UIkit.modal('#groupDeleteDialog').hide();
+
+                fetch('/Group/DeleteGroup/', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(parseInt(groupId))
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.Status) {
+                        alert(data.Mess);
+                        window.location.reload();
+                    } else {
+                        alert(data.Mess);
+                    }
+                })
+                .catch(error => {
+                    console.error('Lỗi khi xóa nhóm:', error);
+                    alert('Đã xảy ra lỗi. Vui lòng thử lại.');
+                });
+            });
+
+            window.leaveGroup = function(groupId) {
+            if (!confirm('Bạn có chắc chắn muốn rời khỏi nhóm này không?')) {
+                return; 
+            }
+
+            fetch('/GroupMember/LeaveGroup', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(parseInt(groupId))
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Rời nhóm không thành công.');
+                }
+            })
+            .catch(error => {
+                console.error('Lỗi khi rời nhóm:', error);
+                alert('Đã xảy ra lỗi. Vui lòng thử lại.');
+            });
+        };
+    });
+    </script>
+}

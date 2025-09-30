@@ -1,7 +1,10 @@
 ﻿using Microsoft.Data.SqlClient;
 using Models;
 using Models.ReponseModel;
+using Models.ResponseModels;
+using Models.ViewModel.Group;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -12,74 +15,76 @@ namespace Services
 {
      public class GroupService
      {
-        public static async Task<ApiReponseModel> CreateGroup(Group group )
+        public static string apiHost = "https://localhost:7024";
+        public static string apiAvatar;
+        public static async Task<ApiReponseModel<int>> CreateGroup(CreateGroupForm group)
         {
             try
             {
                 var sql = @"
-                BEGIN TRANSACTION;
+                    BEGIN TRANSACTION;
 
-                BEGIN TRY
-                    DECLARE @NewGroupID INT;
-
-                    INSERT INTO Groups (CreatedByUserId, GroupName,IsPrivate)
-                    VALUES (@userId, @groupName,@IsPrivate);
-
-                    SET @NewGroupID = SCOPE_IDENTITY();
-
-                    INSERT INTO GroupMembers (GroupId, UserId, Role)
-                    VALUES (@NewGroupID, @userId, 'Owner');
-
-                    COMMIT TRANSACTION;
-
-                    SELECT 1 AS Status, N'Tạo nhóm thành công' AS Mess, @NewGroupID AS GroupId;
-                END TRY
-                BEGIN CATCH
-                    IF @@TRANCOUNT > 0
-                        ROLLBACK TRANSACTION;
-
-                    -- Trả về lỗi
-                    SELECT -1 AS Status, N'Lỗi SQL: ' + ERROR_MESSAGE() AS Mess;
-                END CATCH;
-            ";
+                    BEGIN TRY
+                        INSERT INTO Groups (CreatedByUserId, GroupName, IsPrivate, GroupPictureUrl)
+                        VALUES (@userId, @groupName, @IsPrivate, @GroupPictureUrl);
+        
+                        DECLARE @NewGroupID INT = SCOPE_IDENTITY();
+        
+                        INSERT INTO GroupMembers (GroupId, UserId, Role)
+                        VALUES (@NewGroupID, @userId, 2);
+        
+                        COMMIT TRANSACTION;
+        
+                        SELECT @NewGroupID;
+                    END TRY
+                    BEGIN CATCH
+                        IF @@TRANCOUNT > 0
+                            ROLLBACK TRANSACTION;
+                        SELECT NULL;
+                    END CATCH;
+                ";
 
                 var param = new System.Collections.SortedList
-            {
-                { "userId", group.CreatedByUserId },
-                { "groupName", group.GroupName },
-                {"IsPrivate",group.IsPrivate }
-            };
-
-                var result = await connectDB.Insert(sql, param);
-
-                if (result != null)
                 {
+                    { "userId", group.CreatedByUserId },
+                    { "groupName", group.GroupName },
+                    { "IsPrivate", group.IsPrivate },
+                    { "GroupPictureUrl", group.GroupPictureUrl }
+                };
 
-                    int status = (int)result;
-                    if (status == 1)
+                var newGroupId = await connectDB.InsertAndGetId(sql, param);
+
+                if (newGroupId != null)
+                {
+                    int groupId = Convert.ToInt32(newGroupId);
+
+                    return new ApiReponseModel<int>
                     {
-                        return new ApiReponseModel { Status = 1, Mess = "Tạo nhóm thành công" };
-                    }
-                    else
-                    {
-                        return new ApiReponseModel { Status = -1, Mess = "Lỗi SQL: Không thể tạo nhóm." };
-                    }
+                        Status = 1,
+                        Mess = "Tạo nhóm thành công.",
+                        Data = groupId
+                    };
                 }
                 else
                 {
-                    return new ApiReponseModel { Status = 0, Mess = "Tạo nhóm thất bại" };
+                    return new ApiReponseModel<int>
+                    {
+                        Status = 0,
+                        Mess = "Tạo nhóm thất bại. Vui lòng thử lại.",
+                        Data = 0 
+                    };
                 }
             }
             catch (Exception ex)
             {
-                return new ApiReponseModel
+                return new ApiReponseModel<int>
                 {
                     Status = -1,
-                    Mess = $"Đã xảy ra lỗi: {ex.Message}"
+                    Mess = $"Đã xảy ra lỗi: {ex.Message}",
+                    Data = 0 
                 };
             }
         }
-
         public static async Task<ApiReponseModel> UpImageGroup(int groupId, string imageUrl)
         {
             var sql = "UPDATE SET GroupPictureUrl = @imageUrl WHERE GroupId = @groupId";
@@ -164,22 +169,36 @@ namespace Services
         public static async Task<ApiReponseModel> DeleteGroup(int groupId)
         {
             var sql = @"BEGIN TRANSACTION;
-                        BEGIN TRY
-                            DELETE FROM GroupMembers WHERE GroupId = @groupId;
-                            DELETE FROM Groups WHERE ID = @groupId;
-                            COMMIT TRANSACTION;
-                        END TRY
-                        BEGIN CATCH
-                            ROLLBACK TRANSACTION;
-                            DECLARE @ErrorMessage NVARCHAR(4000);
-                            DECLARE @ErrorSeverity INT;
-                            DECLARE @ErrorState INT;
-                            SELECT 
-                                @ErrorMessage = ERROR_MESSAGE(),
-                                @ErrorSeverity = ERROR_SEVERITY(),
-                                @ErrorState = ERROR_STATE();
-                            RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
-                        END CATCH";
+                        BEGIN TRY
+                            DELETE L
+                            FROM Likes L
+                            INNER JOIN Posts P ON L.PostId = P.ID
+                            WHERE P.GroupId = @groupId;
+
+                            DELETE C
+                            FROM Comments C
+                            INNER JOIN Posts P ON C.PostId = P.ID
+                            WHERE P.GroupId = @groupId;
+
+                            DELETE FROM Posts WHERE GroupId = @groupId;
+
+                            DELETE FROM GroupMembers WHERE GroupId = @groupId;
+
+                            DELETE FROM Groups WHERE ID = @groupId;
+                
+                            COMMIT TRANSACTION;
+                        END TRY
+                        BEGIN CATCH
+                            ROLLBACK TRANSACTION;
+                            DECLARE @ErrorMessage NVARCHAR(4000);
+                            DECLARE @ErrorSeverity INT;
+                            DECLARE @ErrorState INT;
+                            SELECT 
+                                @ErrorMessage = ERROR_MESSAGE(),
+                                @ErrorSeverity = ERROR_SEVERITY(),
+                                @ErrorState = ERROR_STATE();
+                            RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
+                        END CATCH";
             var param = new System.Collections.SortedList
             {
                 {"groupId",groupId }
@@ -267,9 +286,128 @@ namespace Services
                     Data = null
                 };
             }
-
-
-
         }
-     }
+
+        public static async Task<ApiReponseModel<GroupDetailResponseModel>> GetGroupDetail(int groupId,int loggedInUserId)
+        {
+            try
+            {
+                var sql = @"
+                            SELECT 
+                                g.ID AS GroupId,
+                                g.GroupName,
+                                g.IsPrivate AS GroupIsPrivate,
+                                g.GroupPictureUrl,
+                                g.CreatedByUserId,
+                                g.CreatedDate AS GroupCreatedDate,
+                                gu.FullName AS CreatedByUserName,
+                                gu.ProfilePictureUrl AS CreatedByUserProfilePictureUrl,
+                                p.ID AS PostId,
+                                p.Content,
+                                p.ImageUrl AS PostImageUrl,
+                                p.IsPrivate AS PostIsPrivate,
+                                p.DateCreated AS PostCreatedDate,
+                                p.DateUpdated AS PostDateUpdated,
+                                p.IsDeleted AS PostIsDeleted,
+                                p.UserId AS PostUserId,
+                                u.FullName AS PostUserFullName,
+                                u.ProfilePictureUrl AS PostUserProfilePictureUrl,
+                                u.Bio AS PostUserBio,
+                                (SELECT COUNT(*) FROM Likes WHERE PostId = p.ID) AS LikeCount,
+                                (SELECT STRING_AGG(CAST(UserId AS NVARCHAR(10)), ',') FROM Likes WHERE PostId = p.ID) AS LikeUserIds,
+                                (SELECT COUNT(*) FROM GroupMembers WHERE GroupId = g.ID) AS MemberCount,
+                                (CASE WHEN EXISTS (SELECT 1 FROM GroupMembers WHERE GroupId = g.ID AND UserId = @loggedInUserId) THEN 1 ELSE 0 END) AS IsMember 
+                            FROM Groups g
+                            LEFT JOIN Posts p ON g.ID = p.GroupId
+                            LEFT JOIN Users gu ON g.CreatedByUserId = gu.ID 
+                            LEFT JOIN Users u ON p.UserId = u.ID
+                            WHERE g.ID = @groupId
+                            ORDER BY p.DateCreated DESC;
+                        ";
+
+                var param = new SortedList
+            {
+                { "groupId", groupId },
+                 {"loggedInUserId",loggedInUserId }
+            };
+
+            DataTable dt = await connectDB.Select(sql, param);
+
+            if (dt.Rows.Count == 0)
+            {
+                return new ApiReponseModel<GroupDetailResponseModel>
+                {
+                    Status = 0,
+                    Mess = "Không tìm thấy nhóm.",
+                    Data = null
+                };
+            }
+                var groupPicture = apiAvatar + dt.Rows[0]["GroupPictureUrl"].ToString;
+                var userPicture = apiAvatar + dt.Rows[0]["CreatedByUserProfilePictureUrl"].ToString;
+
+                var groupDetail = new GroupDetailResponseModel
+            {
+                ID = Convert.ToInt32(dt.Rows[0]["GroupId"]),
+                IsPrivate = Convert.ToBoolean(dt.Rows[0]["GroupIsPrivate"]),
+                GroupName = dt.Rows[0]["GroupName"].ToString(),
+                GroupPictureUrl = groupPicture,
+                CreatedByUserId = Convert.ToInt32(dt.Rows[0]["CreatedByUserId"]),
+                CreatedDate = Convert.ToDateTime(dt.Rows[0]["GroupCreatedDate"]),
+                IsMember = Convert.ToBoolean(dt.Rows[0]["IsMember"]),
+                CreatedByUserName = dt.Rows[0]["CreatedByUserName"].ToString(),
+                CreatedByUserProfilePictureUrl = userPicture,
+                MemberCount = Convert.ToInt32(dt.Rows[0]["MemberCount"])
+            };
+
+            var posts = new List<PostFull>();
+            foreach (DataRow row in dt.Rows)
+            {
+                if (row["PostId"] == DBNull.Value)
+                {
+                    continue;
+                }
+
+                var likeUserIdsString = row["LikeUserIds"] != DBNull.Value ? row["LikeUserIds"].ToString() : null;
+                var likeUserIds = string.IsNullOrEmpty(likeUserIdsString)
+                    ? new List<int>()
+                    : likeUserIdsString.Split(',').Select(int.Parse).ToList();
+
+                var userPic = apiAvatar + row["PostUserProfilePictureUrl"].ToString();
+                posts.Add(new PostFull
+                {
+                    Id = Convert.ToInt32(row["PostId"]),
+                    Content = row["Content"].ToString(),
+                    ImageUrl = row["PostImageUrl"] != DBNull.Value ? row["PostImageUrl"].ToString() : null,
+                    IsPrivate = Convert.ToBoolean(row["PostIsPrivate"]),
+                    Bio = row["PostUserBio"] != DBNull.Value ? row["PostUserBio"].ToString() : null,
+                    DateCreated = Convert.ToDateTime(row["PostCreatedDate"]),
+                    DateUpdated = Convert.ToDateTime(row["PostDateUpdated"]),
+                    IsDeleted = Convert.ToBoolean(row["PostIsDeleted"]),
+                    UserId = Convert.ToInt32(row["PostUserId"]),
+                    UserFullName = row["PostUserFullName"].ToString(),
+                    UserProfilePictureUrl = userPic,
+                    LikeUserIds = likeUserIds,
+                    Comments = new List<CommentDetail>()
+                });
+            }
+            groupDetail.RecentPosts = posts;
+
+            return new ApiReponseModel<GroupDetailResponseModel>
+            {
+                Status = 1,
+                Mess = "Lấy chi tiết nhóm thành công.",
+                Data = groupDetail
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ApiReponseModel<GroupDetailResponseModel>
+            {
+                Status = -2,
+                Mess = $"Đã xảy ra lỗi không xác định: {ex.Message}",
+                Data = null
+            };
+        }
+        }
+    }
 }

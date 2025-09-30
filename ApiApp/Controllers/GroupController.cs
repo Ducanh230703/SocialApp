@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Models.ReponseModel;
+using Models.ResponseModels;
+using Models.ViewModel.Group;
 using Services;
 
 namespace ApiApp.Controllers
@@ -11,16 +13,17 @@ namespace ApiApp.Controllers
     public class GroupController : ControllerBase
     {
         [HttpPost("creategr")]
-        public async Task<Models.ReponseModel.ApiReponseModel> CreateGroup([FromBody] Group group)
+        public async Task<Models.ReponseModel.ApiReponseModel<int>> CreateGroup([FromBody] CreateGroupForm group)
         {
-            group.CreatedByUserId = Cache.CacheEx.DataUser.ID;
+            var user = Cache.CacheEx.DataUser;
+                group.CreatedByUserId = user.ID;
             return await GroupService.CreateGroup(group);
         }
 
-        [HttpDelete("deletegr")]
-        public async Task<Models.ReponseModel.ApiReponseModel> DeleteGroup([FromBody] Group group)
+        [HttpDelete("deletegr/{id}")]
+        public async Task<Models.ReponseModel.ApiReponseModel> DeleteGroup(int id)
         {
-            return await GroupService.DeleteGroup(group.ID);
+            return await GroupService.DeleteGroup(id);
         }
 
         [HttpPatch("updateimage")]
@@ -40,6 +43,13 @@ namespace ApiApp.Controllers
         {
             return await GroupService.GetListGroup(Cache.CacheEx.DataUser.ID);
 
+        }
+
+        [HttpGet("detail/{groupID}")]
+        public async Task<ApiReponseModel<GroupDetailResponseModel>> Detail(int groupID)
+        {
+            var data =await GroupService.GetGroupDetail(groupID,Cache.CacheEx.DataUser.ID   );
+            return data;
         }
     }
 }

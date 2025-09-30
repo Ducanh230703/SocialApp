@@ -12,13 +12,7 @@ namespace Models.ViewModel.Home
         public string? Content { get; set; }
         public List<IFormFile>? Image { get; set; }
         public string? ImageUrls { get; set; }
+        public int? GroupID { get; set; } = null;
     }
 
-    public class FileModel
-    {
-        public int ID { get; set; } = 0;
-        public string UrlMedia { get; set; }
-        public IFormFile? Image { get; set; }
-        public bool? IsDelete { get; set; } = false;
-    }
 }

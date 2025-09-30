@@ -1,0 +1,135 @@
+﻿@model Models.ViewModel.Group.CreateGroupForm
+
+<div class="uk-card uk-card-default uk-card-body uk-width-large">
+    <h5 class="uk-card-title">Tạo Nhóm Mới</h5>
+    <form asp-action="CreateGroup" asp-controller="Group" method="post" enctype="multipart/form-data" id="createGroupForm">
+        <div asp-validation-summary="ModelOnly" class="uk-alert-danger" uk-alert></div>
+
+        <div class="uk-margin">
+            <label class="uk-form-label" asp-for="GroupName">Tên Nhóm</label>
+            <div class="uk-form-controls">
+                <input class="uk-input" asp-for="GroupName" type="text" placeholder="Nhập tên nhóm">
+            </div>
+            <span asp-validation-for="GroupName" class="uk-text-danger"></span>
+        </div>
+
+        <div class="uk-margin">
+            <label>
+                <input class="uk-checkbox" asp-for="IsPrivate" type="checkbox">
+                <span class="uk-form-label">Nhóm Riêng Tư</span>
+            </label>
+        </div>
+
+        <div class="uk-margin">
+            <label class="uk-form-label" asp-for="Image">Ảnh Đại Diện Nhóm (Tùy chọn)</label>
+
+            <div id="image-upload-container" class="flex items-center gap-4">
+                <div id="image-drop-area" class="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-blue-500 transition-colors duration-200">
+                    <button type="button" id="imageUploadBtn" class="flex items-center justify-center gap-1.5 bg-sky-50 text-sky-600 rounded-full py-1 px-2 mx-auto border-2 border-sky-100">
+                        <ion-icon name="image" class="text-base"></ion-icon> Chọn ảnh
+                    </button>
+                </div>
+
+                <input id="imageUpload" type="file" class="hidden" asp-for="Image" accept="image/png, image/jpeg, image/gif" />
+
+                <div id="imagePreviewContainer" class="hidden"></div>
+            </div>
+        </div>
+
+        <div class="uk-margin uk-text-right">
+            <button type="submit" class="uk-button uk-button-primary">Tạo Nhóm</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const imageUploadBtn = document.getElementById('imageUploadBtn');
+        const imageUpload = document.getElementById('imageUpload');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const imageDropArea = document.getElementById('image-drop-area');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            imageDropArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        imageDropArea.addEventListener('dragenter', () => {
+            imageDropArea.classList.add('border-blue-500');
+            imageDropArea.classList.remove('border-gray-300');
+        }, false);
+
+        imageDropArea.addEventListener('dragleave', () => {
+            imageDropArea.classList.remove('border-blue-500');
+            imageDropArea.classList.add('border-gray-300');
+        }, false);
+
+        imageDropArea.addEventListener('drop', handleDrop, false);
+
+            function handleDrop(e) {
+        imageDropArea.classList.remove('border-blue-500');
+        imageDropArea.classList.add('border-gray-300');
+        const droppedFiles = e.dataTransfer.files;
+        if (droppedFiles.length > 0) {
+            imageUpload.files = droppedFiles;
+            handleNewFile(droppedFiles[0]);
+        }
+    }
+
+
+        imageUploadBtn.addEventListener('click', () => {
+            imageUpload.click();
+        });
+
+        imageUpload.addEventListener('change', (event) => {
+            if (event.target.files.length > 0) {
+            updateImagePreview(event.target.files[0]);
+            }
+        });
+
+        function handleNewFile(file) {
+            if (imageUpload.files.length === 0 || imageUpload.files[0] !== file) {
+            imageUpload.files = new FileList([file]);
+            }
+
+            updateImagePreview(file);
+        }
+
+        function updateImagePreview(file) {
+            imagePreviewContainer.innerHTML = '';
+            imagePreviewContainer.classList.remove('hidden');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const previewItem = document.createElement('div');
+                previewItem.classList.add('relative');
+
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.classList.add('w-24', 'h-24', 'rounded', 'object-cover');
+                previewItem.appendChild(img);
+
+                const removeButton = document.createElement('button');
+                removeButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>`;
+                removeButton.classList.add('absolute', 'top-0', 'right-0', '-mt-1', '-mr-1', 'bg-white', 'rounded-full', 'w-6', 'h-6', 'flex', 'items-center', 'justify-center', 'shadow');
+                removeButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    imageUpload.value = '';
+                    imagePreviewContainer.innerHTML = '';
+                    imagePreviewContainer.classList.add('hidden');
+                });
+
+                previewItem.appendChild(removeButton);
+                imagePreviewContainer.appendChild(previewItem);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+</script>

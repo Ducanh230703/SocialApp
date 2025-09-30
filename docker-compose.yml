@@ -1,0 +1,29 @@
+version: '3.4'
+services:
+  # Service 1: SQL Server Express
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest # Hoặc bản 2017/2022
+    container_name: sql_server_thesis
+    environment:
+      SA_PASSWORD: "YourStrongPassword123" # Thay bằng mật khẩu mạnh của bạn
+      ACCEPT_EULA: "Y" # Chấp nhận điều khoản
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql # Lưu trữ dữ liệu để không bị mất khi container dừng
+
+  # Service 2: .NET API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080" # Hoặc cổng bạn chọn
+    depends_on:
+      - sqlserver
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=ThesisDB;User Id=sa;Password=YourStrongPassword123;TrustServerCertificate=True"
+      # Quan trọng: Dùng tên service 'sqlserver' làm Hostname
+
+volumes:
+  sqlserver_data: {}

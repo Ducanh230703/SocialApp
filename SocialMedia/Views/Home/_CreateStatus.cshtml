@@ -32,7 +32,7 @@
         </form>
     </div>
 </div>
-
+ 
 <script>
     window.addEventListener("DOMContentLoaded", () => {
         const imageUploadBtn = document.getElementById('imageUploadBtn');
@@ -41,7 +41,6 @@
         const createPostForm = document.getElementById('createPostForm');
         let previewFiles = [];
 
-        // Prevent default drag-and-drop behavior
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             createPostForm.addEventListener(eventName, preventDefaults, false);
         });
@@ -51,7 +50,6 @@
             e.stopPropagation();
         }
 
-        // Change border color on drag enter/leave
         createPostForm.addEventListener('dragenter', () => {
             createPostForm.classList.add('border-blue-500');
             createPostForm.classList.remove('border-gray-300');
@@ -62,7 +60,6 @@
             createPostForm.classList.add('border-gray-300');
         }, false);
 
-        // Handle drop event
         createPostForm.addEventListener('drop', handleDrop, false);
 
         function handleDrop(e) {
@@ -71,36 +68,29 @@
 
             const droppedFiles = e.dataTransfer.files;
 
-            // Call the function to handle file addition and merging
             handleNewFiles(droppedFiles);
         }
 
-        // Open file selection dialog on button click
         imageUploadBtn.addEventListener('click', () => {
             imageUpload.click();
         });
 
-        // Handle file selection from the input
         imageUpload.addEventListener('change', (event) => {
             const selectedFiles = event.target.files;
 
-            // Call the function to handle file addition and merging
             handleNewFiles(selectedFiles);
         });
 
-        // This is the core function for adding new files without losing old ones
         function handleNewFiles(files) {
             const newFiles = Array.from(files);
 
             newFiles.forEach(file => {
-                // Check if the file already exists in our array to prevent duplicates
                 const exists = previewFiles.some(f => f.name === file.name && f.size === file.size);
                 if (!exists) {
                     previewFiles.push(file);
                 }
             });
 
-            // Update both the input's FileList and the UI
             updateInputFiles();
             updateImagePreview();
         }
@@ -175,7 +165,6 @@
             }
         });
 
-        // Handle success/error messages from TempData
         const successMessage = "@TempData["Success"]";
         const errorMessage = "@TempData["Error"]";
 

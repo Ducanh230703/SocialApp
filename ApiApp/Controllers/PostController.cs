@@ -26,10 +26,9 @@ namespace ApiApp.Controllers
         [HttpPost("newpost")]
         public async Task<ApiReponseModel> AddNewPost([FromBody] PostVM postVM)
         {
-            //var token = Request.Headers["Authorization"].ToString().Replace("Authorization ", "");
-            //var user = CheckLoggedService.CheckLogged(token);
+
             var a = CacheEx.DataUser;
-            var data = await PostService.NewPost(postVM.Content, postVM.ImageUrls, a.ID);
+            var data = await PostService.NewPost(postVM.Content, postVM.ImageUrls, a.ID,postVM.GroupID);
             return data;
         }
 

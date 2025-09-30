@@ -223,7 +223,14 @@
 
         editPostForm.addEventListener("submit", function (e) {
             e.preventDefault();
+            const content = editContent.value.trim();
+            const existingImagesCount = existingImagesContainer.querySelectorAll(".existing-image").length;
+            const newImagesCount = selectedNewImages.length;
 
+            if (content === "" && existingImagesCount === 0 && newImagesCount === 0) {
+                alert("Bài viết phải có nội dung hoặc ít nhất một ảnh.");
+                return; 
+            }
             const formData = new FormData();
 
             formData.append("PostId", postIdInput.value);

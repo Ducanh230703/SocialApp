@@ -21,10 +21,10 @@ namespace ApiApp.Controllers
             return await Services.GroupMemberService.DeleteMember(groupMember);
         }
 
-        [HttpDelete("leavegroup")]
-        public async Task<ApiReponseModel> LeaveGroup([FromBody] GroupMember groupMember)
+        [HttpDelete("leavegroup/{id}")]
+        public async Task<ApiReponseModel> LeaveGroup(int id)
         {
-            return await Services.GroupMemberService.LeaveGroup(Cache.CacheEx.DataUser.ID, groupMember.GroupId);
+            return await Services.GroupMemberService.LeaveGroup(Cache.CacheEx.DataUser.ID, id);
         }
     }
 }

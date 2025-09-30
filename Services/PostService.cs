@@ -30,12 +30,32 @@ namespace Services
         {
             if (pageNumber < 1) pageNumber = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
-
-            string countSql = @"SELECT COUNT(p.ID) FROM Posts p JOIN Users u ON u.ID = p.UserId";
+            var param = new System.Collections.SortedList
+            {
+                {"loggedInUserId",loggedInUserId }
+            };
+            string countSql = @"SELECT COUNT(p.ID) 
+            FROM Posts p
+            LEFT JOIN GroupMembers gm ON gm.GroupId = p.GroupID AND gm.UserID = @loggedInUserId
+            WHERE
+                (
+                    p.IsPrivate = 0
+                    OR p.UserId IN (
+                        SELECT @loggedInUserId AS FriendId
+                        UNION
+                        SELECT CASE
+                                   WHEN SenderID = @loggedInUserId THEN ReceiverID
+                                   ELSE SenderID
+                               END AS FriendId
+                        FROM FriendRequests
+                        WHERE Status = 1 AND (SenderID = @loggedInUserId OR ReceiverID = @loggedInUserId)
+                    )
+                    OR (p.GroupID IS NOT NULL AND gm.UserID IS NOT NULL)
+                )";
             int totalCount = 0;
             try
             {
-                string countJson = await connectDB.SelectJS(countSql);
+                string countJson = await connectDB.SelectJS(countSql,param);
 
                 if (!string.IsNullOrEmpty(countJson))
                 {
@@ -116,10 +136,7 @@ namespace Services
                         OFFSET {offset} ROWS FETCH NEXT {pageSize} ROWS ONLY
                         FOR JSON PATH;
                         ";
-            var param = new System.Collections.SortedList
-            {
-                {"loggedInUserId",loggedInUserId }
-            };
+            
             List<PostFull> posts = new List<PostFull>();
             string json = await connectDB.SelectJS(sql,param);
 
@@ -184,15 +201,16 @@ namespace Services
         /// <param name="ImageUrls"></param>
         /// <param name="UserId"></param>
         /// <returns></returns>
-        public static async Task<ApiReponseModel> NewPost(string Content, string ImageUrls, int UserId)
+        public static async Task<ApiReponseModel> NewPost(string Content, string ImageUrls, int UserId,int? groupID)
         {
             //var InfoUser = CacheEx.DataUser;
-            var sql = "INSERT INTO Posts (Content, ImageUrl,UserId) VALUES (@Content,@ImageUrl,@UserId);";
+            var sql = "INSERT INTO Posts (Content, ImageUrl,UserId,GroupID) VALUES (@Content,@ImageUrl,@UserId,@groupID);";
             var param = new System.Collections.SortedList
             {
                 {"Content",(object)Content ?? DBNull.Value},
                 {"ImageUrl", (object)ImageUrls ?? DBNull.Value },
-                {"UserId",UserId }
+                {"UserId",UserId },
+                {"GroupID",(object)groupID ?? DBNull.Value }
             };
             var rs = await connectDB.Insert(sql, param);
 
