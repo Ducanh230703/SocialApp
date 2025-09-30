@@ -47,6 +47,14 @@ var app = builder.Build();
 //    app.UseSwagger();
 //    app.UseSwaggerUI();
 //}
+var imageRootPath = Path.Combine(app.Environment.ContentRootPath, "Image");
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(imageRootPath),
+
+    RequestPath = "/Image"
+});
 
 app.UseCors("AllowSpecificOrigins");
 app.UseHttpsRedirection();
