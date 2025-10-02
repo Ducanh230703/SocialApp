@@ -22,7 +22,7 @@
     @{
         var controller = ViewContext.RouteData.Values["controller"]?.ToString();
         var action = ViewContext.RouteData.Values["action"]?.ToString();
-        var showSidebar = !(controller == "Authentication" && (action == "Login" || action == "Register"));
+        var showSidebar = !(controller == "Authentication" && (action == "Login" || action == "Register" || action == "VerifyOtpRegistration")|| action == "ResetPassword" || action == "ForgotPassword");
     }
 
     @if (showSidebar)

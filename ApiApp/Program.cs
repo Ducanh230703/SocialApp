@@ -1,8 +1,9 @@
 ﻿using ApiApp.Fillter;
-using Services;
+using ApiApp.Hubs; // Đảm bảo có using này
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
-using ApiApp.Hubs; // Đảm bảo có using này
+using Models;
+using Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,12 @@ UserSerivce.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihos
 NotificationService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
 FriendRequestService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
 MessageService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
+
+
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
+builder.Services.AddTransient<EmailService>();
+
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme;
