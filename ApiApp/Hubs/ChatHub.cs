@@ -17,6 +17,8 @@ namespace ApiApp.Hubs
     {
         public static ConcurrentDictionary<int, ConcurrentHashSet<string>> UserConnections = new();
         public static List<FriendListVM> onlineFriends = new List<FriendListVM>();
+        private readonly ILogger<ChatHub> _logger;
+
         public async Task UpdateUserOnlineStatusInDb(int userId, bool isOnline)
         {
             var sql = $"UPDATE Users SET IsOnline = @IsOnline WHERE ID = @UserId";
@@ -28,7 +30,10 @@ namespace ApiApp.Hubs
             await connectDB.Update(sql, param);
             Console.WriteLine($"[ChatHub] DB: User {userId} status updated to {(isOnline ? "online" : "offline")}");
         }
-
+        public ChatHub(ILogger<ChatHub> logger)
+        {
+            _logger = logger;
+        }
         public async Task<List<int>> GetFriendIdsFromDb(int userId)
         {
             var friendIds = new List<int>();
@@ -59,24 +64,21 @@ namespace ApiApp.Hubs
         {
             if (httpContext == null)
             {
+                _logger.LogWarning("[ChatHub] HttpContext = NULL for ConnectionId {conn}", Context?.ConnectionId);
                 return 0;
             }
 
             string userIdString = httpContext.Request.Cookies["LoggedInUserId"];
+            _logger.LogInformation("[ChatHub] Cookie LoggedInUserId = {cookie} for ConnectionId {conn}", userIdString ?? "NULL", Context?.ConnectionId);
 
-            if (string.IsNullOrEmpty(userIdString))
-            {
-                return 0;
-            }
-
+            if (string.IsNullOrEmpty(userIdString)) return 0;
             if (int.TryParse(userIdString, out int userId))
             {
+                _logger.LogInformation("[ChatHub] Parsed userId = {userId} for ConnectionId {conn}", userId, Context?.ConnectionId);
                 return userId;
             }
-            else
-            {
-                return 0;
-            }
+            _logger.LogWarning("[ChatHub] Cookie LoggedInUserId parse FAILED: {cookie}", userIdString);
+            return 0;
         }
 
         public override async Task OnConnectedAsync()
@@ -84,20 +86,31 @@ namespace ApiApp.Hubs
             var httpContext = Context.GetHttpContext();
             if (httpContext == null)
             {
+                _logger.LogWarning("[ChatHub] HttpContext = NULL on OnConnectedAsync. ConnectionId={conn}", Context.ConnectionId);
                 Context.Abort();
                 return;
             }
 
+            _logger.LogInformation("[ChatHub] OnConnectedAsync START. ConnectionId={conn}", Context.ConnectionId);
+
             var userId = GetUserIdFromAuthToken(httpContext);
+            _logger.LogInformation("[ChatHub] OnConnectedAsync resolved userId={userId} for ConnectionId={conn}", userId, Context.ConnectionId);
+
             if (userId != 0)
             {
-                UserConnections.GetOrAdd(userId, new ConcurrentHashSet<string>()).Add(Context.ConnectionId);
+                var connections = UserConnections.GetOrAdd(userId, new ConcurrentHashSet<string>());
+                connections.Add(Context.ConnectionId);
 
-                if (UserConnections[userId].Count == 1)
+                _logger.LogInformation("[ChatHub] Added connection {conn} for user {userId}. Total connections for this user={count}",
+                    Context.ConnectionId, userId, connections.Count);
+
+                if (connections.Count == 1)
                 {
                     await UpdateUserOnlineStatusInDb(userId, true);
+                    _logger.LogInformation("[ChatHub] User {userId} marked ONLINE in DB.", userId);
 
                     var friendIds = await GetFriendIdsFromDb(userId);
+                    _logger.LogInformation("[ChatHub] User {userId} has {count} friends.", userId, friendIds.Count);
 
                     foreach (var friendId in friendIds)
                     {
@@ -106,78 +119,78 @@ namespace ApiApp.Hubs
                             foreach (var connectionId in friendConnections)
                             {
                                 await Clients.Client(connectionId).SendAsync("UserStatusChanged", userId, true);
-                                Console.WriteLine($"[ChatHub] Đã gửi 'UserStatusChanged' (online) tới connection {connectionId} của bạn bè {friendId} về user {userId}.");
+                                _logger.LogInformation("[ChatHub] Notified friend {friendId} (connection {connId}) that user {userId} is ONLINE.",
+                                    friendId, connectionId, userId);
                             }
                         }
                         else
                         {
-                            Console.WriteLine($"[ChatHub] Bạn bè {friendId} của user {userId} không có kết nối online nào để nhận thông báo online.");
+                            _logger.LogInformation("[ChatHub] Friend {friendId} of user {userId} has no online connections.", friendId, userId);
                         }
                     }
                 }
             }
             else
             {
-                Context.Abort(); 
+                _logger.LogWarning("[ChatHub] userId=0. Aborting connection {conn}", Context.ConnectionId);
+                Context.Abort();
             }
 
-            await base.OnConnectedAsync(); 
+            await base.OnConnectedAsync();
+            _logger.LogInformation("[ChatHub] OnConnectedAsync END for ConnectionId={conn}", Context.ConnectionId);
         }
 
         public override async Task OnDisconnectedAsync(Exception exception)
         {
+            _logger.LogInformation("[ChatHub] OnDisconnectedAsync START. ConnectionId={conn}. Exception={ex}", Context.ConnectionId, exception?.Message);
+
             var httpContext = Context.GetHttpContext();
             if (httpContext == null)
             {
+                _logger.LogWarning("[ChatHub] HttpContext = NULL on OnDisconnectedAsync. ConnectionId={conn}", Context.ConnectionId);
                 Context.Abort();
                 return;
             }
 
             var userId = GetUserIdFromAuthToken(httpContext);
+            _logger.LogInformation("[ChatHub] OnDisconnectedAsync resolved userId={userId} for ConnectionId={conn}", userId, Context.ConnectionId);
 
-            if (userId != 0)
+            if (userId != 0 && UserConnections.TryGetValue(userId, out var connections))
             {
-                
-                if (UserConnections.TryGetValue(userId, out var connections))
+                connections.Remove(Context.ConnectionId);
+                _logger.LogInformation("[ChatHub] Removed connection {conn} for user {userId}. Remaining={count}",
+                    Context.ConnectionId, userId, connections.Count);
+
+                if (!connections.Any())
                 {
-                    connections.Remove(Context.ConnectionId);
+                    UserConnections.TryRemove(userId, out _);
+                    await UpdateUserOnlineStatusInDb(userId, false);
+                    _logger.LogInformation("[ChatHub] User {userId} marked OFFLINE in DB.", userId);
 
-                    if (!connections.Any())
+                    var friendIds = await GetFriendIdsFromDb(userId);
+                    foreach (var friendId in friendIds)
                     {
-                            UserConnections.TryRemove(userId, out _);
-
-                        await UpdateUserOnlineStatusInDb(userId, false);
-
-                        var friendIds = await GetFriendIdsFromDb(userId);
-
-                        foreach (var friendId in friendIds)
+                        if (UserConnections.TryGetValue(friendId, out var friendConnections))
                         {
-                            if (UserConnections.TryGetValue(friendId, out var friendConnections))
+                            foreach (var connectionId in friendConnections)
                             {
-                                foreach (var connectionId in friendConnections)
-                                {
-                                    await Clients.Client(connectionId).SendAsync("UserStatusChanged", userId, false);
-                                    Console.WriteLine($"[ChatHub] Đã gửi 'UserStatusChanged' (offline) tới connection {connectionId} của bạn bè {friendId} về user {userId}.");
-                                }
-                            }
-                            else
-                            {
-                                Console.WriteLine($"[ChatHub] Bạn bè {friendId} của user {userId} không có kết nối online nào để nhận thông báo offline.");
+                                await Clients.Client(connectionId).SendAsync("UserStatusChanged", userId, false);
+                                _logger.LogInformation("[ChatHub] Notified friend {friendId} (connection {connId}) that user {userId} is OFFLINE.",
+                                    friendId, connectionId, userId);
                             }
                         }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"[ChatHub] User {userId} disconnected. ConnectionId: {Context.ConnectionId}. Remaining connections for user: {connections.Count}");
                     }
                 }
             }
             else
             {
-                Console.WriteLine($"[ChatHub] Connection {Context.ConnectionId} not found or unauthenticated upon disconnect.");
+                _logger.LogWarning("[ChatHub] Could not resolve valid userId for disconnected connection {conn}.", Context.ConnectionId);
             }
+
             await base.OnDisconnectedAsync(exception);
+            _logger.LogInformation("[ChatHub] OnDisconnectedAsync END for ConnectionId={conn}", Context.ConnectionId);
         }
+
 
         public async Task SendMessage(SendMessageMD sendMessageMD)
             {
@@ -327,7 +340,7 @@ namespace ApiApp.Hubs
             {
                 Console.WriteLine($"[ChatHub] Target user {targetUserId} not found or offline. CallRejected not sent from {senderUserId}.");
             }
-        }
+        }   
 
         
         public async Task SendCallEnded(int targetUserId)

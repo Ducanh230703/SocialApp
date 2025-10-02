@@ -58,7 +58,6 @@ namespace ApiApp.Controllers
                 }
                 else
                 {
-                    // Fallback if even the default avatar is not found
                     return NotFound("FileName is null or empty, and default avatar 'user.png' was not found.");
                 }
             }

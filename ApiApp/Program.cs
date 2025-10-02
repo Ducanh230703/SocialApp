@@ -34,7 +34,7 @@ builder.Services.AddSignalR();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigins",
-        builder => builder.WithOrigins("https://localhost:7024", "https://localhost:7080")
+        builder => builder.WithOrigins("https://localhost:7024", "https://localhost:7080", "https://socialmedia20250930142855-gegwd5esgrcvczdz.canadacentral-01.azurewebsites.net")
                             .AllowAnyHeader()
                             .AllowAnyMethod()
                             .AllowCredentials());
@@ -47,6 +47,15 @@ var app = builder.Build();
 //    app.UseSwagger();
 //    app.UseSwaggerUI();
 //}
+var imageRootPath = Path.Combine(app.Environment.ContentRootPath, "Image");
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(imageRootPath),
+
+    RequestPath = "/Image"
+});
+
 app.UseCors("AllowSpecificOrigins");
 app.UseHttpsRedirection();
 
@@ -59,5 +68,5 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}"
 );
-app.MapHub<ChatHub>("chathub");
+app.MapHub<ChatHub>("/chathub");
 app.Run();

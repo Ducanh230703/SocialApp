@@ -182,7 +182,7 @@ namespace ApiApp.Controllers
 
             if (!result.Succeeded || result.Principal == null)
             {
-                return Redirect("https://localhost:7080/Authentication/Login?error=google_failed");
+                return Redirect("https://socialmedia20250930142855-gegwd5esgrcvczdz.canadacentral-01.azurewebsites.net/Authentication/Login?error=google_failed");
             }
 
             var claims = result.Principal.Claims;
@@ -191,17 +191,17 @@ namespace ApiApp.Controllers
 
             if (string.IsNullOrEmpty(email))
             {
-                return Redirect("https://localhost:7080/Authentication/Login?error=no_email");
+                return Redirect("https://socialmedia20250930142855-gegwd5esgrcvczdz.canadacentral-01.azurewebsites.net/Authentication/Login?error=no_email");
             }
 
             var loginResult = await UserSerivce.LoginOrRegisterWithGoogle(email, fullName);
 
             if (loginResult.Status == 1 && loginResult.Data != null)
             {
-                return Redirect($"https://localhost:7080/Authentication/GoogleLoginCallback?token={loginResult.Data.Token}&id={loginResult.Data.ID}");
+                return Redirect($"https://socialmedia20250930142855-gegwd5esgrcvczdz.canadacentral-01.azurewebsites.net/Authentication/GoogleLoginCallback?token={loginResult.Data.Token}&id={loginResult.Data.ID}");
             }
 
-            return Redirect("https://localhost:7080/Authentication/Login?error=google_failed");
+            return Redirect("https://socialmedia20250930142855-gegwd5esgrcvczdz.canadacentral-01.azurewebsites.net/Authentication/Login?error=google_failed");
         }
     }
 }
