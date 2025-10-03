@@ -114,9 +114,11 @@
                 </div>
                 <div class="hidden bg-white rounded-lg drop-shadow-xl w-64 border2" uk-drop="offset:6;pos: bottom-right;animate-out: true;">
 
-                    <a>
-                        <div href="/User/Details?userId=@(loggedInUser?.Data?.ID ?? 0)" class="p-4 py-5 flex items-center gap-4">
-                            <img src="@profilePictureUrl" class="w-10 h-10 rounded-full shadow" />
+                    <a asp-controller="User" asp-action="Details" asp-route-userId="@(loggedInUser?.Data?.ID ?? 0)">
+                        <div class="p-4 py-5 flex items-center gap-4">
+                            <img src="@(string.IsNullOrEmpty(profilePictureUrl) ? Url.Content("~/images/avatar/user.png") : profilePictureUrl)"
+                                 class="w-10 h-10 rounded-full shadow"
+                                 alt="Profile Picture" />
                             <div class="flex-1">
                                 <h4 class="text-sm font-medium text-black">@fullName</h4>
                             </div>

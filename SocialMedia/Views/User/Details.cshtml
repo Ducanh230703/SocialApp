@@ -14,9 +14,8 @@
     var statusId = (int?)ViewBag.ID;
 }
 
-<main id="site__main" class="2xl:ml-[--w-side] xl:ml-[--w-side-sm] p-2.5 h-[calc(100vh-var(--m-top))] mt-[--m-top]">
-
-    <div class="max-w-[1065px] max-lg:-m-2.5" style="background-color:rgb(249, 250, 251)">
+<main id="site__main" class="2xl:ml-[--w-side] xl:ml-[--w-side-sm] p-2.5 min-h-[calc(100vh-var(--m-top))] mt-[--m-top]">
+    <div class="max-lg:-m-2.5" style="width:960px; background-color:rgb(249, 250, 251)">
         <div class="bg-white shadow lg:rounded-b-xl lg:-mt-10">
             <div class="relative overflow-hidden w-full lg:h-8 h-8"></div>
             <div class="p-3 flex flex-row items-center">
@@ -169,7 +168,8 @@
                                 class="button lg:text-lg lg:py-4 flex items-center justify-center gap-2"
                                 data-next-page="@(currentPage + 1)"
                                 data-page-size="@pageSize"
-                                data-profile-user-id="@profileUserId">
+                                data-profile-user-id="@profileUserId"
+                                data-has-next-page="true">
                             <ion-icon name="sync-outline" class="text-xl"></ion-icon>
                             <span>Tải thêm</span>
                         </button>
@@ -182,21 +182,27 @@
                     </div>
                 }
             </div>
-            <div class="lg:w-[400px]">
+            <div style="width:300px;">
                 <div class="lg:space-y-4 lg:pb-8 max-lg:grid sm:grid-cols-2 max-lg:gap-6"
                      uk-sticky="media: 1024; end: #js-oversized; offset: 80">
                     <div class="box p-5 px-6">
-                        <div class="flex items-ce justify-between text-black">
+                        <div class="flex items-center justify-between text-black">
                             <h3 class="font-bold text-lg">
-                                Friends
-                                <span class="block text-sm text-gray-500 mt-0.5 font-normal"> @(Model?.ListFriend?.Count ?? 0) friends </span>
+                                Bạn bè
+                                <span class="block text-sm text-gray-500 mt-0.5 font-normal"> @(Model?.ListFriend?.Count ?? 0) bạn bè </span>
                             </h3>
+                            @if ((Model?.ListFriend?.Count ?? 0) > 0)
+                            {
+                                <a href="/User/Friends?userId=@Model.ID" class="text-sm font-semibold text-blue-500 hover:text-blue-700 transition duration-200">
+                                    Xem tất cả
+                                </a>
+                            }
                         </div>
 
                         <div class="grid grid-cols-3 gap-2 gap-y-5 text-center text-sm mt-4 mb-2">
                             @if (Model?.ListFriend != null && Model.ListFriend.Any())
                             {
-                                @foreach (var friend in Model.ListFriend)
+                                @foreach (var friend in Model.ListFriend.Take(6))
                                 {
                                     <div>
                                         <a href="/User/Details?userId=@friend.ID">

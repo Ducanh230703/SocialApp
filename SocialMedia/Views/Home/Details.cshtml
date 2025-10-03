@@ -1,7 +1,5 @@
-﻿@model Models.ReponseModel.PostFull
-@using Models.ViewModel.Home
-
-<main id="site__main" class="2xl:ml-[--w-side] xl:ml-[--w-side-sm] p-2.5 h-[calc(100vh-var(--m-top))] mt-[--m-top]">
+﻿@using Models.ViewModel.Home
+<main id="site__main" class="2xl:ml-[--w-side] xl:ml-[--w-side-sm] p-2.5 min-h-[calc(100vh-var(--m-top))] mt-[--m-top]">
     <div style="width:700px" id="js-oversized">
         <div class="w-full h-full">
             <partial name="_Post" model="Model" view-data='new ViewDataDictionary(ViewData) { ["ShowAllComment"] = true, ["LoggedInUserId"] = ViewBag.LoggedInUserId }' />
@@ -13,161 +11,154 @@
 
 <script>
     let loggedInUserId = @(ViewBag.LoggedInUserId != null ? ViewBag.LoggedInUserId.ToString() : "null");
-        document.querySelectorAll('.add-comment-form').forEach(form => {
-            form.addEventListener('submit', async function (event) {
-                event.preventDefault();
 
-                const formData = new FormData(this);
-                const postId = formData.get('postId');
-                const content = formData.get('content');
-                const textarea = this.querySelector('textarea[name="content"]');
-
-                if (!content || content.trim() === '') {
-                    Toastify({
-                        text: "Bình luận không được để trống!",
-                        duration: 3000,
-                        gravity: "top",
-                        position: "right",
-                        backgroundColor: "#ff4d4f",
-                    }).showToast();
-                    return;
-                }
-
-                try {
-                    await connection.invoke("AddComment", parseInt(postId), content);
-                    console.log("Comment added successfully.");
-                    textarea.value = '';
-                } catch (err) {
-                    console.error("Failed to add comment:", err);
-                    Toastify({
-                        text: "Có lỗi xảy ra khi thêm bình luận.",
-                        duration: 3000,
-                        gravity: "top",
-                        position: "right",
-                        backgroundColor: "#ff4d4f",
-                    }).showToast();
-                }
-            });
-        });
-
-        const handleRemoveComment = async function (event) {
+    // 1. Logic thêm bình luận (Giữ nguyên)
+    document.querySelectorAll('.add-comment-form').forEach(form => {
+        form.addEventListener('submit', async function (event) {
             event.preventDefault();
-            const commentId = this.getAttribute('data-comment-id');
-            const postId = this.closest('.post-item').id.replace('post-', '');
+
+            const formData = new FormData(this);
+            const postId = formData.get('postId');
+            const content = formData.get('content');
+            const textarea = this.querySelector('textarea[name="content"]');
+
+            if (!content || content.trim() === '') {
+                Toastify({
+                    text: "Bình luận không được để trống!",
+                    duration: 3000,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: "#ff4d4f",
+                }).showToast();
+                return;
+            }
 
             try {
-                await connection.invoke("RemoveComment", parseInt(postId), parseInt(commentId));
-                console.log("Comment removed successfully.");
+                await connection.invoke("AddComment", parseInt(postId), content);
+                console.log("Comment added successfully.");
+                textarea.value = '';
             } catch (err) {
-                console.error("Failed to remove comment:", err);
+                console.error("Failed to add comment:", err);
                 Toastify({
-                    text: "Có lỗi xảy ra khi xóa bình luận.",
+                    text: "Có lỗi xảy ra khi thêm bình luận.",
                     duration: 3000,
                     gravity: "top",
                     position: "right",
                     backgroundColor: "#ff4d4f",
                 }).showToast();
             }
-        };
-
-        document.querySelectorAll('.remove-comment-form').forEach(form => {
-            form.addEventListener('submit', handleRemoveComment);
         });
+    });
 
-        document.querySelectorAll('.like-button').forEach(button => {
-            button.addEventListener('click', async function (event) {
-                event.preventDefault();
-                const postId = this.getAttribute('data-post-id');
-                const isLiked = this.classList.contains('text-red-500');
-                const likeCountElement = this.closest('.flex.items-center.gap-4').querySelector('a:last-child');
-                let currentLikes = parseInt(likeCountElement.textContent) || 0;
+    // 2. Logic xóa bình luận (Đã sửa lỗi cú pháp và logic URL)
+    document.addEventListener('submit', function(e) {
+        // Sử dụng Event Delegation để bắt sự kiện submit của form xóa bình luận
+        if (e.target && e.target.classList.contains('remove-comment-form')) {
+            e.preventDefault();
 
-                // Cập nhật giao diện ngay lập tức
-                const icon = this.querySelector('ion-icon');
-                if (isLiked) {
-                    this.classList.remove('text-red-500');
-                    icon.name = 'heart-outline';
-                    likeCountElement.textContent = currentLikes > 0 ? currentLikes - 1 : 0;
-                } else {
-                    this.classList.add('text-red-500');
-                    icon.name = 'heart';
-                    likeCountElement.textContent = currentLikes + 1;
-                }
+            const form = e.target;
+            const commentId = form.getAttribute('data-comment-id');
 
-                try {
-                    const formdata = new FormData();
-                    formdata.append("postId", postId);
-                    const response = await fetch(`/Home/${isLiked ? 'Unlike' : 'LikePost'}`, {
-                        method: 'POST',
-                        body: formdata
-                    });
-                    const result = await response.json();
-                    if (result.status !== 1) {
-                        // Hoàn tác giao diện nếu có lỗi từ server
-                        if (isLiked) {
-                            this.classList.add('text-red-500');
-                            icon.name = 'heart';
-                            likeCountElement.textContent = currentLikes;
-                        } else {
-                            this.classList.remove('text-red-500');
-                            icon.name = 'heart-outline';
-                            likeCountElement.textContent = currentLikes;
-                        }
+            // FIX: Hardcode URL và đảm bảo dùng CommentId (PascalCase) để khớp với Controller C#
+            const actionUrl = '/Home/RemovePostComment?CommentId=' + commentId;
+
+            // Thêm kiểm tra ID
+            if (!commentId || isNaN(parseInt(commentId))) {
+                Toastify({ text: "Lỗi: Không tìm thấy ID bình luận để xóa.", duration: 3000, backgroundColor: "#f44336", gravity: "top", position: "center" }).showToast();
+                return;
+            }
+
+            fetch(actionUrl, {
+                method: 'DELETE',
+            })
+                .then(response => {
+                    // Luôn đảm bảo response.json() được gọi chỉ khi không có lỗi HTTP (4xx, 5xx)
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Kiểm tra data.status hoặc data.success
+                    if (data.status === 1 || data.success === true) {
                         Toastify({
-                            text: result.message,
+                            text: data.message || "Xóa bình luận thành công.",
                             duration: 3000,
+                            backgroundColor: "#4CAF50",
                             gravity: "top",
-                            position: "right",
-                            backgroundColor: "#ff4d4f",
+                            position: "center"
+                        }).showToast();
+
+                        // Xóa phần tử cha chứa toàn bộ bình luận
+                        form.closest('.flex.items-start.gap-3.relative')?.remove();
+                    } else {
+                        Toastify({
+                            text: data.message || "Không thể xóa bình luận.",
+                            duration: 3000,
+                            backgroundColor: "#f44336",
+                            gravity: "top",
+                            position: "center"
                         }).showToast();
                     }
-                } catch (error) {
-                    console.error("Lỗi khi gửi yêu cầu:", error);
-                    // Hoàn tác giao diện nếu có lỗi
-                    if (isLiked) {
-                        this.classList.add('text-red-500');
-                        icon.name = 'heart';
-                        likeCountElement.textContent = currentLikes;
-                    } else {
-                        this.classList.remove('text-red-500');
-                        icon.name = 'heart-outline';
-                        likeCountElement.textContent = currentLikes;
-                    }
+                })
+                .catch(error => {
+                    console.error("Lỗi:", error);
                     Toastify({
-                        text: "Lỗi kết nối. Vui lòng thử lại.",
+                        text: "Đã xảy ra lỗi khi gửi yêu cầu xóa bình luận: " + error.message,
                         duration: 3000,
+                        backgroundColor: "#f44336",
                         gravity: "top",
-                        position: "right",
-                        backgroundColor: "#ff4d4f",
+                        position: "center"
                     }).showToast();
-                }
-            });
-        });
+                });
+        }
+    });
 
-        // --- Thêm: Chức năng xử lý xóa bài viết ---
-        window.openPostDeleteConfirmation = function (postId) {
-            document.getElementById('deleteConfirmationPostId').value = postId;
-            UIkit.modal(document.getElementById('postDeleteDialog')).show();
-        };
 
-        document.getElementById('confirmDeleteBtn').addEventListener('click', async function () {
-            const postId = document.getElementById('deleteConfirmationPostId').value;
+    // 3. Logic Like (Giữ nguyên)
+    document.addEventListener('click', async function (event) {
+        // Tìm phần tử .like-button gần nhất từ nơi click
+        const button = event.target.closest('.like-button');
+
+        if (button) {
+            event.preventDefault();
+
+            const postId = button.getAttribute('data-post-id');
+            const isLiked = button.classList.contains('text-red-500');
+            const likeCountElement = button.closest('.flex.items-center.gap-4')?.querySelector('a:last-child');
+            let currentLikes = parseInt(likeCountElement?.textContent) || 0;
+
+            // Cập nhật giao diện ngay lập tức
+            const icon = button.querySelector('ion-icon');
+            if (isLiked) {
+                button.classList.remove('text-red-500');
+                icon.name = 'heart-outline';
+                if (likeCountElement) likeCountElement.textContent = currentLikes > 0 ? currentLikes - 1 : 0;
+            } else {
+                button.classList.add('text-red-500');
+                icon.name = 'heart';
+                if (likeCountElement) likeCountElement.textContent = currentLikes + 1;
+            }
+
             try {
-                const response = await fetch(`/Home/DeletePost?PostId=${postId}`, {
-                    method: 'DELETE',
+                const formdata = new FormData();
+                formdata.append("postId", postId);
+                const response = await fetch(`/Home/${isLiked ? 'Unlike' : 'LikePost'}`, {
+                    method: 'POST',
+                    body: formdata
                 });
                 const result = await response.json();
-                if (result.status === 1) {
-                    document.getElementById(`post-${postId}`).remove();
-                    UIkit.modal(document.getElementById('postDeleteDialog')).hide();
-                    Toastify({
-                        text: result.message,
-                        duration: 3000,
-                        gravity: "top",
-                        position: "right",
-                        backgroundColor: "#5cb85c",
-                    }).showToast();
-                } else {
+                if (result.status !== 1) {
+                    // Hoàn tác giao diện nếu có lỗi từ server
+                    if (isLiked) {
+                        button.classList.add('text-red-500');
+                        icon.name = 'heart';
+                        if (likeCountElement) likeCountElement.textContent = currentLikes;
+                    } else {
+                        button.classList.remove('text-red-500');
+                        icon.name = 'heart-outline';
+                        if (likeCountElement) likeCountElement.textContent = currentLikes;
+                    }
                     Toastify({
                         text: result.message,
                         duration: 3000,
@@ -177,52 +168,94 @@
                     }).showToast();
                 }
             } catch (error) {
-                console.error("Lỗi khi xóa bài viết:", error);
+                console.error("Lỗi khi gửi yêu cầu:", error);
+                // Hoàn tác giao diện nếu có lỗi
+                if (isLiked) {
+                    button.classList.add('text-red-500');
+                    icon.name = 'heart';
+                    if (likeCountElement) likeCountElement.textContent = currentLikes;
+                } else {
+                    button.classList.remove('text-red-500');
+                    icon.name = 'heart-outline';
+                    if (likeCountElement) likeCountElement.textContent = currentLikes;
+                }
                 Toastify({
-                    text: "Đã xảy ra lỗi khi xóa bài viết.",
+                    text: "Lỗi kết nối. Vui lòng thử lại.",
                     duration: 3000,
                     gravity: "top",
                     position: "right",
                     backgroundColor: "#ff4d4f",
                 }).showToast();
             }
-        });
+        }
+    });
 
-        // --- Lắng nghe sự kiện từ SignalR ---
-        connection.on("ReceiveComment", function (postId, comment) {
-            const postElement = document.getElementById(`post-${postId}`);
-            if (postElement) {
-                const commentsList = postElement.querySelector('.comments-list');
-                const newCommentHtml = `
-                    <div class="flex items-start gap-3 relative new-comment" id="comment-${comment.id}">
-                        <img src="${comment.userProfilePictureUrl || '/images/avatar/user.png'}" class="w-6 h-6 mt-1 rounded-full" />
-                        <div class="flex-1">
-                            <div class="flex justify-between">
-                                <span class="text-black font-medium inline-block flex-grow">${comment.userFullName}</span>
-                                <small>Just now</small>
-                            </div>
-                            <p class="mt-0.5">${comment.content}</p>
-                            <form class="remove-comment-form" data-comment-id="${comment.id}">
-                                <button type="submit" class="text-red-500 text-xs ml-2" title="Remove post comment">
-                                    <ion-icon name="trash-outline"></ion-icon>
-                                </button>
-                            </form>
+    // 4. Logic Xóa Bài Viết (Giữ nguyên)
+    window.openPostDeleteConfirmation = function (postId) {
+        document.getElementById('deleteConfirmationPostId').value = postId;
+        UIkit.modal(document.getElementById('postDeleteDialog')).show();
+    };
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', async function () {
+        const postId = document.getElementById('deleteConfirmationPostId').value;
+        try {
+            const response = await fetch(`/Home/DeletePost?PostId=${postId}`, {
+                method: 'DELETE',
+            });
+            const result = await response.json();
+            if (result.status === 1) {
+                document.getElementById(`post-${postId}`).remove();
+                UIkit.modal(document.getElementById('postDeleteDialog')).hide();
+                Toastify({
+                    text: result.message,
+                    duration: 3000,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: "#5cb85c",
+                }).showToast();
+            } else {
+                Toastify({
+                    text: result.message,
+                    duration: 3000,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: "#ff4d4f",
+                }).showToast();
+            }
+        } catch (error) {
+            console.error("Lỗi khi xóa bài viết:", error);
+            Toastify({
+                text: "Đã xảy ra lỗi khi xóa bài viết.",
+                duration: 3000,
+                gravity: "top",
+                position: "right",
+                backgroundColor: "#ff4d4f",
+            }).showToast();
+        }
+    });
+
+    connection.on("ReceiveComment", function (postId, comment) {
+        const postElement = document.getElementById(`post-${postId}`);
+        if (postElement) {
+            const commentsList = postElement.querySelector('.comments-list');
+            const newCommentHtml = `
+                <div class="flex items-start gap-3 relative new-comment" id="comment-${comment.id}">
+                    <img src="${comment.userProfilePictureUrl || '/images/avatar/user.png'}" class="w-6 h-6 mt-1 rounded-full" />
+                    <div class="flex-1">
+                        <div class="flex justify-between">
+                            <span class="text-black font-medium inline-block flex-grow">${comment.userFullName}</span>
+                            <small>Just now</small>
                         </div>
+                        <p class="mt-0.5">${comment.content}</p>
+                        <form class="remove-comment-form" data-comment-id="${comment.id}">
+                            <button type="submit" class="text-red-500 text-xs ml-2" title="Remove post comment">
+                                <ion-icon name="trash-outline"></ion-icon>
+                            </button>
+                        </form>
                     </div>
-                `;
-                commentsList.insertAdjacentHTML('afterbegin', newCommentHtml);
-                const newCommentForm = document.querySelector(`#comment-${comment.id} .remove-comment-form`);
-                if (newCommentForm) {
-                    newCommentForm.addEventListener('submit', handleRemoveComment);
-                }
-            }
-        });
-
-        connection.on("RemoveCommentResponse", function (postId, commentId) {
-            const commentElement = document.getElementById(`comment-${commentId}`);
-            if (commentElement) {
-                commentElement.remove();
-            }
-        });
+                </div>
+            `;
+            commentsList.insertAdjacentHTML('afterbegin', newCommentHtml);
+        }
     });
 </script>

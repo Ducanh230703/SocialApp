@@ -66,7 +66,7 @@ namespace SocialMedia.Controllers
                             Response.Cookies.Append("LoggedInUserId", result.Data.ID.ToString(), new CookieOptions
                             {
                                 HttpOnly = false,
-                                Secure = true,  // ✅ bắt buộc trên HTTPS
+                                Secure = true, 
                                 SameSite = SameSiteMode.None,
                                 Expires = DateTimeOffset.UtcNow.AddHours(1)
 
@@ -179,7 +179,15 @@ namespace SocialMedia.Controllers
                     Expires = DateTimeOffset.UtcNow.AddHours(1)
                 });
 
-                Response.Cookies.Append("LoggedInUserId", id.ToString(), new CookieOptions { });
+
+                Response.Cookies.Append("LoggedInUserId", id.ToString(), new CookieOptions
+                {
+                    HttpOnly = false,
+                    Secure = true,
+                    SameSite = SameSiteMode.None,
+                    Expires = DateTimeOffset.UtcNow.AddHours(1)
+
+                });
 
                 return RedirectToAction("Index", "Home");
             }
@@ -235,7 +243,6 @@ namespace SocialMedia.Controllers
         [HttpGet]
         public IActionResult ForgotPassword()
         {
-            // Hiển thị form để người dùng nhập Email
             return View();
         }
 

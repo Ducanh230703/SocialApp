@@ -2,7 +2,6 @@
 @model RegisterModel
 
 <div class="sm:flex">
-    <!-- Form section -->
     <div class="relative lg:w-[580px] md:w-96 w-full p-10 min-h-screen bg-white shadow-xl flex items-center pt-10 z-10">
         <div class="w-full lg:max-w-sm mx-auto space-y-10">
 
@@ -57,16 +56,8 @@
         </div>
     </div>
 
-    <!-- Image slider section (giữ nguyên như cũ) -->
     <div class="flex-1 relative bg-primary max-md:hidden">
-        <!-- Slide show giữ nguyên -->
-        @* ... slider code ... *@
-    </div>
-</div>
-
-
-    @*image slider*@
-    <div class="flex-1 relative bg-primary max-md:hidden">
+        @*image slider*@
         <div class="relative w-full h-full" tabindex="-1" uk-slideshow="animation: slide; autoplay: true">
 
             <ul class="uk-slideshow-items w-full h-full">
@@ -93,7 +84,6 @@
                 </li>
             </ul>
 
-            <!-- slide nav -->
             <div class="flex justify-center">
                 <ul class="inline-flex flex-wrap justify-center  absolute bottom-8 gap-1.5 uk-dotnav uk-slideshow-nav"> </ul>
             </div>
