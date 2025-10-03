@@ -11,13 +11,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             return null;
         }
 
-        const userId = getCookie("AuthToken"); 
+        const userId = getCookie("LoggedInUserId"); 
         console.log("SignalR.js: Found LoggedInUserId =", userId);
 
         connection = new signalR.HubConnectionBuilder()
             .withUrl(`https://apiapp20250930133943-a3ewemhsd2egfgeq.canadacentral-01.azurewebsites.net/chathub?LoggedInUserId=${userId}`, {
             })            .configureLogging(signalR.LogLevel.Information)
-
             .build();
 
         connection.on("UserStatusChanged", (userId, isOnline) => {

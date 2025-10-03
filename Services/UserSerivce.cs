@@ -570,7 +570,7 @@ namespace Services
                 {
                     var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                     posts = JsonSerializer.Deserialize<List<PostFull>>(json, options) ?? new List<PostFull>();
-                    string apiHost = "https://localhost:7024";
+                    string apiHost = "https://apiapp20250930133943-a3ewemhsd2egfgeq.canadacentral-01.azurewebsites.net";
 
                     foreach (var post in posts)
                     {
