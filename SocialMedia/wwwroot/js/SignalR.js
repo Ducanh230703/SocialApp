@@ -1,21 +1,21 @@
 ﻿let connection;
 let totalClicks = 0;
-function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-}
 
 document.addEventListener("DOMContentLoaded", async () => {
     if (!connection || connection.state === signalR.HubConnectionState.Disconnected) {
         console.log("SignalR.js: Initializing new HubConnection.");
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
 
-        const userId = getCookie("LoggedInUserId"); // lấy từ cookie FE
+        const userId = getCookie("AuthToken"); 
         console.log("SignalR.js: Found LoggedInUserId =", userId);
 
         connection = new signalR.HubConnectionBuilder()
-            .withUrl(`https://apiapp20250930133943-a3ewemhsd2egfgeq.canadacentral-01.azurewebsites.net/chathub?userId=1`, {
-                withCredentials: true
+            .withUrl(`https://apiapp20250930133943-a3ewemhsd2egfgeq.canadacentral-01.azurewebsites.net/chathub?LoggedInUserId=${userId}`, {
             })            .configureLogging(signalR.LogLevel.Information)
 
             .build();

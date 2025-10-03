@@ -37,7 +37,7 @@ namespace SocialMedia.Controllers
         }
 
         [HttpPost]
-        [ResponseCache(NoStore = true, Duration = 0)]   
+        [ResponseCache(NoStore = true, Duration = 0)]
         public async Task<IActionResult> Login(LoginModel model)
         {
             if (!ModelState.IsValid)
@@ -49,38 +49,50 @@ namespace SocialMedia.Controllers
             {
                 var result = await ApiHelper.PostAsync<LoginModel, ApiReponseModel<UserReponseModel>>("/api/User/login", model);
 
-                    if (result != null && result.Status == 1)
+                if (result != null)
                 {
-                    if (result.Data != null && !string.IsNullOrEmpty(result.Data.Token))
+                    if (result.Status == 1)
                     {
-
-                        Response.Cookies.Append("AuthToken", result.Data.Token, new CookieOptions
+                        if (result.Data != null && !string.IsNullOrEmpty(result.Data.Token))
                         {
-                            HttpOnly = true,
-                            Secure = true,
-                            SameSite = SameSiteMode.Lax,
-                            Expires = DateTimeOffset.UtcNow.AddHours(1)
-                        });
+                            Response.Cookies.Append("AuthToken", result.Data.Token, new CookieOptions
+                            {
+                                HttpOnly = true,
+                                Secure = true,
+                                SameSite = SameSiteMode.Lax,
+                                Expires = DateTimeOffset.UtcNow.AddHours(1)
+                            });
 
-                        Response.Cookies.Append("LoggedInUserId", result.Data.ID.ToString(), new CookieOptions
+                            Response.Cookies.Append("LoggedInUserId", result.Data.ID.ToString(), new CookieOptions
+                            {
+                                HttpOnly = false,
+                                Secure = true,  // ✅ bắt buộc trên HTTPS
+                                SameSite = SameSiteMode.None,
+                                Expires = DateTimeOffset.UtcNow.AddHours(1)
+
+                            });
+                            return RedirectToAction("Index", "Home");
+                        }
+                        else
                         {
-                            HttpOnly = false,
-                            Secure = true,  // ✅ bắt buộc trên HTTPS
-                            SameSite = SameSiteMode.None, // ✅ để gửi cookie cross-origin
-                            Domain = ".azurewebsites.net", // để FE và API dùng chung domain gốc
-                            Path = "/"
-                        });
+                            ModelState.AddModelError("", "Đăng nhập thất bại: Token không hợp lệ hoặc thiếu.");
+                        }
+                    }
+                    else if (result.Status == 2) 
+                    {
+                        TempData["UserEmail"] = model.Email;
+                        TempData["OTPMess"] = result.Mess;
 
-                        return RedirectToAction("Index", "Home");
+                        return RedirectToAction("VerifyOtpRegistration", "Authentication");
                     }
                     else
                     {
-                        ModelState.AddModelError("", "Đăng nhập thất bại: Token không hợp lệ hoặc thiếu.");
+                        ModelState.AddModelError("", result.Mess ?? "Đăng nhập thất bại. Vui lòng thử lại.");
                     }
                 }
                 else
                 {
-                    ModelState.AddModelError("", result?.Mess ?? "Đăng nhập thất bại. Vui lòng thử lại.");
+                    ModelState.AddModelError("", "Đăng nhập thất bại. Vui lòng thử lại.");
                 }
             }
             catch (Exception ex)
@@ -91,7 +103,6 @@ namespace SocialMedia.Controllers
 
             return View(model);
         }
-
         [HttpGet]
         public async Task<IActionResult> Logout()
         {
@@ -121,7 +132,7 @@ namespace SocialMedia.Controllers
         [HttpPost]
         public async Task<IActionResult> Register(RegisterModel registerModel)
         {
-            var rs = await ApiHelper.PostAsync < RegisterModel, ApiReponseModel>("/api/User/register", registerModel);
+            var rs = await ApiHelper.PostAsync<RegisterModel, ApiReponseModel>("/api/User/register", registerModel);
 
             if (rs != null)
             {
@@ -129,6 +140,12 @@ namespace SocialMedia.Controllers
                 {
                     TempData["SuccessMessage"] = "Đăng ký thành công! Vui lòng đăng nhập.";
                     return RedirectToAction("Login", "Authentication");
+                }
+                else if (rs.Status == 2)
+                {
+                    TempData["UserEmail"] = registerModel.Email;
+                    TempData["OTPMess"] = rs.Mess;
+                    return RedirectToAction("VerifyOtpRegistration", "Authentication");
                 }
                 else
                 {
@@ -168,6 +185,163 @@ namespace SocialMedia.Controllers
             }
 
             return RedirectToAction("Login", "Authentication", new { error = "google_failed" });
+        }
+        [HttpGet]
+        public IActionResult VerifyOtpRegistration()
+        {
+            if (TempData["UserEmail"] == null)
+            {
+                return RedirectToAction("Register");
+            }
+            var model = new OtpVerificationModel { Email = TempData["UserEmail"]?.ToString() };
+            TempData.Keep("UserEmail");
+
+            return View(model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> VerifyOtpRegistration(OtpVerificationModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            try
+            {
+                var result = await ApiHelper.PostAsync<OtpVerificationModel, ApiReponseModel>("/api/User/verify-otp", model);
+
+                if (result != null && result.Status == 1)
+                {
+                    TempData.Remove("UserEmail");
+                    TempData["SuccessMessage"] = "Xác thực email thành công! Bạn có thể đăng nhập.";
+                    return RedirectToAction("Login", "Authentication");
+                }
+                else
+                {
+                    ModelState.AddModelError("", result?.Mess ?? "Xác thực OTP thất bại.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error in VerifyOtpRegistration (POST): {ex}");
+                ModelState.AddModelError("", "Đã xảy ra lỗi khi xác thực. Vui lòng thử lại sau.");
+            }
+
+            TempData.Keep("UserEmail");
+            return View(model);
+        }
+
+        [HttpGet]
+        public IActionResult ForgotPassword()
+        {
+            // Hiển thị form để người dùng nhập Email
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            try
+            {
+                // Gọi API Backend để gửi OTP
+                var result = await ApiHelper.PostAsync<ForgotPasswordModel, ApiReponseModel>("/api/User/forgot-password", model);
+
+                if (result != null && result.Status == 1)
+                {
+                    // Lưu email vào TempData để chuyển sang bước ResetPassword
+                    TempData["ResetPasswordEmail"] = model.Email;
+                    TempData["ResetPasswordMessage"] = result.Mess;
+
+                    return RedirectToAction("ResetPassword");
+                }
+                else
+                {
+                    ModelState.AddModelError("", result?.Mess ?? "Yêu cầu OTP thất bại. Vui lòng kiểm tra email.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error in ForgotPassword (POST): {ex}");
+                ModelState.AddModelError("", "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.");
+            }
+
+            return View(model);
+        }
+        [HttpGet]
+        public IActionResult ResetPassword()
+        {
+            // Kiểm tra xem Email đã được gửi từ ForgotPassword chưa
+            var email = TempData["ResetPasswordEmail"]?.ToString();
+            if (string.IsNullOrEmpty(email))
+            {
+                // Nếu không có email, quay lại trang ForgotPassword
+                return RedirectToAction("ForgotPassword");
+            }
+
+            var model = new ResetPasswordModel { Email = email };
+
+            // Giữ lại email và thông báo để dùng cho POST và hiển thị View
+            TempData.Keep("ResetPasswordEmail");
+            TempData.Keep("ResetPasswordMessage");
+
+            return View(model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ResetPassword(ResetPasswordModel model)
+        {
+            // Giữ lại email cho trường hợp ModelState không hợp lệ
+            TempData.Keep("ResetPasswordEmail");
+
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            // Đảm bảo Email trong model luôn có
+            if (string.IsNullOrEmpty(model.Email))
+            {
+                model.Email = TempData["ResetPasswordEmail"]?.ToString();
+                if (string.IsNullOrEmpty(model.Email))
+                {
+                    ModelState.AddModelError("", "Phiên đặt lại mật khẩu đã hết hạn hoặc không hợp lệ.");
+                    return View(model);
+                }
+            }
+
+            try
+            {
+                // Gọi API Backend để xác thực OTP và cập nhật mật khẩu
+                var result = await ApiHelper.PostAsync<ResetPasswordModel, ApiReponseModel>("/api/User/reset-password-with-otp", model);
+
+                if (result != null && result.Status == 1)
+                {
+                    TempData.Remove("ResetPasswordEmail");
+                    TempData.Remove("ResetPasswordMessage");
+                    TempData["SuccessMessage"] = result.Mess;
+
+                    // Chuyển về trang đăng nhập sau khi thành công
+                    return RedirectToAction("Login");
+                }
+                else
+                {
+                    ModelState.AddModelError("", result?.Mess ?? "Đặt lại mật khẩu thất bại. Vui lòng kiểm tra OTP và thử lại.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error in ResetPassword (POST): {ex}");
+                ModelState.AddModelError("", "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.");
+            }
+
+            TempData.Keep("ResetPasswordEmail"); // Giữ lại email nếu bị lỗi và cần hiển thị lại form
+            return View(model);
         }
 
     }

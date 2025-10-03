@@ -19,18 +19,57 @@ namespace ApiApp.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
+        private readonly EmailService _emailService;
+
+        public UserController(EmailService emailService)
+        {
+            _emailService = emailService;
+        }
         [HttpPost("register")]
         public async Task<ApiReponseModel> Register([FromBody] RegisterModel rmd)
         {
+            // Giả định UserSerivce.UserRegister trả về Status = 1 nếu đăng ký thành công
             var rs = await UserSerivce.UserRegister(rmd.Email, rmd.Password, rmd.FullName);
-            return rs;
 
+            if (rs.Status == 1)
+            {
+                // 1. Tạo và lưu OTP
+                var otpCode = new Random().Next(100000, 999999).ToString();
+                bool isCached = Cache.CacheEx.SetOtp(rmd.Email, otpCode, TimeSpan.FromMinutes(5));
+
+                if (!isCached)
+                {
+                    // Nếu cache lỗi, trả về lỗi hệ thống
+                    rs.Status = 0;
+                    rs.Mess = "Đăng ký thành công nhưng lỗi hệ thống khi chuẩn bị gửi xác thực.";
+                    return rs;
+                }
+
+                // 2. Gửi Email chứa mã OTP
+                bool emailSent = await _emailService.SendOtpEmail(rmd.Email, otpCode);
+
+                if (emailSent)
+                {
+                    rs.Mess = "Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.";
+                    // Trả về Status = 2 để Frontend biết là cần chuyển sang màn hình xác thực OTP
+                    rs.Status = 2;
+                }
+                else
+                {
+                    // Nếu gửi email lỗi, nên xóa OTP khỏi cache
+                    Cache.CacheEx.CleanUpTokens(rmd.Email);
+                    rs.Status = 0;
+                    rs.Mess = "Đăng ký thành công nhưng lỗi khi gửi email xác thực. Vui lòng thử lại sau.";
+                }
+            }
+
+            return rs;
         }
 
         [HttpPost("login")]
         public async Task<ApiReponseModel<UserReponseModel>> Login([FromBody] LoginModel loginModel)
         {
-            var rs = await UserSerivce.Login(loginModel.Email, loginModel.Password);
+            var rs = await UserSerivce.Login(loginModel.Email, loginModel.Password,_emailService);
 
             return rs;
         }
@@ -202,6 +241,90 @@ namespace ApiApp.Controllers
             }
 
             return Redirect("https://socialmedia20250930142855-gegwd5esgrcvczdz.canadacentral-01.azurewebsites.net/Authentication/Login?error=google_failed");
+        }
+
+        [HttpPost("send-otp")]
+        public async Task<ApiReponseModel> SendOtp([FromBody] OtpRequestModel request)
+        {
+            if (string.IsNullOrEmpty(request.Email))
+            {
+                return new ApiReponseModel { Status = 0, Mess = "Email không được để trống." };
+            }
+
+            var otpCode = new Random().Next(100000, 999999).ToString();
+
+            bool isCached = Cache.CacheEx.SetOtp(request.Email, otpCode, TimeSpan.FromMinutes(5));
+
+            if (!isCached)
+            {
+                return new ApiReponseModel { Status = 0, Mess = "Lỗi hệ thống khi lưu OTP." };
+            }
+
+            bool emailSent = await _emailService.SendOtpEmail(request.Email, otpCode);
+
+            if (emailSent)
+            {
+                return new ApiReponseModel { Status = 1, Mess = "Mã OTP đã được gửi đến email của bạn." };
+            }
+            else
+            {
+                Cache.CacheEx.CleanUpTokens(request.Email);
+                return new ApiReponseModel { Status = 0, Mess = "Lỗi khi gửi email OTP. Vui lòng thử lại." };
+            }
+        }
+
+        [HttpPost("verify-otp")]
+        public async Task<ApiReponseModel> VerifyOtp([FromBody] OtpVerificationModel model)
+        {
+            var storedOtp = Cache.CacheEx.GetOtp(model.Email);
+
+            if (string.IsNullOrEmpty(storedOtp))
+            {
+                return new ApiReponseModel { Status = 0, Mess = "Mã OTP đã hết hạn hoặc không tồn tại." };
+            }
+
+            if (storedOtp == model.OtpCode)
+            {
+                var verifyResult = await UserSerivce.VerifyUserEmail(model.Email);
+
+                Cache.CacheEx.CleanUpTokens(model.Email);
+
+                return verifyResult;
+            }
+            else
+            {
+                return new ApiReponseModel { Status = 0, Mess = "Mã OTP không đúng." };
+            }
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<ApiReponseModel> ForgotPassword([FromBody] ForgotPasswordModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return new ApiReponseModel { Status = 400, Mess = "Email không hợp lệ." };
+            }
+
+            var rs = await UserSerivce.SendOtpForPasswordReset(model.Email,_emailService);
+            return rs;
+        }
+
+        [HttpPost("reset-password-with-otp")]
+        public async Task<ApiReponseModel> ResetPasswordWithOtp([FromBody] VerifyOtpAndResetPasswordModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return new ApiReponseModel { Status = 400, Mess = "Dữ liệu nhập vào không hợp lệ." };
+            }
+
+            if (model.NewPassword != model.ConfirmPassword)
+            {
+                return new ApiReponseModel { Status = 400, Mess = "Mật khẩu mới và mật khẩu xác nhận không khớp." };
+            }
+
+            var rs = await UserSerivce.ResetPasswordWithOtp(model.Email, model.Otp, model.NewPassword);
+
+            return rs;
         }
     }
 }

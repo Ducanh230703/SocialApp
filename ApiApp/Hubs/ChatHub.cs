@@ -68,7 +68,7 @@ namespace ApiApp.Hubs
                 return 0;
             }
 
-            string userIdString = httpContext.Request.Cookies["LoggedInUserId"];
+            string userIdString = httpContext.Request.Query["LoggedInUserId"];
             _logger.LogInformation("[ChatHub] Cookie LoggedInUserId = {cookie} for ConnectionId {conn}", userIdString ?? "NULL", Context?.ConnectionId);
 
             if (string.IsNullOrEmpty(userIdString)) return 0;

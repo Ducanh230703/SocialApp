@@ -1,33 +1,34 @@
-﻿using Models.ReponseModel;
+﻿using Cache;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Identity.Client.Extensions.Msal;
+using Models;
+using Models.ReponseModel;
+using Models.ViewModel.Users;
 using Org.BouncyCastle.Crypto.Generators;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
+using System.Net.Cache;
 using System.Net.Mail;
 using System.Text;
-using System.Threading.Tasks;
-using Models;
-using System.Data;
-using Microsoft.Identity.Client.Extensions.Msal;
-using System.Net.Cache;
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
-using Models.ViewModel.Users;
-using System.Collections;
+using System.Threading.Tasks;
 
 namespace Services
 {
+    // Bỏ STATIC khỏi class
     public class UserSerivce
     {
+        private readonly EmailService _emailService;
+
+        // Constructor để nhận EmailService qua Dependency Injection
+
         public static string apiHost;
         public static string apiAvatar;
-        /// <summary>
-        /// Đăng ký tài khoản
-        /// </summary>
-        /// <param name="Email"></param>
-        /// <param name="Password"></param>
-        /// <param name="FullName"></param>
-        /// <returns></returns>
+
+        // Giữ UserRegister là static để không làm thay đổi các đoạn code RegisterWithGoogle
         public static async Task<ApiReponseModel> UserRegister(string Email, string? Password, string FullName)
         {
             string PasswordHash = null;
@@ -72,11 +73,11 @@ namespace Services
             }
 
             var inParams = new SortedList
-        {
-            {"@Email", Email},
-            {"@Password",(object) PasswordHash ?? DBNull.Value},
-            {"@FullName", FullName }
-        };
+            {
+                {"@Email", Email},
+                {"@Password",(object) PasswordHash ?? DBNull.Value},
+                {"@FullName", FullName }
+            };
 
             string[] outParamNames = { "@Status", "@Message" };
 
@@ -89,7 +90,7 @@ namespace Services
             int status = (int)spResult["Status"];
             string message = spResult["Message"]?.ToString();
 
-            if (status == 1) 
+            if (status == 1)
             {
                 return new ApiReponseModel
                 {
@@ -101,24 +102,20 @@ namespace Services
             {
                 return new ApiReponseModel
                 {
-                    Status = 409, // Conflict status code
+                    Status = 409,
                     Mess = message,
                 };
             }
-            else 
+            else
             {
                 return new ApiReponseModel
                 {
-                    Status = 500, 
+                    Status = 500,
                     Mess = message ?? "Đã xảy ra lỗi không xác định khi đăng ký.",
                 };
             }
         }
-        /// <summary>
-        /// Kiểm tra Email
-        /// </summary>
-        /// <param name="email"></param>
-        /// <returns></returns>
+
         private static bool IsValidEmail(string email)
         {
             try
@@ -132,13 +129,110 @@ namespace Services
             }
         }
 
-        /// <summary>
-        /// Đăng nhập
-        /// </summary>
-        /// <param name="Email"></param>
-        /// <param name="Password"></param>
-        /// <returns></returns>
-        public static async Task<ApiReponseModel<UserReponseModel>> Login(string Email, string Password)
+        public static async Task<ApiReponseModel> SendOtpForPasswordReset(string Email,EmailService emailService)
+        {
+            string sql = "SELECT ID FROM Users WHERE Email = @Email";
+            var param = new SortedList
+            {
+                { "Email", Email }
+            };
+
+            DataTable userDt = await connectDB.Select(sql, param);
+            if (userDt == null || userDt.Rows.Count == 0)
+            {
+                return new ApiReponseModel { Status = 404, Mess = "Email không tồn tại trong hệ thống." };
+            }
+
+            Random rand = new Random();
+            string otp = rand.Next(100000, 999999).ToString();
+
+            TimeSpan expiryDuration = TimeSpan.FromMinutes(5);
+            bool isSet = Cache.CacheEx.SetOtp(Email, otp, expiryDuration);
+
+            if (!isSet)
+            {
+                return new ApiReponseModel
+                {
+                    Status = 500,
+                    Mess = "Lỗi hệ thống khi tạo OTP. Vui lòng thử lại."
+                };
+            }
+
+            try
+            {
+
+                bool emailSent = await emailService.SendOtpEmail(Email, otp);
+
+            }
+            catch (Exception)
+            {
+                Cache.CacheEx.CleanUpOtp(Email);
+                return new ApiReponseModel
+                {
+                    Status = 500,
+                    Mess = "Lỗi hệ thống khi gửi OTP. Vui lòng thử lại."
+                };
+            }
+
+            return new ApiReponseModel
+            {
+                Status = 1,
+                Mess = $"Mã OTP đã được gửi đến {Email}. Mã này sẽ hết hạn sau 5 phút."
+            };
+        }
+
+        public static async Task<ApiReponseModel> ResetPasswordWithOtp(string Email, string Otp, string NewPassword)
+        {
+            // BƯỚC 1: XÁC THỰC OTP
+            string storedOtp = Cache.CacheEx.GetOtp(Email);
+
+            if (storedOtp == null || storedOtp != Otp)
+            {
+                return new ApiReponseModel
+                {
+                    Status = 400,
+                    Mess = "Mã OTP không hợp lệ hoặc đã hết hạn."
+                };
+            }
+
+            // BƯỚC 2: CẬP NHẬT MẬT KHẨU
+            // Mã hóa mật khẩu mới
+            string PasswordHash = BCrypt.Net.BCrypt.HashPassword(NewPassword);
+
+            // *** THỰC HIỆN TRUY VẤN DB ĐỂ CẬP NHẬT MẬT KHẨU ***
+            // Dùng cột 'Password' theo DB hiện tại của bạn
+            string sqlUpdate = "UPDATE Users SET Password = @PasswordHash, DateUpdated = GETDATE() WHERE Email = @Email";
+            var updateParam = new SortedList
+            {
+                { "@PasswordHash", PasswordHash },
+                { "@Email", Email }
+            };
+
+            int rowsAffected = await connectDB.Update(sqlUpdate, updateParam);
+
+            if (rowsAffected > 0)
+            {
+                // BƯỚC 3: XÓA OTP KHỎI CACHE SAU KHI CẬP NHẬT THÀNH CÔNG (quan trọng cho bảo mật)
+                Cache.CacheEx.CleanUpOtp(Email);
+
+                return new ApiReponseModel
+                {
+                    Status = 1,
+                    Mess = "Đặt lại mật khẩu thành công."
+                };
+            }
+            else
+            {
+                return new ApiReponseModel
+                {
+                    Status = 500,
+                    Mess = "Lỗi hệ thống khi cập nhật mật khẩu. Vui lòng thử lại."
+                };
+            }
+        }
+
+        // Bỏ STATIC
+        public static async Task<ApiReponseModel<UserReponseModel>> Login(string Email, string Password, EmailService emailService)
         {
             User rs = new User();
 
@@ -176,6 +270,49 @@ namespace Services
                 };
             }
 
+            bool isVerified = Convert.ToBoolean(row["IsVerified"]);
+            if (!isVerified)
+            {
+                var otpCode = new Random().Next(100000, 999999).ToString();
+                bool isCached = Cache.CacheEx.SetOtp(Email, otpCode, TimeSpan.FromMinutes(5));
+
+                if (!isCached)
+                {
+                    Cache.CacheEx.CleanUpOtp(Email);
+                    return new ApiReponseModel<UserReponseModel>
+                    {
+                        Status = 0,
+                        Mess = "Lỗi hệ thống khi tạo mã xác thực.",
+                        Data = null
+                    };
+                }
+
+                // Gửi email OTP bằng service đã được inject
+                bool emailSent = await emailService.SendOtpEmail(Email, otpCode);
+
+                if (emailSent)
+                {
+                    return new ApiReponseModel<UserReponseModel>
+                    {
+                        Status = 2, // TRẢ VỀ STATUS 2 YÊU CẦU XÁC THỰC OTP
+                        Mess = "Tài khoản của bạn chưa được xác thực. Mã OTP mới đã được gửi đến email.",
+                        Data = null
+                    };
+                }
+                else
+                {
+                    // Nếu gửi email thất bại, xóa OTP đã cache để tránh lỗi
+                    Cache.CacheEx.CleanUpTokens(Email);
+                    return new ApiReponseModel<UserReponseModel>
+                    {
+                        Status = 0,
+                        Mess = "Lỗi khi gửi email xác thực. Vui lòng thử lại sau.",
+                        Data = null
+                    };
+                }
+            }
+
+            // ĐĂNG NHẬP THÀNH CÔNG (Đã xác thực)
             rs.Email = row["Email"].ToString();
             rs.FullName = row["FullName"].ToString();
             rs.Bio = row["Bio"].ToString();
@@ -209,6 +346,39 @@ namespace Services
                 Data = null
             };
         }
+
+        // Bỏ STATIC
+        public static async Task<ApiReponseModel> VerifyUserEmail(string email)
+        {
+            try
+            {
+                var sql = "UPDATE Users SET IsVerified = @isVerified WHERE Email = @email AND (IsVerified IS NULL OR IsVerified = 0)";
+
+                var param = new SortedList
+                {
+                    {"@isVerified", true},
+                    {"@email", email}
+                };
+
+                int updatedRows = await connectDB.Update(sql, param);
+
+                if (updatedRows > 0)
+                {
+                    return new ApiReponseModel { Status = 1, Mess = "Xác thực email thành công. Tài khoản đã được kích hoạt." };
+                }
+                else
+                {
+                    return new ApiReponseModel { Status = 0, Mess = "Mã OTP hợp lệ nhưng không tìm thấy người dùng hoặc tài khoản đã được xác thực trước đó." };
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Lỗi khi xác thực email: {ex.Message}");
+                return new ApiReponseModel { Status = 0, Mess = "Lỗi hệ thống khi xác thực email." };
+            }
+        }
+
+        // Bỏ STATIC
         public static async Task<ApiReponseModel<EditInfo>> GetUserInfoEdit(int userId)
         {
             var sql = "SELECT * FROM Users WHERE ID = @userId";
@@ -248,10 +418,7 @@ namespace Services
         }
 
 
-        /// <summary>
-        /// Lấy dnah sách tất cả người dùng
-        /// </summary>
-        /// <returns></returns>
+        // Bỏ STATIC
         public static async Task<List<User>> GetAllUsers()
         {
             var list = new List<User>();
@@ -271,11 +438,7 @@ namespace Services
             return list;
         }
 
-        /// <summary>
-        /// Lấy thông tin cá nhân của người dùng
-        /// </summary>
-        /// <param name="token"></param>
-        /// <returns></returns>
+        // Bỏ STATIC
         public static async Task<ApiReponseModel<UserReponseModel>> GetUserInfo(int userId)
         {
             var sql = "SELECT * FROM Users WHERE ID = @userId";
@@ -289,13 +452,13 @@ namespace Services
 
             if (dt.Rows.Count > 0)
             {
-                DataRow row = dt.Rows[0]; 
+                DataRow row = dt.Rows[0];
 
                 userdata.ID = Convert.ToInt32(row["ID"]);
                 userdata.Email = row["Email"].ToString();
                 userdata.FullName = row["FullName"].ToString();
                 userdata.Bio = row["Bio"] == DBNull.Value ? null : row["Bio"].ToString();
-                userdata.ProfilePictureUrl = row["ProfilePictureUrl"] == DBNull.Value ? null : row["ProfilePictureUrl"].ToString(); 
+                userdata.ProfilePictureUrl = row["ProfilePictureUrl"] == DBNull.Value ? null : row["ProfilePictureUrl"].ToString();
 
                 return new ApiReponseModel<UserReponseModel>
                 {
@@ -316,7 +479,8 @@ namespace Services
 
         }
 
-        public static async Task<PaginatedResponse<PostFull>>   GetPostById (int pageNumber, int pageSize,int UserId)
+        // Bỏ STATIC
+        public static async Task<PaginatedResponse<PostFull>> GetPostById(int pageNumber, int pageSize, int UserId)
         {
             if (pageNumber < 1) pageNumber = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
@@ -389,7 +553,7 @@ namespace Services
                                     ORDER BY c.DateCreated DESC
                                     FOR JSON PATH
                                 ) AS NVARCHAR(MAX)
-                            ) AS Comments
+                                ) AS Comments
                             FROM Posts p
                             JOIN Users u ON u.ID = p.UserId
                             WHERE p.UserId = {UserId}
@@ -432,7 +596,7 @@ namespace Services
                                 comment.UserProfilePictureUrl = apiAvatar + comment.UserProfilePictureUrl;
                             }
                         }
-                        
+
                     }
                 }
                 catch (JsonException ex)
@@ -455,6 +619,7 @@ namespace Services
             };
         }
 
+        // Bỏ STATIC
         public static async Task<List<ListFriend>> GetFriendByUserId(int UserId)
         {
             var sql = @"SELECT
@@ -462,7 +627,7 @@ namespace Services
                                     WHEN FR.SenderId = @UserId THEN U_Receiver.FullName
                                     ELSE U_Sender.FullName
                                 END AS FriendFullName,
-    
+                        
                                 CASE
                                     WHEN FR.SenderId = @UserId THEN U_Receiver.ProfilePictureUrl
                                     ELSE U_Sender.ProfilePictureUrl
@@ -488,7 +653,7 @@ namespace Services
             };
             var list = new List<ListFriend>();
             DataTable data = await connectDB.Select(sql, param);
-            if (data!= null)
+            if (data != null)
             {
                 foreach (DataRow row in data.Rows)
                 {
@@ -505,6 +670,7 @@ namespace Services
         }
 
 
+        // Bỏ STATIC
         public static async Task<ApiReponseModel<UserInfo>> GetUserInfoWithPaginatedPosts(int profileUserId, int pageNumber = 1, int pageSize = 10)
         {
             var userInfo = new UserInfo();
@@ -518,7 +684,7 @@ namespace Services
                 userInfo.ProfilePictureUrl = apiAvatar + userDetails.Data.ProfilePictureUrl;
                 userInfo.Bio = userDetails.Data.Bio;
             }
-            else 
+            else
             {
                 return new ApiReponseModel<UserInfo>
                 {
@@ -535,8 +701,9 @@ namespace Services
                 Data = userInfo
             };
         }
-        
-        public static async Task<ApiReponseModel> UploadAvatar (int userId,string avatarUrl)
+
+        // Bỏ STATIC
+        public static async Task<ApiReponseModel> UploadAvatar(int userId, string avatarUrl)
         {
             var sql = "UPDATE Users SET ProfilePictureUrl = @avatarurl WHERE ID = @userId";
             var param = new System.Collections.SortedList
@@ -545,7 +712,7 @@ namespace Services
                 {"userId" ,userId}
             };
 
-             var rs = await connectDB.Update(sql, param);
+            var rs = await connectDB.Update(sql, param);
 
             if (rs > 0)
                 return new ApiReponseModel
@@ -560,8 +727,9 @@ namespace Services
                     Mess = "Update avatar thất bại"
                 };
         }
-         
-        public static async Task<ApiReponseModel>   EditInfo(int userID,string email, string fullName, string? bio)
+
+        // Bỏ STATIC
+        public static async Task<ApiReponseModel> EditInfo(int userID, string email, string fullName, string? bio)
         {
             var sql = "UPDATE Users SET Email = @email,FullName = @fullName, Bio = @bio WHERE ID = @userId";
             var param = new System.Collections.SortedList
@@ -590,6 +758,7 @@ namespace Services
 
         }
 
+        // Bỏ STATIC
         public static async Task<ApiReponseModel<UserOnline>> GetUserById(int userid)
         {
             var sql = $"SELECT ID,FullName,ProfilePictureUrl FROM Users WHERE ID = {userid}";
@@ -622,13 +791,14 @@ namespace Services
             }
         }
 
+        // Giữ LoginOrRegisterWithGoogle là static để không làm thay đổi các đoạn code RegisterWithGoogle
         public static async Task<ApiReponseModel<UserReponseModel>> LoginOrRegisterWithGoogle(string email, string fullName)
         {
             var sql = "SELECT TOP 1 * FROM Users WHERE Email = @Email";
             var param = new SortedList { { "Email", email } };
             DataTable dt = await connectDB.Select(sql, param);
 
-            if (dt.Rows.Count > 0) 
+            if (dt.Rows.Count > 0)
             {
                 DataRow row = dt.Rows[0];
                 var user = new User
@@ -661,7 +831,7 @@ namespace Services
             }
             else
             {
-                var registerResult = await UserRegister(email,null,fullName);
+                var registerResult = await UserRegister(email, null, fullName);
                 if (registerResult.Status != 1)
                 {
                     return new ApiReponseModel<UserReponseModel>
@@ -671,7 +841,6 @@ namespace Services
                     };
                 }
 
-                // Lấy user vừa tạo
                 dt = await connectDB.Select(sql, param);
                 if (dt.Rows.Count == 0)
                 {

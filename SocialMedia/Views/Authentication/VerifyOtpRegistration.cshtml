@@ -1,0 +1,91 @@
+﻿@using Models
+@model OtpVerificationModel // Giả định Model này có Email và OtpCode
+
+<div class="sm:flex">
+    @* Form Section - Áp dụng cấu trúc tương tự form Login *@
+    <div class="relative lg:w-[580px] md:w-96 w-full p-10 min-h-screen bg-white shadow-xl flex items-center pt-10 z-10">
+        <div class="w-full lg:max-w-sm mx-auto space-y-10">
+            <div>
+                <h2 class="text-2xl font-semibold mb-1.5">Xác thực Email</h2>
+                <p class="text-sm text-gray-700 font-normal">
+                    Một mã OTP đã được gửi đến: <strong class="text-blue-700">@Model.Email</strong>.
+                </p>
+                <p class="text-sm text-gray-700 font-normal mt-1">Mã sẽ hết hạn trong 5 phút. Vui lòng kiểm tra hộp thư đến.</p>
+            </div>
+            
+            @* Form Xác thực OTP *@
+            <form asp-controller="Authentication" asp-action="VerifyOtpRegistration" method="post" class="space-y-7 text-sm text-black font-medium">
+                
+                <div asp-validation-summary="ModelOnly" class="col-span-2 text-red-500"></div>
+
+                <input type="hidden" asp-for="Email" /> @* Giữ lại Email *@
+
+                <div>
+                    <label asp-for="OtpCode">Mã OTP (6 chữ số)</label>
+                    <div class="mt-2.5">
+                        <input asp-for="OtpCode" 
+                               id="otpcode" 
+                               name="OtpCode" 
+                               type="text" 
+                               placeholder="Nhập mã xác thực" 
+                               maxlength="6"
+                               required="" 
+                               class="!w-full text-center tracking-widest text-lg font-bold" />
+                        <span asp-validation-for="OtpCode" class="text-red-500 text-xs mt-1"></span>
+                    </div>
+                </div>
+                
+                @* Thông báo *@
+                @if (TempData["OTPMess"] != null)
+                {
+                    <div class="text-green-600 font-medium text-center border border-green-200 bg-green-50 p-2 rounded">
+                        <i class="icon-feather-check-circle mr-1"></i> @TempData["OTPMess"]
+                    </div>
+                }
+
+                @* Nút Xác thực và Gửi lại (Nếu có Action)*@
+                <div>
+                    <button type="submit" class="button bg-blue-600 hover:bg-blue-700 text-white w-full">Xác thực</button>
+                </div>
+                
+                @* Phần Gửi lại OTP (Tùy chọn) *@
+                <div class="text-center">
+                    <a asp-action="ResendOtp" asp-route-email="@Model.Email" class="text-blue-700 hover:underline">Gửi lại mã OTP</a>
+                </div>
+                
+            </form>
+            
+        </div>
+    </div>
+    
+    @* Image Slider Section - Copy từ form Login *@
+    <div class="flex-1 relative bg-primary max-md:hidden">
+        <div class="relative w-full h-full" tabindex="-1" uk-slideshow="animation: slide; autoplay: true">
+            <ul class="uk-slideshow-items w-full h-full">
+                <li class="w-full">
+                    <img src="~/images/welcome/welcome-01.png" alt="" class="w-full h-full object-cover uk-animation-kenburns uk-animation-reverse uk-transform-origin-center-left">
+                    <div class="absolute bottom-0 w-full uk-transition-slide-bottom-small z-10">
+                        <div class="max-w-xl w-full mx-auto pb-32 px-5 z-30 relative">
+                            <h4 class="!text-white text-2xl font-semibold mt-7" uk-slideshow-parallax="y: 600,0,0">Connect with Friends</h4>
+                            <p class="!text-white text-lg mt-7 leading-8" uk-slideshow-parallax="y: 800,0,0;">Bridge the gap between miles and moments—connect with friends and weave memories together, one click at a time.</p>
+                        </div>
+                    </div>
+                    <div class="w-full h-96 bg-gradient-to-t from-black absolute bottom-0 left-0"></div>
+                </li>
+                <li class="w-full">
+                    <img src="~/images/welcome/welcome-02.png" alt="" class="w-full h-full object-cover uk-animation-kenburns uk-animation-reverse uk-transform-origin-center-left">
+                    <div class="absolute bottom-0 w-full uk-tr ansition-slide-bottom-small z-10">
+                        <div class="max-w-xl w-full mx-auto pb-32 px-5 z-30 relative">
+                            <h4 class="!text-white text-2xl font-semibold mt-7" uk-slideshow-parallax="y: 800,0,0"> Connect With Friends </h4>
+                            <p class="!text-white text-lg mt-7 leading-8" uk-slideshow-parallax="y: 800,0,0;"> Rekindle old ties and spark new ones—your next 'Remember when...' moment is just a friend request away.</p>
+                        </div>
+                    </div>
+                    <div class="w-full h-96 bg-gradient-to-t from-black absolute bottom-0 left-0"></div>
+                </li>
+            </ul>
+            <div class="flex justify-center">
+                <ul class="inline-flex flex-wrap justify-center  absolute bottom-8 gap-1.5 uk-dotnav uk-slideshow-nav"> </ul>
+            </div>
+        </div>
+    </div>
+</div>
