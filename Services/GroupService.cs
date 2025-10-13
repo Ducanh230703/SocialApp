@@ -15,7 +15,6 @@ namespace Services
 {
      public class GroupService
      {
-        public static string apiHost = "https://apiapp20250930133943-a3ewemhsd2egfgeq.canadacentral-01.azurewebsites.net";
         public static string apiAvatar;
         public static async Task<ApiReponseModel<int>> CreateGroup(CreateGroupForm group)
         {
@@ -49,7 +48,7 @@ namespace Services
                     { "userId", group.CreatedByUserId },
                     { "groupName", group.GroupName },
                     { "IsPrivate", group.IsPrivate },
-                    { "GroupPictureUrl", group.GroupPictureUrl }
+                    { "GroupPictureUrl", (object)group.GroupPictureUrl??DBNull.Value }
                 };
 
                 var newGroupId = await connectDB.InsertAndGetId(sql, param);
@@ -316,11 +315,13 @@ namespace Services
                                 (SELECT COUNT(*) FROM Likes WHERE PostId = p.ID) AS LikeCount,
                                 (SELECT STRING_AGG(CAST(UserId AS NVARCHAR(10)), ',') FROM Likes WHERE PostId = p.ID) AS LikeUserIds,
                                 (SELECT COUNT(*) FROM GroupMembers WHERE GroupId = g.ID) AS MemberCount,
-                                (CASE WHEN EXISTS (SELECT 1 FROM GroupMembers WHERE GroupId = g.ID AND UserId = @loggedInUserId) THEN 1 ELSE 0 END) AS IsMember 
+                                (CASE WHEN EXISTS (SELECT 1 FROM GroupMembers WHERE GroupId = g.ID AND UserId = @loggedInUserId) THEN 1 ELSE 0 END) AS IsMember ,
+                                gm.Role AS CurrentUserRole
                             FROM Groups g
                             LEFT JOIN Posts p ON g.ID = p.GroupId
                             LEFT JOIN Users gu ON g.CreatedByUserId = gu.ID 
                             LEFT JOIN Users u ON p.UserId = u.ID
+                            LEFT JOIN GroupMembers gm ON gm.GroupId = g.ID AND gm.UserId = @loggedInUserId
                             WHERE g.ID = @groupId
                             ORDER BY p.DateCreated DESC;
                         ";
@@ -356,8 +357,9 @@ namespace Services
                 IsMember = Convert.ToBoolean(dt.Rows[0]["IsMember"]),
                 CreatedByUserName = dt.Rows[0]["CreatedByUserName"].ToString(),
                 CreatedByUserProfilePictureUrl = userPicture,
-                MemberCount = Convert.ToInt32(dt.Rows[0]["MemberCount"])
-            };
+                MemberCount = Convert.ToInt32(dt.Rows[0]["MemberCount"]),
+                CurrentUserRole = Convert.ToInt32(dt.Rows[0]["CurrentUserRole"])
+                };
 
             var posts = new List<PostFull>();
             foreach (DataRow row in dt.Rows)

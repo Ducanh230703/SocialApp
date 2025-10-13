@@ -108,7 +108,7 @@ namespace SocialMedia.Controllers
             }
         }
 
-        public async Task<IActionResult> Details(int id)
+        public async Task<IActionResult> Details(int id)    
         {
             var token = Request.Cookies["AuthToken"];
             if (string.IsNullOrEmpty(token))

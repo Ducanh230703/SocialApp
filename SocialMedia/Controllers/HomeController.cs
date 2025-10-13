@@ -245,7 +245,8 @@ public class HomeController : Controller
             var postData = new
             {
                 Content = postVM.Content,
-                ImageUrls = uploadResponse
+                ImageUrls = uploadResponse,
+                GroupID = postVM.GroupID,
             };
 
             var apiResponse = await ApiHelper.PostAsync<object, ApiReponseModel>("/api/Post/newpost", postData, token);

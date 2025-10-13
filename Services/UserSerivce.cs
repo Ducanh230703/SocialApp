@@ -25,7 +25,6 @@ namespace Services
 
         // Constructor để nhận EmailService qua Dependency Injection
 
-        public static string apiHost;
         public static string apiAvatar;
 
         // Giữ UserRegister là static để không làm thay đổi các đoạn code RegisterWithGoogle
@@ -270,47 +269,47 @@ namespace Services
                 };
             }
 
-            bool isVerified = Convert.ToBoolean(row["IsVerified"]);
-            if (!isVerified)
-            {
-                var otpCode = new Random().Next(100000, 999999).ToString();
-                bool isCached = Cache.CacheEx.SetOtp(Email, otpCode, TimeSpan.FromMinutes(5));
+            //bool isVerified = Convert.ToBoolean(row["IsVerified"]);
+            //if (!isVerified)
+            //{
+            //    var otpCode = new Random().Next(100000, 999999).ToString();
+            //    bool isCached = Cache.CacheEx.SetOtp(Email, otpCode, TimeSpan.FromMinutes(5));
 
-                if (!isCached)
-                {
-                    Cache.CacheEx.CleanUpOtp(Email);
-                    return new ApiReponseModel<UserReponseModel>
-                    {
-                        Status = 0,
-                        Mess = "Lỗi hệ thống khi tạo mã xác thực.",
-                        Data = null
-                    };
-                }
+            //    if (!isCached)
+            //    {
+            //        Cache.CacheEx.CleanUpOtp(Email);
+            //        return new ApiReponseModel<UserReponseModel>
+            //        {
+            //            Status = 0,
+            //            Mess = "Lỗi hệ thống khi tạo mã xác thực.",
+            //            Data = null
+            //        };
+            //    }
 
-                // Gửi email OTP bằng service đã được inject
-                bool emailSent = await emailService.SendOtpEmail(Email, otpCode);
+            //    // Gửi email OTP bằng service đã được inject
+            //    bool emailSent = await emailService.SendOtpEmail(Email, otpCode);
 
-                if (emailSent)
-                {
-                    return new ApiReponseModel<UserReponseModel>
-                    {
-                        Status = 2, // TRẢ VỀ STATUS 2 YÊU CẦU XÁC THỰC OTP
-                        Mess = "Tài khoản của bạn chưa được xác thực. Mã OTP mới đã được gửi đến email.",
-                        Data = null
-                    };
-                }
-                else
-                {
-                    // Nếu gửi email thất bại, xóa OTP đã cache để tránh lỗi
-                    Cache.CacheEx.CleanUpTokens(Email);
-                    return new ApiReponseModel<UserReponseModel>
-                    {
-                        Status = 0,
-                        Mess = "Lỗi khi gửi email xác thực. Vui lòng thử lại sau.",
-                        Data = null
-                    };
-                }
-            }
+            //    if (emailSent)
+            //    {
+            //        return new ApiReponseModel<UserReponseModel>
+            //        {
+            //            Status = 2, // TRẢ VỀ STATUS 2 YÊU CẦU XÁC THỰC OTP
+            //            Mess = "Tài khoản của bạn chưa được xác thực. Mã OTP mới đã được gửi đến email.",
+            //            Data = null
+            //        };
+            //    }
+            //    else
+            //    {
+            //        // Nếu gửi email thất bại, xóa OTP đã cache để tránh lỗi
+            //        Cache.CacheEx.CleanUpTokens(Email);
+            //        return new ApiReponseModel<UserReponseModel>
+            //        {
+            //            Status = 0,
+            //            Mess = "Lỗi khi gửi email xác thực. Vui lòng thử lại sau.",
+            //            Data = null
+            //        };
+            //    }
+            //}
 
             // ĐĂNG NHẬP THÀNH CÔNG (Đã xác thực)
             rs.Email = row["Email"].ToString();
@@ -570,7 +569,6 @@ namespace Services
                 {
                     var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                     posts = JsonSerializer.Deserialize<List<PostFull>>(json, options) ?? new List<PostFull>();
-                    string apiHost = "https://apiapp20250930133943-a3ewemhsd2egfgeq.canadacentral-01.azurewebsites.net";
 
                     foreach (var post in posts)
                     {
@@ -580,7 +578,7 @@ namespace Services
 
                             var fullImageUrls = fileNames.Select(fileName =>
                             {
-                                return $"{apiHost}/Media/ShowImage?fileName={Uri.EscapeDataString(fileName.Trim())}";
+                                return $"{apiAvatar}{Uri.EscapeDataString(fileName.Trim())}";
                             }).ToList();
                             post.ImageUrl = string.Join(",", fullImageUrls);
                         }

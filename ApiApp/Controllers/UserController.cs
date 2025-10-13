@@ -149,7 +149,7 @@ namespace ApiApp.Controllers
             if (image!= null)
             {
                 uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(image.FileName)}";
-                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "Image/Avatar", uniqueFileName);
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "Image/Upload", uniqueFileName);
 
                 data = await UserSerivce.UploadAvatar(user.ID, uniqueFileName);
                 if (data.Status == 1)
@@ -168,7 +168,7 @@ namespace ApiApp.Controllers
                         }
                     }
 
-                    var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "Image/Avatar", removeUrl);
+                    var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "Image/Upload", removeUrl);
                     if (System.IO.File.Exists(imagePath))
                     {
                         System.IO.File.Delete(imagePath);

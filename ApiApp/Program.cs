@@ -12,11 +12,12 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 connectDB.conStr = builder.Configuration.GetConnectionString("DefaultConnection");
-UserSerivce.apiHost = builder.Configuration.GetConnectionString("Defaultapihost");
+UserSerivce.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
 PostService.apiAvatar= builder.Configuration.GetConnectionString("Defaultapihost");
 UserSerivce.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
+GroupMemberService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
 NotificationService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
-FriendRequestService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
+FriendRequestService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");   
 MessageService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
 
 

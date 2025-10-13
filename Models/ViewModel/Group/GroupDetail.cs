@@ -18,6 +18,7 @@ public class GroupDetailResponseModel
 
     public int MemberCount { get; set; }
     public bool IsMember { get; set; }
+    public int CurrentUserRole { get; set; }
     
     public List<PostFull> RecentPosts { get; set; } = new List<PostFull>();
 }

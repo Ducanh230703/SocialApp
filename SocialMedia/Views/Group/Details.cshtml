@@ -1,4 +1,5 @@
-﻿@using Models.ViewModel.Home
+﻿@using Models.ViewModel.GroupMember
+@using Models.ViewModel.Home
 @model Models.ResponseModels.GroupDetailResponseModel
 
 @{
@@ -23,18 +24,35 @@
                     @Model.CreatedByUserName
                 </a>
             </p>
+            <button onclick="openMembersModal('@Model.ID', '@Model.CurrentUserRole')"
+                    class="bg-green-500 text-white py-2 px-6 rounded-full hover:bg-green-600 transition-colors ml-2">
+                Xem thành viên
+            </button>
             <div class="mt-4">
                 @if (Model.IsMember)
                 {
-                    <button class="bg-red-600 text-white py-2 px-6 rounded-full">Rời nhóm</button>
-
+                    <button onclick="handleGroupAction('@Model.ID', 'DELETE', 'Rời nhóm thành công')"
+                            class="bg-red-600 text-white py-2 px-6 rounded-full hover:bg-red-700 transition-colors">
+                        Rời nhóm    
+                    </button>
                 }
                 else
                 {
-                    <button class="bg-blue-500 text-white py-2 px-6 rounded-full">Tham gia nhóm</button>
+                    <button onclick="handleGroupAction('@Model.ID', 'POST', 'Tham gia nhóm thành công')"
+                            class="bg-blue-500 text-white py-2 px-6 rounded-full hover:bg-blue-600 transition-colors">
+                        Tham gia nhóm
+                    </button>
+                }
 
+                @if (loggedInUserId == Model.CreatedByUserId)
+                {
+                    <button onclick="deleteGroup('@Model.ID')"
+                            class="bg-gray-700 text-white py-2 px-6 rounded-full hover:bg-gray-800 transition-colors ml-2">
+                        Xóa nhóm
+                    </button>
                 }
             </div>
+
         </div>
     </div>
 
@@ -70,7 +88,126 @@
             }
         </div>
     }
-    <partial name="/Views/Home/_CreateStatus.cshtml" model="new PostVM()" />
+    <partial name="/Views/Home/_CreateStatus.cshtml" model="new PostVM { GroupID = Model.ID };" />
     <partial name="/Views/Home/_PostDeleteConfirmation.cshtml" />
     <partial name="/Views/Home/_EditStatus.cshtml" model="new PostEditVM()" />
+    <partial name="_GroupMembersModal" model="new List<GroupMemberList>()" />
+
 </div>
+@section Scripts {
+    <script>
+        function showToast(message, isSuccess) {
+            if (typeof Toastify === 'function') {
+                Toastify({
+                    text: message,
+                    duration: 3000,
+                    gravity: "top",
+                    position: "center",
+                    backgroundColor: isSuccess ? "#4CAF50" : "#f44336"
+                }).showToast();
+            } else {
+                alert(message);
+            }
+        }
+
+        window.handleGroupAction = function(groupId, method, successMessage) {
+
+            let actionText = (method === 'POST') ? 'tham gia' : 'rời';
+            if (!confirm(`Bạn có chắc chắn muốn ${actionText} nhóm này không?`)) {
+                return;
+            }
+
+            let url = (method === 'POST') ? '/GroupMember/JoinGroup' : '/GroupMember/LeaveGroup';
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(parseInt(groupId))
+            })
+            .then(data => data.json()) 
+            .then(data => {
+                if (data.status === 1) { // 1 là thành công theo quy ước ApiReponseModel
+                    showToast(data.mess, true);
+                    // Tải lại trang để cập nhật trạng thái nút (IsMember)
+                    setTimeout(() => window.location.reload(), 500);
+                } else {
+                    showToast(data.Mess || `Thao tác ${actionText} nhóm không thành công.`, false);
+                }
+            })
+            .catch(error => {
+                console.error(`Lỗi khi ${actionText} nhóm:`, error);
+                showToast('Đã xảy ra lỗi hệ thống. Vui lòng thử lại.', false);
+            });
+        };
+
+                async function openMembersModal(groupId, currentUserRole) {
+            try {
+                const res = await fetch(`/GroupMember/ShowMembersModal?groupId=${groupId}&currentUserRole=${currentUserRole}`);
+                const html = await res.text();
+                document.querySelectorAll('#groupMembersModal').forEach(e => e.remove());
+                document.body.insertAdjacentHTML('beforeend', html);
+                document.getElementById('groupMembersModal').classList.remove('hidden');
+            } catch (error) {
+                console.error("Lỗi tải danh sách thành viên:", error);
+            }
+        }
+
+
+        function closeMembersModal() {
+            const modal = document.getElementById('groupMembersModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+            const currentGroupId = @Model.ID ?? 0; // Giả định tất cả user cùng group
+
+        function kickMember(userId) {
+            if (!currentGroupId || !userId) return;
+
+            if (confirm("Bạn có chắc muốn kick thành viên này không?")) {
+                fetch('/GroupMember/DeleteMember', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        groupId: currentGroupId,
+                        userId: userId
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    alert(data.mess || (data.mtatus === 1 ? "Đã kick thành viên." : "Không thể kick."));
+                    if (data.Status === 1) location.reload();
+                });
+            }
+        }
+
+        function toggleAdmin(userId, currentRole) {
+            if (!currentGroupId || !userId) return;
+
+            const isAdmin = currentRole.toLowerCase() === 'admin';
+            const url = isAdmin ? '/GroupMember/RemoveAdmin' : '/GroupMember/AddAdmin';
+            const confirmMsg = isAdmin ? 'Gỡ quyền admin?' : 'Thêm quyền admin?';
+
+            if (confirm(confirmMsg)) {
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        groupId: currentGroupId,
+                        userId: userId
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    alert(data.mess || (data.status === 1 ? "Thành công." : "Không thể thực hiện."));
+                    if (data.Status === 1) location.reload();
+                });
+            }
+        }
+    </script>
+}

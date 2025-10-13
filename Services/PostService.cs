@@ -19,7 +19,6 @@ namespace Services
 { 
     public class PostService
     {
-        public static string apiHost = "https://apiapp20250930133943-a3ewemhsd2egfgeq.canadacentral-01.azurewebsites.net";
         public static string apiAvatar;
 
         /// <summary>
@@ -155,7 +154,7 @@ namespace Services
 
                             var fullImageUrls = fileNames.Select(fileName =>
                             {
-                                return $"{apiHost}/Media/ShowImage?fileName={Uri.EscapeDataString(fileName.Trim())}";
+                                return $"{apiAvatar}{Uri.EscapeDataString(fileName.Trim())}";
                             }).ToList();
                             post.ImageUrl = string.Join(",", fullImageUrls);
                         }
@@ -373,7 +372,7 @@ namespace Services
                     {
                         if (!url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
                         {
-                            prefixedImageUrls.Add(apiHost+ "/Media/ShowImage?fileName=" + url.Trim());
+                            prefixedImageUrls.Add(apiAvatar + url.Trim());
                         }
                         else
                         {

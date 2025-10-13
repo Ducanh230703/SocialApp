@@ -13,6 +13,7 @@
         </div>
 
         <form asp-controller="Home" asp-action="CreatePost" enctype="multipart/form-data" id="createPostForm">
+            <input type="hidden" name="GroupID" asp-for="GroupID" />
             <div class="space-y-5 mt-3 p-2">
                 <textarea name="Content" id="Content" class="w-full !text-black placeholder:!text-black !bg-white !border-transparent focus:!border-transparent focus:!ring-transparent !font-normal !text-xl" asp-for="Content" rows="2" placeholder="What do you have in mind?"></textarea>
             </div>
