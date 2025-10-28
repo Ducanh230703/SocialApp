@@ -1433,3 +1433,26 @@ input:checked + .switch-button:before {
     .password-container .!w-full {
         width: 100% !important; /* Override nếu cần */
     }
+
+.swal2-confirm, .swal2-cancel {
+    background-color: #2563eb !important; /* Màu xanh dương */
+    color: #fff !important; /* Chữ trắng */
+    border: none !important;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 8px 20px;
+}
+
+    /* Khi hover thì đậm hơn */
+    .swal2-confirm:hover {
+        background-color: #1d4ed8 !important;
+    }
+
+.swal2-cancel {
+    background-color: #e5e7eb !important; /* Xám nhạt */
+    color: #111 !important;
+}
+
+    .swal2-cancel:hover {
+        background-color: #d1d5db !important;
+    }

@@ -35,13 +35,10 @@ namespace ApiApp.Controllers
         }
 
         [HttpGet("search")]
-        public async Task<ApiReponseModel<PaginatedResponse<SearchResult>>> Search(string stringSearch, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 5)
+        public async Task<ApiReponseModel<List<SearchResult>>> Search([FromQuery] string stringSearch)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1 || pageSize > 100) pageSize = 10;
-            var data = await FriendRequestService.FriendSearch(stringSearch, pageNumber,pageSize);
+            var data = await FriendRequestService.FriendSearch(stringSearch);
             return data;
-
         }
 
         [HttpGet("friendindex")]

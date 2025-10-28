@@ -48,8 +48,15 @@ namespace ApiApp.Controllers
         [HttpGet("detail/{groupID}")]
         public async Task<ApiReponseModel<GroupDetailResponseModel>> Detail(int groupID)
         {
-            var data =await GroupService.GetGroupDetail(groupID,Cache.CacheEx.DataUser.ID   );
+            var data =await GroupService.GetGroupDetail(groupID,Cache.CacheEx.DataUser.ID);
             return data;
+        }
+
+        [HttpGet("search")]
+        public async Task<ApiReponseModel<List<Group>>> SearchGroup([FromQuery] string query)
+        {
+            var user = Cache.CacheEx.DataUser;
+            return await GroupService.SearchGroup(query);
         }
     }
 }

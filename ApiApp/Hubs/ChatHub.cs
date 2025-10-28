@@ -384,7 +384,7 @@ namespace ApiApp.Hubs
                 return;
             }
 
-            var result = await PostService.AddComment(postId, userId, content);
+            var result = await CommentService.AddComment(postId, userId, content);
 
             if (result.Status == 1)
             {

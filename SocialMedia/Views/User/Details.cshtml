@@ -339,7 +339,7 @@
             let removeButtonHtml = '';
             if (loggedInUserId && loggedInUserId == comment.userId) {
                 removeButtonHtml = `
-                    <form class="remove-comment-form" data-comment-id="${comment.id}" action="/Home/RemovePostComment">
+                    <form class="remove-comment-form" data-comment-id="${comment.id}" action="/Comment/RemovePostComment">
                         <button type="submit" class="text-red-500 text-xs ml-2" title="Remove post comment">
                             <ion-icon name="trash-outline"></ion-icon>
                         </button>
@@ -460,148 +460,170 @@
                     }
 
                     if (e.target.classList.contains('remove-comment-form')) {
-                        e.preventDefault();
-                        const form = e.target;
-                        const commentId = form.getAttribute('data-comment-id');
-                        const actionUrl = form.getAttribute('action') + '?commentId=' + commentId;
-                        fetch(actionUrl, {
-                            method: 'DELETE',
-                        })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.status === 1) {
-                                    Toastify({
-                                        text: data.message || "Xóa bình luận thành công.",
-                                        duration: 3000,
-                                        backgroundColor: "#4CAF50",
-                                        gravity: "top",
-                                        position: "center"
-                                    }).showToast();
-                                    form.closest('.flex.items-start.gap-3.relative')?.remove();
-                                } else {
-                                    Toastify({
-                                        text: data.message || "Không thể xóa bình luận.",
-                                        duration: 3000,
-                                        backgroundColor: "#f44336",
-                                        gravity: "top",
-                                        position: "center"
-                                    }).showToast();
-                                }
-                            })
-                            .catch(error => {
-                                console.error("Lỗi:", error);
+                    e.preventDefault();
+
+                    const form = e.target;
+                    const commentId = form.getAttribute('data-comment-id');
+                    const actionUrl = '/Comment/RemovePostComment?CommentId=' + commentId;
+
+                    fetch(actionUrl, { method: 'DELETE' })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 1) {
                                 Toastify({
-                                    text: "Đã xảy ra lỗi khi gửi yêu cầu xóa bình luận.",
+                                    text: data.message || "Xóa bình luận thành công.",
+                                    duration: 3000,
+                                    backgroundColor: "#4CAF50",
+                                    gravity: "top",
+                                    position: "center"
+                                }).showToast();
+
+                                form.closest('.flex.items-start.gap-3.relative')?.remove();
+                            } else {
+                                Toastify({
+                                    text: data.message || "Không thể xóa bình luận.",
                                     duration: 3000,
                                     backgroundColor: "#f44336",
                                     gravity: "top",
                                     position: "center"
                                 }).showToast();
-                            });
-                    }
-                });
-
-                postsContainer.addEventListener('click', function (e) {
-                    const likeButton = e.target.closest('.like-button');
-                    if (!likeButton) return;
-                    const postId = likeButton.getAttribute('data-post-id');
-                    if (loggedInUserId === null || isNaN(parseInt(loggedInUserId))) {
-                        Toastify({
-                            text: "Bạn cần đăng nhập để thực hiện hành động này.",
-                            duration: 3000,
-                            backgroundColor: "#f44336",
-                            gravity: "top",
-                            position: "center",
-                        }).showToast();
-                        return;
-                    }
-                    const isCurrentlyLiked = likeButton.classList.contains('text-red-500');
-                    let url = '';
-                    let successMessage = '';
-                    let errorMessage = '';
-                    let newIconName = '';
-                    let newClassListAction = '';
-                    if (isCurrentlyLiked) {
-                        url = '/Home/Unlike';
-                        successMessage = "Đã bỏ thích bài viết!";
-                        errorMessage = "Không thể bỏ thích bài viết.";
-                        newIconName = 'heart-outline';
-                        newClassListAction = 'remove';
-                    } else {
-                        url = '/Home/LikePost';
-                        successMessage = "Đã thích bài viết!";
-                        errorMessage = "Không thể thích bài viết.";
-                        newIconName = 'heart';
-                        newClassListAction = 'add';
-                    }
-
-                    const formdata = new FormData();
-                    formdata.append("postId", postId);
-
-                    fetch(url, {
-                        method: 'POST',
-                        body: formdata,
-                    })
-                        .then(response => {
-                            if (!response.ok) {
-                                if (response.status === 401) {
-                                    Toastify({
-                                        text: "Bạn cần đăng nhập để thực hiện hành động này.",
-                                        duration: 3000,
-                                        backgroundColor: "#f44336",
-                                        gravity: "top",
-                                        position: "center",
-                                    }).showToast();
-                                    return Promise.reject("Unauthorized");
-                                }
-                                return response.json().then(err => Promise.reject(err.message || 'Lỗi server không xác định'));
                             }
-                            return response.json();
                         })
-                        .then(data => {
-                            if (data.status === 1) {
+                        .catch(error => {
+                            console.error("Lỗi:", error);
+                            Toastify({
+                                text: "Đã xảy ra lỗi khi gửi yêu cầu xóa bình luận.",
+                                duration: 3000,
+                                backgroundColor: "#f44336",
+                                gravity: "top",
+                                position: "center"
+                            }).showToast();
+                        });
+                }
+            });
+                postsContainer.addEventListener('click', function (e) {
+                const likeButton = e.target.closest('.like-button');
+                if (!likeButton) return;
+
+                const postId = likeButton.getAttribute('data-post-id');
+
+                if (loggedInUserId === null || isNaN(parseInt(loggedInUserId))) {
+                    Toastify({
+                        text: "Bạn cần đăng nhập để thực hiện hành động này.",
+                        duration: 3000,
+                        backgroundColor: "#f44336",
+                        gravity: "top",
+                        position: "center",
+                    }).showToast();
+                    return;
+                }
+
+                const isCurrentlyLiked = likeButton.classList.contains('text-red-500');
+
+                let url = '';
+                let successMessage = '';
+                let errorMessage = '';
+                let newIconName = '';
+                let newClassListAction = '';
+
+                if (isCurrentlyLiked) {
+                    url = '/Like/Unlike';
+                    successMessage = "Đã bỏ thích bài viết!";
+                    errorMessage = "Không thể bỏ thích bài viết.";
+                    newIconName = 'heart-outline';
+                    newClassListAction = 'remove';
+                } else {
+                    url = '/Like/LikePost';
+                    successMessage = "Đã thích bài viết!";
+                    errorMessage = "Không thể thích bài viết.";
+                    newIconName = 'heart';
+                    newClassListAction = 'add';
+                }
+
+                const formdata = new FormData();
+                formdata.append("postId", postId);
+
+                fetch(url, { method: 'POST', body: formdata })
+                    .then(response => {
+                        if (!response.ok) {
+                            if (response.status === 401) {
                                 Toastify({
-                                    text: successMessage,
+                                    text: "Bạn cần đăng nhập để thực hiện hành động này.",
                                     duration: 3000,
-                                    backgroundColor: "#4CAF50",
+                                    backgroundColor: "#f44336",
                                     gravity: "top",
                                     position: "center",
                                 }).showToast();
-                                const likeCountElement = likeButton.nextElementSibling;
-                                let currentLikes = parseInt(likeCountElement.textContent);
-                                if (newClassListAction === 'add') {
-                                    likeButton.classList.add('text-red-500', 'bg-red-100');
-                                    currentLikes++;
-                                } else {
-                                    likeButton.classList.remove('text-red-500', 'bg-red-100');
-                                    currentLikes--;
-                                }
-                                likeButton.querySelector('ion-icon').setAttribute('name', newIconName);
+                                return Promise.reject("Unauthorized");
+                            }
+                            return response.json().then(err => Promise.reject(err.message || 'Lỗi server không xác định'));
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.status === 1) {
+                            Toastify({
+                                text: successMessage,
+                                duration: 3000,
+                                backgroundColor: "#4CAF50",
+                                gravity: "top",
+                                position: "center",
+                            }).showToast();
+
+                            // Tìm phần tử hiển thị số like: ưu tiên <span> trong button, fallback .like-count
+                            const likeCountElement = likeButton.querySelector('span')
+                                || likeButton.parentElement?.querySelector('.like-count')
+                                || likeButton.nextElementSibling;
+
+                            // đảm bảo biến luôn được khai báo trong phạm vi
+                            let currentLikes = 0;
+                            if (likeCountElement) {
+                                const parsed = parseInt(likeCountElement.textContent);
+                                currentLikes = isNaN(parsed) ? 0 : parsed;
+                            }
+
+                            // cập nhật trạng thái
+                            if (newClassListAction === 'add') {
+                                likeButton.classList.add('text-red-500', 'bg-red-100');
+                                currentLikes++;
+                            } else {
+                                likeButton.classList.remove('text-red-500', 'bg-red-100');
+                                currentLikes = Math.max(0, currentLikes - 1);
+                            }
+
+                            const iconEl = likeButton.querySelector('ion-icon');
+                            if (iconEl) iconEl.setAttribute('name', newIconName);
+
+                            if (likeCountElement) {
                                 likeCountElement.textContent = currentLikes;
                             } else {
-                                Toastify({
-                                    text: data.message || errorMessage,
-                                    duration: 3000,
-                                    backgroundColor: "#f44336",
-                                    gravity: "top",
-                                    position: "center",
-                                }).showToast();
+                                console.warn('Không tìm thấy phần tử hiển thị số like cho postId:', postId);
                             }
-                        })
-                        .catch(err => {
-                            console.error(err);
-                            if (err !== "Unauthorized") {
-                                Toastify({
-                                    text: err || errorMessage,
-                                    duration: 3000,
-                                    backgroundColor: "#f44336",
-                                    gravity: "top",
-                                    position: "center",
-                                }).showToast();
-                            }
-                        });
-                });
-            }
+
+                        } else {
+                            Toastify({
+                                text: data.message || errorMessage,
+                                duration: 3000,
+                                backgroundColor: "#f44336",
+                                gravity: "top",
+                                position: "center",
+                            }).showToast();
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        if (err !== "Unauthorized") {
+                            Toastify({
+                                text: err || errorMessage,
+                                duration: 3000,
+                                backgroundColor: "#f44336",
+                                gravity: "top",
+                                position: "center",
+                            }).showToast();
+                        }
+                    });
+            });
+        }
 
             if (loadMoreBtn && postsContainer) {
                 window.addEventListener('scroll', function () {

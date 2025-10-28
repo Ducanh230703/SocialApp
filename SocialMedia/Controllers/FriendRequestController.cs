@@ -75,7 +75,7 @@ namespace SocialMedia.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> SearchResult(string stringSearch, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 5)
+        public async Task<IActionResult> SearchResult(string stringSearch)
         {
             var token = Request.Cookies["AuthToken"];
             if (string.IsNullOrEmpty(token))
@@ -83,63 +83,37 @@ namespace SocialMedia.Controllers
                 return Json(new { success = false, message = "Chưa xác thực" });
             }
 
-            bool isAjaxRequest = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
-            if (string.IsNullOrEmpty(token))
-            {
-                if (isAjaxRequest)
-                {
-                    return PartialView("~/Views/FriendRequest/_SearchResult.cshtml", new PaginatedResponse<SearchResult> { Data = new List<SearchResult>(), TotalCount = 0 });
-                }
-                else
-                {
-                    ViewData["SearchQuery"] = stringSearch;
-                    ViewData["PageNumber"] = 1;
-                    ViewData["PageSize"] = 5;
-                    TempData["ErrorMessage"] = "Bạn cần đăng nhập để sử dụng tính năng này.";
-                    return View("~/Views/FriendRequest/SearchResult.cshtml", new PaginatedResponse<SearchResult> { Data = new List<SearchResult>(), TotalCount = 0 });
-                }
-            }
-
             ViewData["SearchQuery"] = stringSearch;
-            ViewData["PageNumber"] = pageNumber;
-            ViewData["PageSize"] = pageSize;
-
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1 || pageSize > 100) pageSize = 5;
-
-            PaginatedResponse<SearchResult> results = new PaginatedResponse<SearchResult> { Data = new List<SearchResult>(), TotalCount = 0 };
+            var results = new List<SearchResult>();
 
             if (!string.IsNullOrEmpty(stringSearch))
             {
                 try
                 {
-                    var apiReponse = await ApiHelper.GetAsync<ApiReponseModel<PaginatedResponse<SearchResult>>>($"/api/FriendRequest/search?stringSearch={stringSearch}&pageNumber={pageNumber}&pageSize={pageSize}", token);
+                    var apiResponse = await ApiHelper.GetAsync<ApiReponseModel<List<SearchResult>>>(
+                        $"/api/FriendRequest/search?stringSearch={stringSearch}", token);
 
-                    if (apiReponse != null && apiReponse.Status == 1 && apiReponse.Data != null)
+                    if (apiResponse != null && apiResponse.Status == 1 && apiResponse.Data != null)
                     {
-                        results = apiReponse.Data;
+                        results = apiResponse.Data;
                     }
                     else
                     {
-                        Console.WriteLine($"API error or no data for search. Status: {apiReponse?.Status}, Message: {apiReponse?.Mess}");
-                        TempData["ErrorMessage"] = apiReponse?.Mess ?? "Không thể tải kết quả tìm kiếm.";
+                        TempData["ErrorMessage"] = apiResponse?.Mess ?? "Không thể tải kết quả tìm kiếm.";
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Exception when calling search API: {ex.Message}");
-                    TempData["ErrorMessage"] = "Đã xảy ra lỗi khi tìm kiếm. Vui lòng thử lại.";
+                    Console.WriteLine($"Lỗi tìm kiếm: {ex.Message}");
+                    TempData["ErrorMessage"] = "Đã xảy ra lỗi khi tìm kiếm.";
                 }
             }
 
+            bool isAjaxRequest = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
             if (isAjaxRequest)
-            {
                 return PartialView("~/Views/FriendRequest/_SearchResult.cshtml", results);
-            }
             else
-            {
                 return View("~/Views/FriendRequest/SearchResult.cshtml", results);
-            }
         }
 
         [HttpGet]

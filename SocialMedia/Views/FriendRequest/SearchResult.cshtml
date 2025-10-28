@@ -1,6 +1,6 @@
 ﻿@using Models.ReponseModel
 @using Models.ViewModel.Friend
-@model PaginatedResponse<SearchResult>
+@model List<SearchResult>
 
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -12,7 +12,7 @@
 }
 
 <main id="site__main" class="2xl:ml-[--w-side] xl:ml-[--w-side-sm] p-2.5 h-[calc(100vh-var(--m-top))] mt-[--m-top]">
-    <div class="container mx-auto p-4">
+    <div class="container p-4" style="width:950px">
         <h1 class="text-3xl font-bold mb-6">Tìm kiếm bạn bè</h1>
 
         <div class="search-form-container mb-6">
@@ -26,9 +26,23 @@
                 </button>
             </form>
         </div>
+        <div class="flex justify-center items-center gap-4 mb-6">
+            <button onclick="changeSearchType('friend')"
+                    class="px-4 py-2 rounded-full text-sm font-semibold transition
+                   bg-blue-500 text-white hover:bg-blue-600 focus:ring-2 focus:ring-blue-400"
+                    id="friendBtn">
+                👥 Người dùng
+            </button>
 
+            <button onclick="changeSearchType('group')"
+                    class="px-4 py-2 rounded-full text-sm font-semibold transition
+                   bg-gray-200 hover:bg-gray-300 text-gray-800 focus:ring-2 focus:ring-gray-300"
+                    id="groupBtn">
+                🏘️ Nhóm
+            </button>
+        </div>
         <div id="search-results-main-container" class="mt-4">
-            @if (Model != null && Model.Data != null && Model.Data.Any())
+            @if (Model != null && Model.Any())
             {
                 <h2 class="text-2xl font-bold mb-4" id="search-results-title">Kết quả tìm kiếm cho: "@initialQuery"</h2>
                 await Html.RenderPartialAsync("~/Views/FriendRequest/_SearchResult.cshtml", Model);
@@ -38,7 +52,7 @@
                 <div class="bg-white rounded-xl shadow-sm p-4 text-center text-gray-500">
                     Không tìm thấy kết quả nào cho "@initialQuery".
                 </div>
-            }
+            }   
             else
             {
                 <div class="bg-white rounded-xl shadow-sm p-4 text-center text-gray-500">
@@ -54,163 +68,83 @@
 </main>
 @section Scripts {
     <script>
-        function Toastify(options) {
-            // Kiểm tra xem Toastify có sẵn không, nếu không thì dùng console.log hoặc alert
-            if (typeof window.Toastify === 'function') {
-                window.Toastify(options).showToast();
-            } else {
-                console.log("Toast (fallback):", options.text);
-                // alert(options.text); // Có thể bỏ comment nếu muốn alert khi Toastify không tải
-            }
-        }
+        let currentSearchType = "friend";
 
         document.addEventListener("DOMContentLoaded", function () {
-            const searchPageForm = document.getElementById('search-page-form');
-            const searchResultsMainContainer = document.getElementById('search-results-main-container');
-            const searchInputForm = searchPageForm ? searchPageForm.querySelector('input[name="query"]') : null;
+            const searchPageForm = document.getElementById("search-page-form");
+            const searchResultsMainContainer = document.getElementById("search-results-main-container");
+        const searchInput = document.querySelector("#search-page-form input[name='query']");
+                    const friendBtn = document.getElementById("friendBtn");
+            const groupBtn = document.getElementById("groupBtn");
 
-            if (searchPageForm) {
-                searchPageForm.addEventListener('submit', function (e) {
-                    e.preventDefault();
+            // Gửi request khi nhấn Enter hoặc nút "Tìm kiếm"
+            searchPageForm.addEventListener("submit", function (e) {
+                e.preventDefault();
+                const query = searchInput.value.trim();
+                if (!query) return alert("Vui lòng nhập từ khóa tìm kiếm.");
+                doSearch(query);
+            });
 
-                    const query = searchInputForm.value.trim();
-                    const pageNumber = 1;
-                    const pageSize = 5;
 
-                    if (!query) {
-                        Toastify({
-                            text: "Vui lòng nhập từ khóa tìm kiếm.",
-                            duration: 3000,
-                            backgroundColor: "#f44336",
-                            gravity: "top",
-                            position: "center",
-                        });
-                        return;
-                    }
+            // Khi chuyển loại tìm kiếm (Người dùng / Nhóm)
+            window.changeSearchType = function (type) {
+                currentSearchType = type;
+                updateButtonStyles();
+                const query = searchInput.value.trim();
+                if (query) doSearch(query);
+            };
 
-                    loadSearchResults(query, pageNumber, pageSize);
-                });
+            // Hàm chung gọi request
+            function doSearch(query) {
+                if (currentSearchType === "group") searchGroup(query);
+                else searchFriend(query);
             }
 
-            window.loadSearchResults = function (query, pageNumber, pageSize) {
-                const searchUrl = `/FriendRequest/SearchResult?stringSearch=${encodeURIComponent(query)}&pageNumber=${pageNumber}&pageSize=${pageSize}`;
+            function updateButtonStyles() {
+                const active = ["bg-blue-500", "text-white"];
+                const inactive = ["bg-gray-200", "text-gray-800"];
+                if (currentSearchType === "friend") {
+                    friendBtn.classList.add(...active);
+                    friendBtn.classList.remove(...inactive);
+                    groupBtn.classList.add(...inactive);
+                    groupBtn.classList.remove(...active);
+                } else {
+                    groupBtn.classList.add(...active);
+                    groupBtn.classList.remove(...inactive);
+                    friendBtn.classList.add(...inactive);
+                    friendBtn.classList.remove(...active);
+                }
+            }
 
-                fetch(searchUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'text/html',
-                        'X-Requested-With': 'XMLHttpRequest' // Quan trọng: Báo hiệu đây là AJAX request
-                    }
+            // ======== Gọi API ========
+            function searchFriend(query) {
+                fetch(`/FriendRequest/SearchResult?stringSearch=${encodeURIComponent(query)}`, {
+                    method: "GET",
+                    headers: { "X-Requested-With": "XMLHttpRequest" }
                 })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`Server responded with status: ${response.status} ${response.statusText}`);
-                        }
-                        return response.text();
-                    })
+                    .then(res => res.ok ? res.text() : Promise.reject("Không thể tải kết quả người dùng."))
                     .then(html => {
-                        // Cập nhật URL trong lịch sử trình duyệt
-                        const newUrl = `/FriendRequest/SearchResult?stringSearch=${encodeURIComponent(query)}&pageNumber=${pageNumber}&pageSize=${pageSize}`;
-                        history.pushState({ path: newUrl }, '', newUrl);
-
-                        // Cập nhật nội dung của searchResultsMainContainer
                         searchResultsMainContainer.innerHTML = `
-                            <h2 class="text-2xl font-bold mb-4" id="search-results-title">Kết quả tìm kiếm cho: "${query}"</h2>
+                            <h2 class="text-2xl font-bold mb-4">Kết quả tìm kiếm người dùng cho: "${query}"</h2>
                             ${html}
                         `;
-                        // Cập nhật giá trị input của form tìm kiếm
-                        if (searchInputForm) {
-                            searchInputForm.value = query;
-                        }
                     })
-                    .catch(error => {
-                        console.error("Lỗi khi tìm kiếm:", error);
-                        Toastify({
-                            text: `Đã xảy ra lỗi khi tìm kiếm: ${error.message}. Vui lòng thử lại.`,
-                            duration: 3000,
-                            backgroundColor: "#f44336",
-                            gravity: "top",
-                            position: "center",
-                        });
-                        // Nếu có lỗi, hiển thị lại thông báo không tìm thấy kết quả hoặc lỗi
-                        searchResultsMainContainer.innerHTML = `
-                            <div class="bg-white rounded-xl shadow-sm p-4 text-center text-gray-500">
-                                Đã xảy ra lỗi khi tải kết quả. Vui lòng thử lại sau.
-                            </div>
-                        `;
-                    });
-            };
+                    .catch(err => searchResultsMainContainer.innerHTML = `<div class="text-center text-red-500">${err}</div>`);
+            }
 
-            window.loadMoreSearchResults = function (query, pageNumber, pageSize) {
-                const loadMoreBtn = document.getElementById('loadMoreBtn');
-                if (loadMoreBtn) {
-                    loadMoreBtn.disabled = true;
-                    loadMoreBtn.textContent = 'Đang tải...';
-                }
-
-                const searchUrl = `/FriendRequest/SearchResult?stringSearch=${encodeURIComponent(query)}&pageNumber=${pageNumber}&pageSize=${pageSize}`;
-
-                fetch(searchUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'text/html',
-                        'X-Requested-With': 'XMLHttpRequest' // Quan trọng: Báo hiệu đây là AJAX request
-                    }
+            function searchGroup(query) {
+                fetch(`/Group/SearchGroup?query=${encodeURIComponent(query)}`, {
+                    method: "GET",
+                    headers: { "X-Requested-With": "XMLHttpRequest" }
                 })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`Server responded with status: ${response.status} ${response.statusText}`);
-                        }
-                        return response.text();
-                    })
+                    .then(res => res.ok ? res.text() : Promise.reject("Không thể tải kết quả nhóm."))
                     .then(html => {
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = html;
-
-                        const newResultsGrid = tempDiv.querySelector('#search-results-grid');
-                        const newLoadMoreSection = tempDiv.querySelector('#load-more-section');
-
-                        const currentResultsGrid = document.getElementById('search-results-grid');
-                        const currentLoadMoreSection = document.getElementById('load-more-section');
-
-                        if (currentResultsGrid && newResultsGrid) {
-                            while (newResultsGrid.firstChild) {
-                                currentResultsGrid.appendChild(newResultsGrid.firstChild);
-                            }
-                        }
-
-                        if (currentLoadMoreSection && newLoadMoreSection) {
-                            currentLoadMoreSection.replaceWith(newLoadMoreSection);
-                        } else if (currentLoadMoreSection && !newLoadMoreSection) {
-                            currentLoadMoreSection.remove();
-                        }
-
-                        const newUrl = `/FriendRequest/SearchResult?stringSearch=${encodeURIComponent(query)}&pageNumber=${pageNumber}&pageSize=${pageSize}`;
-                        history.pushState({ path: newUrl }, '', newUrl);
+                        searchResultsMainContainer.innerHTML = `
+                            <h2 class="text-2xl font-bold mb-4">Kết quả tìm kiếm nhóm cho: "${query}"</h2>
+                            ${html}
+                        `;
                     })
-                    .catch(error => {
-                        console.error("Lỗi khi tải thêm:", error);
-                        Toastify({
-                            text: `Đã xảy ra lỗi khi tải thêm: ${error.message}. Vui lòng thử lại.`,
-                            duration: 3000,
-                            backgroundColor: "#f44336",
-                            gravity: "top",
-                            position: "center",
-                        });
-                    })
-                    .finally(() => {
-                        // Nút "Tải thêm" sẽ được thay thế hoặc biến mất, không cần enabled lại
-                    });
-            };
-
-            // Logic để tải kết quả ban đầu nếu trang được tải với query trong URL (ví dụ: từ refresh trình duyệt)
-            const initialQueryFromUrl = new URLSearchParams(window.location.search).get("stringSearch");
-            // Chỉ gọi loadSearchResults nếu có query từ URL và nó chưa được xử lý bởi server-side rendering
-            // Hoặc nếu bạn muốn luôn tải lại bằng AJAX sau khi DOM tải xong
-            if (initialQueryFromUrl && initialQueryFromUrl !== "" && searchResultsMainContainer.innerHTML.trim() === "") {
-                const initialPageFromUrl = parseInt(new URLSearchParams(window.location.search).get("pageNumber") || "1");
-                const initialSizeFromUrl = parseInt(new URLSearchParams(window.location.search).get("pageSize") || "5");
-                loadSearchResults(initialQueryFromUrl, initialPageFromUrl, initialSizeFromUrl);
+                    .catch(err => searchResultsMainContainer.innerHTML = `<div class="text-center text-red-500">${err}</div>`);
             }
         });
     </script>

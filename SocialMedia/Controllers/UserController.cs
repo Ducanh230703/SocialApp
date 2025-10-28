@@ -11,7 +11,7 @@ namespace SocialMedia.Controllers
     {
 
         [HttpGet]
-        public async Task<IActionResult> Details(int userId, int pageNumber = 1, int pageSize = 3) 
+        public async Task<IActionResult> Details(int userId, int pageNumber = 1, int pageSize = 2) 
         {
             var token = Request.Cookies["AuthToken"];
             if (string.IsNullOrEmpty(token))
@@ -193,6 +193,50 @@ namespace SocialMedia.Controllers
                 Console.Error.WriteLine($"[GetUserOnline] Stack Trace: {ex.StackTrace}");
                 return StatusCode(500, new { Status = -3, Message = $"Đã xảy ra lỗi nội bộ khi xử lý yêu cầu: {ex.Message}" });
             }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ChangePassword([FromBody]ChangePasswordModel model)
+        {
+            var token = Request.Cookies["AuthToken"];
+            if (string.IsNullOrEmpty(token))
+            {
+                TempData["Message"] = "Bạn cần đăng nhập để thực hiện thao tác này.";
+                return RedirectToAction("Login", "Authentication");
+            }
+
+            var rs = await ApiHelper.PostAsync<ChangePasswordModel, ApiReponseModel>("/api/User/change-password", model, token);
+
+            return Json(rs);
+        }
+
+
+        [HttpPost]
+        public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailModel model)
+        {
+            var token = Request.Cookies["AuthToken"];
+            if (string.IsNullOrEmpty(token))
+            {
+                TempData["Message"] = "Bạn cần đăng nhập để thay đổi email.";
+                return RedirectToAction("Login", "Authentication");
+            }
+
+            var rs = await ApiHelper.PostAsync<ChangeEmailModel, ApiReponseModel>("/api/User/change-email", model, token);
+            return Json(rs);
+
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> VerifyChangeEmail([FromBody] VerifyChangeEmailModel model)
+        {
+            var token = Request.Cookies["AuthToken"];
+            if (string.IsNullOrEmpty(token))
+            {
+                return Unauthorized();
+            }
+
+            var rs = await ApiHelper.PostAsync<VerifyChangeEmailModel, ApiReponseModel>("/api/User/verify-change-email", model, token);
+            return Json(rs);
         }
     }
 };

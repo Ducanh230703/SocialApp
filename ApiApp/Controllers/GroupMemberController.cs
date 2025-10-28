@@ -16,10 +16,10 @@ namespace ApiApp.Controllers
             return await Services.GroupMemberService.JoinGroup(Cache.CacheEx.DataUser.ID, joinVM.GroupId,joinVM.Role);
         }
 
-        [HttpDelete("deletemember")]
-        public async Task<ApiReponseModel> DeleteMember([FromBody] GroupMember groupMember)
+        [HttpDelete("deletemember/{groupId}/{memberId}")]
+        public async Task<ApiReponseModel> DeleteMember(int groupId, int memberId)
         {
-            return await Services.GroupMemberService.DeleteMember(groupMember);
+            return await Services.GroupMemberService.DeleteMember(groupId, memberId);
         }
 
         [HttpDelete("leavegroup/{groupId}")]
@@ -46,6 +46,21 @@ namespace ApiApp.Controllers
             return await Services.GroupMemberService.RemoveAdmin(Cache.CacheEx.DataUser.ID, groupMember.GroupId, groupMember.UserID);
         }
 
+        [HttpPost("approve")]
+        public async Task<ApiReponseModel> ApproveMember([FromBody] GroupMember model)
+        {
+            return await Services.GroupMemberService.ApproveMember(Cache.CacheEx.DataUser.ID, model.GroupId, model.UserID);
+        }
+
+        [HttpDelete("reject")]
+        public async Task<ApiReponseModel> RejectJoinRequest([FromBody] GroupMember model)
+        {
+            return await Services.GroupMemberService.RejectJoinRequest(
+                Cache.CacheEx.DataUser.ID,
+                model.GroupId,
+                model.UserID
+            );
+        }
 
     }
 }

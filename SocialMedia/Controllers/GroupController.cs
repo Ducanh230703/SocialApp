@@ -140,6 +140,41 @@ namespace SocialMedia.Controllers
                 return RedirectToAction("Index");
             }
         }
+
+
+        [HttpGet]
+        public async Task<IActionResult> SearchGroup(string query)
+        {
+            var token = Request.Cookies["AuthToken"];
+            if (string.IsNullOrEmpty(token))
+                return RedirectToAction("Login", "Authentication");
+
+            try
+            {
+                ViewData["SearchQuery"] = query ?? "";
+
+                var apiResponse = await ApiHelper.GetAsync<ApiReponseModel<List<GroupSearchResult>>>(
+                    $"/api/Group/search?query={Uri.EscapeDataString(query ?? "")}", token);
+
+                var groups = apiResponse?.Data ?? new List<GroupSearchResult>();
+
+                // Nếu là AJAX request => trả về partial
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return PartialView("~/Views/Group/_SearchGroupResult.cshtml", groups);
+                }
+
+                // Nếu không phải AJAX (người dùng vào trực tiếp URL)
+                return View(groups);
+            }
+            catch (Exception ex)
+            {
+                return PartialView("~/Views/Group/_SearchGroupResult.cshtml", new List<GroupSearchResult>());
+            }
+        }
+
+
+
     }
 }
     

@@ -136,7 +136,7 @@ namespace SocialMedia.Controllers
         }
 
         [HttpDelete]
-        public async Task<IActionResult> DeleteMember([FromBody] GroupMember model)
+        public async Task<IActionResult> DeleteMember(int groupId, int memberId)
         {
             var token = Request.Cookies["AuthToken"];
             if (string.IsNullOrEmpty(token))
@@ -146,7 +146,7 @@ namespace SocialMedia.Controllers
 
             try
             {
-                var apiResponse = await ApiHelper.PostAsync<GroupMember, ApiReponseModel>("/api/GroupMember/deletemember", model, token);
+                var apiResponse = await ApiHelper.DeleteAsync<ApiReponseModel>($"/api/GroupMember/deletemember/{groupId}/{memberId}", token);
                 return Json(apiResponse);
             }
             catch (Exception)
@@ -154,6 +154,41 @@ namespace SocialMedia.Controllers
                 return Json(new { Status = 0, Mess = "Lỗi khi xoá thành viên khỏi nhóm." });
             }
         }
+
+        [HttpPost]
+        public async Task<IActionResult> ApproveJoin([FromBody] GroupMember model)
+        {
+            var token = Request.Cookies["AuthToken"];
+            if (string.IsNullOrEmpty(token)) return Unauthorized();
+
+            try
+            {
+                var apiResponse = await ApiHelper.PostAsync<GroupMember, ApiReponseModel>("/api/GroupMember/approve", model, token);
+                return Json(apiResponse);
+            }
+            catch (Exception)
+            {
+                return Json(new { Status = 0, Mess = "Lỗi khi duyệt thành viên." });
+            }
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> RejectJoin([FromBody] GroupMember model)
+        {
+            var token = Request.Cookies["AuthToken"];
+            if (string.IsNullOrEmpty(token)) return Unauthorized();
+
+            try
+            {
+                var apiResponse = await ApiHelper.PostAsync<GroupMember, ApiReponseModel>("/api/GroupMember/reject", model, token);
+                return Json(apiResponse);
+            }
+            catch (Exception)
+            {
+                return Json(new { Status = 0, Mess = "Lỗi khi từ chối thành viên." });
+            }
+        }
+
 
     }
 }

@@ -12,19 +12,19 @@ namespace ApiApp.Controllers
     public class LikeController : ControllerBase
 
     {
-        [HttpPost("addcomment/{postId}")]
-        public async Task<ApiReponseModel<CommentDetail>> AddComment([FromBody] PostCommentVM postCommentVM)
+        [HttpPost("likepost")]
+        public async Task<ApiReponseModel> AddLikePost([FromBody] PostLikeVM postLikeVM)
         {
-            var user = CacheEx.DataUser;
-            var data = await PostService.AddComment(postCommentVM.PostId, user.ID, postCommentVM.Content);
+            var a = CacheEx.DataUser;
+            var data = await LikeService.LikePost(postLikeVM.PostId, a.ID);
             return data;
-
         }
 
-        [HttpDelete("deletecomment/{commentId}")]
-        public async Task<ApiReponseModel> DeleteComment(int commentId)
+        [HttpPost("deletelikepost")]
+        public async Task<ApiReponseModel> DeleteLikePost([FromBody] PostLikeVM postLikeVM)
         {
-            var data = await PostService.DeleteComment(commentId);
+            var a = CacheEx.DataUser;
+            var data = await LikeService.UnlikePost(postLikeVM.PostId, a.ID);
             return data;
         }
     }

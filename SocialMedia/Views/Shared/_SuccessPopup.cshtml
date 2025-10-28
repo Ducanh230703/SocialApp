@@ -1,0 +1,45 @@
+﻿<div id="popup-message" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+    <div class="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full text-center">
+        <svg id="popup-icon" xmlns="http://www.w3.org/2000/svg" fill="none"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+             class="w-10 h-10 mx-auto mb-3 text-green-600">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+
+        <h3 id="popup-title" class="text-lg font-semibold text-gray-800 mb-2">Thành công!</h3>
+        <p id="popup-content" class="text-gray-600">Thao tác của bạn đã được thực hiện.</p>
+
+        <button onclick="closePopup()"
+                class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+            Đóng
+        </button>
+    </div>
+</div>
+
+<script>
+    function showPopup(title, message, isSuccess = true) {
+        const popup = document.getElementById('popup-message');
+        const icon = document.getElementById('popup-icon');
+        const titleEl = document.getElementById('popup-title');
+        const content = document.getElementById('popup-content');
+
+        titleEl.textContent = title;
+        content.textContent = message;
+
+        if (isSuccess) {
+            icon.classList.remove('text-red-600');
+            icon.classList.add('text-green-600');
+            icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />';
+        } else {
+            icon.classList.remove('text-green-600');
+            icon.classList.add('text-red-600');
+            icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />';
+        }
+
+        popup.classList.remove('hidden');
+    }
+
+    function closePopup() {
+        document.getElementById('popup-message').classList.add('hidden');
+    }
+</script>

@@ -15,14 +15,12 @@ namespace Models.ReponseModel
 
         public string? Bio { get; set; }
         public DateTime DateCreated { get; set; }
-        public DateTime DateUpdated { get; set; }
-        public bool IsDeleted { get; set; }
 
         public int UserId { get; set; }
         public string UserFullName { get; set; }
         public string? UserProfilePictureUrl { get; set; }
         public int? GroupID { get; set; } = null;
-        public int? GroupName { get; set; } = null;
+        public string? GroupName { get; set; } = null;
 
         public List<int>? LikeUserIds { get; set; } = new List<int>();
         public List<CommentDetail>? Comments { get; set; } = new List<CommentDetail>();

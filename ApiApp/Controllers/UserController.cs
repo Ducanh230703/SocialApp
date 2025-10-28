@@ -326,5 +326,67 @@ namespace ApiApp.Controllers
 
             return rs;
         }
+
+
+        [HttpPost("change-password")]
+        public async Task<ApiReponseModel> ChangePassword([FromBody] ChangePasswordModel model)
+        {
+            var user = Cache.CacheEx.DataUser;
+            if (user == null)
+                return new ApiReponseModel { Status = 401, Mess = "Người dùng chưa đăng nhập." };
+
+            if (string.IsNullOrEmpty(model.OldPassword) || string.IsNullOrEmpty(model.NewPassword))
+                return new ApiReponseModel { Status = 400, Mess = "Vui lòng nhập đầy đủ thông tin." };
+
+            if (model.NewPassword != model.ConfirmPassword)
+                return new ApiReponseModel { Status = 400, Mess = "Mật khẩu xác nhận không khớp." };
+
+            var rs = await UserSerivce.ChangePassword(user.ID, model.OldPassword, model.NewPassword);
+            return rs;
+        }
+
+
+        [HttpPost("change-email")]
+        public async Task<ApiReponseModel> ChangeEmail([FromBody] ChangeEmailModel model)
+        {
+            var user = Cache.CacheEx.DataUser;
+            if (user == null)
+                return new ApiReponseModel { Status = 401, Mess = "Người dùng chưa đăng nhập." };
+
+            if (string.IsNullOrEmpty(model.NewEmail))
+                return new ApiReponseModel { Status = 400, Mess = "Email mới không được để trống." };
+
+            // Gửi OTP đến email mới
+            var otp = new Random().Next(100000, 999999).ToString();
+            Cache.CacheEx.SetOtp(model.NewEmail, otp, TimeSpan.FromMinutes(5));
+
+            bool sent = await _emailService.SendOtpEmail(model.NewEmail, otp);
+            if (!sent)
+                return new ApiReponseModel { Status = 0, Mess = "Lỗi khi gửi mã OTP. Vui lòng thử lại." };
+
+            return new ApiReponseModel { Status = 1, Mess = "Mã OTP đã được gửi đến email mới. Vui lòng xác nhận." };
+        }
+
+
+        [HttpPost("verify-change-email")]
+        public async Task<ApiReponseModel> VerifyChangeEmail([FromBody] VerifyChangeEmailModel model)
+        {
+            var user = Cache.CacheEx.DataUser;
+            if (user == null)
+                return new ApiReponseModel { Status = 401, Mess = "Người dùng chưa đăng nhập." };
+
+            var storedOtp = Cache.CacheEx.GetOtp(model.NewEmail);
+            if (string.IsNullOrEmpty(storedOtp))
+                return new ApiReponseModel { Status = 0, Mess = "Mã OTP đã hết hạn hoặc không tồn tại." };
+
+            if (storedOtp != model.OtpCode)
+                return new ApiReponseModel { Status = 0, Mess = "Mã OTP không chính xác." };
+
+            var rs = await UserSerivce.ChangeEmail(user.ID, model.NewEmail);
+            Cache.CacheEx.CleanUpOtp(model.NewEmail);
+
+            return rs;
+        }
+
     }
 }

@@ -23,11 +23,9 @@ namespace Services
     {
         private readonly EmailService _emailService;
 
-        // Constructor để nhận EmailService qua Dependency Injection
 
         public static string apiAvatar;
 
-        // Giữ UserRegister là static để không làm thay đổi các đoạn code RegisterWithGoogle
         public static async Task<ApiReponseModel> UserRegister(string Email, string? Password, string FullName)
         {
             string PasswordHash = null;
@@ -230,7 +228,6 @@ namespace Services
             }
         }
 
-        // Bỏ STATIC
         public static async Task<ApiReponseModel<UserReponseModel>> Login(string Email, string Password, EmailService emailService)
         {
             User rs = new User();
@@ -345,8 +342,6 @@ namespace Services
                 Data = null
             };
         }
-
-        // Bỏ STATIC
         public static async Task<ApiReponseModel> VerifyUserEmail(string email)
         {
             try
@@ -377,7 +372,6 @@ namespace Services
             }
         }
 
-        // Bỏ STATIC
         public static async Task<ApiReponseModel<EditInfo>> GetUserInfoEdit(int userId)
         {
             var sql = "SELECT * FROM Users WHERE ID = @userId";
@@ -416,8 +410,6 @@ namespace Services
 
         }
 
-
-        // Bỏ STATIC
         public static async Task<List<User>> GetAllUsers()
         {
             var list = new List<User>();
@@ -437,7 +429,6 @@ namespace Services
             return list;
         }
 
-        // Bỏ STATIC
         public static async Task<ApiReponseModel<UserReponseModel>> GetUserInfo(int userId)
         {
             var sql = "SELECT * FROM Users WHERE ID = @userId";
@@ -478,7 +469,6 @@ namespace Services
 
         }
 
-        // Bỏ STATIC
         public static async Task<PaginatedResponse<PostFull>> GetPostById(int pageNumber, int pageSize, int UserId)
         {
             if (pageNumber < 1) pageNumber = 1;
@@ -526,8 +516,6 @@ namespace Services
                                 p.ImageUrl,
                                 p.IsPrivate,
                                 p.DateCreated,
-                                p.DateUpdated,
-                                p.IsDeleted,
                                 p.UserId,
                                 u.FullName AS UserFullName,
                                 u.Bio,
@@ -539,7 +527,7 @@ namespace Services
                                 ) AS LikeUserIds,
                                 CAST(
                                 (
-                                    SELECT TOP 2 
+                                    SELECT TOP 2
                                         c.ID,
                                         c.Content,
                                         c.DateCreated,
@@ -617,7 +605,6 @@ namespace Services
             };
         }
 
-        // Bỏ STATIC
         public static async Task<List<ListFriend>> GetFriendByUserId(int UserId)
         {
             var sql = @"SELECT
@@ -668,7 +655,6 @@ namespace Services
         }
 
 
-        // Bỏ STATIC
         public static async Task<ApiReponseModel<UserInfo>> GetUserInfoWithPaginatedPosts(int profileUserId, int pageNumber = 1, int pageSize = 10)
         {
             var userInfo = new UserInfo();
@@ -700,7 +686,6 @@ namespace Services
             };
         }
 
-        // Bỏ STATIC
         public static async Task<ApiReponseModel> UploadAvatar(int userId, string avatarUrl)
         {
             var sql = "UPDATE Users SET ProfilePictureUrl = @avatarurl WHERE ID = @userId";
@@ -726,7 +711,6 @@ namespace Services
                 };
         }
 
-        // Bỏ STATIC
         public static async Task<ApiReponseModel> EditInfo(int userID, string email, string fullName, string? bio)
         {
             var sql = "UPDATE Users SET Email = @email,FullName = @fullName, Bio = @bio WHERE ID = @userId";
@@ -756,7 +740,6 @@ namespace Services
 
         }
 
-        // Bỏ STATIC
         public static async Task<ApiReponseModel<UserOnline>> GetUserById(int userid)
         {
             var sql = $"SELECT ID,FullName,ProfilePictureUrl FROM Users WHERE ID = {userid}";
@@ -789,7 +772,6 @@ namespace Services
             }
         }
 
-        // Giữ LoginOrRegisterWithGoogle là static để không làm thay đổi các đoạn code RegisterWithGoogle
         public static async Task<ApiReponseModel<UserReponseModel>> LoginOrRegisterWithGoogle(string email, string fullName)
         {
             var sql = "SELECT TOP 1 * FROM Users WHERE Email = @Email";
@@ -878,6 +860,59 @@ namespace Services
                     Data = newUserResponse
                 };
             }
+        }
+
+        public static async Task<ApiReponseModel> ChangePassword(int userId, string oldPassword, string newPassword)
+        {
+            string sql = "SELECT Password FROM Users WHERE ID = @UserId";
+            var param = new SortedList { { "@UserId", userId } };
+
+            var dt = await connectDB.Select(sql, param);
+            if (dt.Rows.Count == 0)
+                return new ApiReponseModel { Status = 0, Mess = "Không tìm thấy người dùng." };
+
+            string currentHash = dt.Rows[0]["Password"].ToString();
+            if (!BCrypt.Net.BCrypt.Verify(oldPassword, currentHash))
+                return new ApiReponseModel { Status = 0, Mess = "Mật khẩu cũ không đúng." };
+
+            string newHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            string updateSql = "UPDATE Users SET Password = @NewPass, DateUpdated = GETDATE() WHERE ID = @UserId";
+            var updateParam = new SortedList
+    {
+        { "@NewPass", newHash },
+        { "@UserId", userId }
+    };
+
+            int updated = await connectDB.Update(updateSql, updateParam);
+            if (updated > 0)
+                return new ApiReponseModel { Status = 1, Mess = "Thay đổi mật khẩu thành công." };
+            else
+                return new ApiReponseModel { Status = 0, Mess = "Thay đổi mật khẩu thất bại." };
+        }
+
+        public static async Task<ApiReponseModel> ChangeEmail(int userId, string newEmail)
+        {
+            if (string.IsNullOrEmpty(newEmail))
+                return new ApiReponseModel { Status = 0, Mess = "Email không được để trống." };
+
+            string checkSql = "SELECT COUNT(*) FROM Users WHERE Email = @Email";
+            var checkParam = new SortedList { { "@Email", newEmail } };
+            var dt = await connectDB.Select(checkSql, checkParam);
+            if (Convert.ToInt32(dt.Rows[0][0]) > 0)
+                return new ApiReponseModel { Status = 0, Mess = "Email này đã tồn tại trong hệ thống." };
+
+            string updateSql = "UPDATE Users SET Email = @NewEmail, DateUpdated = GETDATE() WHERE ID = @UserId";
+            var updateParam = new SortedList
+    {
+        { "@NewEmail", newEmail },
+        { "@UserId", userId }
+    };
+
+            int updated = await connectDB.Update(updateSql, updateParam);
+            if (updated > 0)
+                return new ApiReponseModel { Status = 1, Mess = "Thay đổi email thành công." };
+            else
+                return new ApiReponseModel { Status = 0, Mess = "Thay đổi email thất bại." };
         }
     }
 }

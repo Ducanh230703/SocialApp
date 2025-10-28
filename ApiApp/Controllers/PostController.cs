@@ -112,37 +112,37 @@ namespace ApiApp.Controllers
         }   
 
 
-        [HttpPost("addcomment/{postId}")]
-        public async Task<ApiReponseModel<CommentDetail>> AddComment([FromBody] PostCommentVM postCommentVM)
-        {
-            var user = CacheEx.DataUser;
-            var data = await PostService.AddComment(postCommentVM.PostId, user.ID, postCommentVM.Content);
-            return data;
+        //[HttpPost("addcomment/{postId}")]
+        //public async Task<ApiReponseModel<CommentDetail>> AddComment([FromBody] PostCommentVM postCommentVM)
+        //{
+        //    var user = CacheEx.DataUser;
+        //    var data = await PostService.AddComment(postCommentVM.PostId, user.ID, postCommentVM.Content);
+        //    return data;
 
-        }
+        //}
 
-        [HttpDelete("deletecomment/{commentId}")]
-        public async Task<ApiReponseModel> DeleteComment(int commentId)
-        {
-            var data = await PostService.DeleteComment(commentId);
-            return data;
-        }
+        //[HttpDelete("deletecomment/{commentId}")]
+        //public async Task<ApiReponseModel> DeleteComment(int commentId)
+        //{
+        //    var data = await PostService.DeleteComment(commentId);
+        //    return data;
+        //}
 
 
-        [HttpPost("likepost")]
-        public async Task<ApiReponseModel> AddLikePost([FromBody] PostLikeVM postLikeVM)
-        {
-            var a = CacheEx.DataUser;
-            var data = await PostService.LikePost(postLikeVM.PostId, a.ID);
-            return data;
-        }
+        //[HttpPost("likepost")]
+        //public async Task<ApiReponseModel> AddLikePost([FromBody] PostLikeVM postLikeVM)
+        //{
+        //    var a = CacheEx.DataUser;
+        //    var data = await PostService.LikePost(postLikeVM.PostId, a.ID);
+        //    return data;
+        //}
 
-        [HttpPost("deletelikepost")]
-        public async Task<ApiReponseModel> DeleteLikePost([FromBody] PostLikeVM postLikeVM)
-        {
-            var a = CacheEx.DataUser;
-            var data = await PostService.UnlikePost(postLikeVM.PostId,a.ID);
-            return data;
-        }
+        //[HttpPost("deletelikepost")]
+        //public async Task<ApiReponseModel> DeleteLikePost([FromBody] PostLikeVM postLikeVM)
+        //{
+        //    var a = CacheEx.DataUser;
+        //    var data = await PostService.UnlikePost(postLikeVM.PostId,a.ID);
+        //    return data;
+        //}
     }
 }

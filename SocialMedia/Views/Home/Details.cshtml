@@ -60,7 +60,7 @@
             const commentId = form.getAttribute('data-comment-id');
 
             // FIX: Hardcode URL và đảm bảo dùng CommentId (PascalCase) để khớp với Controller C#
-            const actionUrl = '/Home/RemovePostComment?CommentId=' + commentId;
+            const actionUrl = '/Comment/RemovePostComment?CommentId=' + commentId;
 
             // Thêm kiểm tra ID
             if (!commentId || isNaN(parseInt(commentId))) {
@@ -143,7 +143,7 @@
             try {
                 const formdata = new FormData();
                 formdata.append("postId", postId);
-                const response = await fetch(`/Home/${isLiked ? 'Unlike' : 'LikePost'}`, {
+                const response = await fetch(`/Like/${isLiked ? 'Unlike' : 'LikePost'}`, {
                     method: 'POST',
                     body: formdata
                 });

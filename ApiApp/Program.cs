@@ -15,6 +15,7 @@ connectDB.conStr = builder.Configuration.GetConnectionString("DefaultConnection"
 UserSerivce.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
 PostService.apiAvatar= builder.Configuration.GetConnectionString("Defaultapihost");
 UserSerivce.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
+CommentService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
 GroupMemberService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
 NotificationService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
 FriendRequestService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");   

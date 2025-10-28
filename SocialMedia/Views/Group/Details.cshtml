@@ -4,13 +4,13 @@
 
 @{
     ViewData["Title"] = @Model.GroupName;
-    int loggedInUserId = ViewBag.LoggedInUserId as int? ?? 0;
 }
 
 <div class="container mx-auto p-4" style="width: 580px">
+    <h1 class="text-3xl font-bold text-center mb-4">@Model.GroupName</h1>
+
     <div class="bg-white rounded-xl shadow-sm text-sm font-medium border1 mb-6">
         <div class="sm:p-4 p-2.5 text-center">
-            <h1 class="text-2xl font-bold">@Model.GroupName</h1>
             <p class="text-gray-500">
                 @Model.MemberCount thành viên
                 @if (Model.IsPrivate)
@@ -18,44 +18,65 @@
                     <i class="fas fa-lock text-gray-400 ml-1" title="Nhóm riêng tư"></i>
                 }
             </p>
+
             <p class="text-xs text-gray-500 mt-1">
                 Được tạo bởi:
                 <a href="/User/Details?userId=@Model.CreatedByUserId" class="text-blue-500 hover:underline">
                     @Model.CreatedByUserName
                 </a>
             </p>
-            <button onclick="openMembersModal('@Model.ID', '@Model.CurrentUserRole')"
-                    class="bg-green-500 text-white py-2 px-6 rounded-full hover:bg-green-600 transition-colors ml-2">
-                Xem thành viên
-            </button>
-            <div class="mt-4">
-                @if (Model.IsMember)
-                {
-                    <button onclick="handleGroupAction('@Model.ID', 'DELETE', 'Rời nhóm thành công')"
-                            class="bg-red-600 text-white py-2 px-6 rounded-full hover:bg-red-700 transition-colors">
-                        Rời nhóm    
-                    </button>
-                }
-                else
-                {
-                    <button onclick="handleGroupAction('@Model.ID', 'POST', 'Tham gia nhóm thành công')"
-                            class="bg-blue-500 text-white py-2 px-6 rounded-full hover:bg-blue-600 transition-colors">
-                        Tham gia nhóm
-                    </button>
-                }
 
-                @if (loggedInUserId == Model.CreatedByUserId)
+            @* Nút xem thành viên chỉ hiển thị nếu không ở trạng thái Pending *@
+            @if (Model.CurrentUserRole != -1)
+            {
+                <button onclick="openMembersModal('@Model.ID', '@Model.CurrentUserRole')"
+                        class="bg-green-500 text-white py-2 px-6 rounded-full hover:bg-green-600 transition-colors ml-2">
+                    Xem thành viên
+                </button>
+            }
+
+            <div class="mt-4">
+                @switch (Model.CurrentUserRole)
                 {
-                    <button onclick="deleteGroup('@Model.ID')"
-                            class="bg-gray-700 text-white py-2 px-6 rounded-full hover:bg-gray-800 transition-colors ml-2">
-                        Xóa nhóm
-                    </button>
+                    case -1: // Pending
+                             <button onclick="handleGroupAction('@Model.ID', 'DELETE', 'Đã hủy yêu cầu tham gia nhóm')"
+                                     class="bg-yellow-500 text-white py-2 px-6 rounded-full hover:bg-yellow-600 transition-colors">
+                                 Hủy yêu cầu tham gia nhóm
+                             </button>
+                        ;
+                        break;
+
+                    case 0: // Member
+                    case 1: // Admin
+                            <button onclick="leaveGroup('@Model.ID')"
+                                    class="bg-red-600 text-white py-2 px-6 rounded-full hover:bg-red-700 transition-colors">
+                                Rời nhóm
+                            </button>
+                        ;
+                        break;
+
+                    case 2: // Owner
+                            <button onclick="deleteGroup('@Model.ID')"
+                                    class="bg-red-600 text-white py-2 px-6 rounded-full hover:bg-gray-800 transition-colors ml-2">
+                                Xóa nhóm
+                            </button>
+                        ;
+                        break;
+
+                    default: // Không phải thành viên
+                             <button onclick="handleGroupAction('@Model.ID', 'POST', 'Gửi yêu cầu tham gia nhóm')"
+                                     class="bg-blue-500 text-white py-2 px-6 rounded-full hover:bg-blue-600 transition-colors">
+                                 Tham gia nhóm
+                             </button>
+                        ;
+                        break;
                 }
             </div>
-
         </div>
     </div>
 
+    @if ( Model.IsMember)
+    {
     <div class="bg-white rounded-xl shadow-sm md:p-4 p-2 space-y-4 text-sm font-medium border1">
         <div class="flex items-center md:gap-3 gap-1">
             <div class="flex-1 bg-slate-100 hover:bg-opacity-80 transition-all rounded-lg cursor-pointer" uk-toggle="target: #create-status">
@@ -72,7 +93,8 @@
             </div>
         </div>
     </div>
-    @if(Model.IsPrivate && Model.IsMember || !Model.IsPrivate)
+    }
+    @if (Model.IsPrivate && Model.IsMember || !Model.IsPrivate)
     {
         <div id="posts-container" style="width:580px" class="space-y-4">
             @if (Model.RecentPosts != null && Model.RecentPosts.Any())
@@ -92,10 +114,11 @@
     <partial name="/Views/Home/_PostDeleteConfirmation.cshtml" />
     <partial name="/Views/Home/_EditStatus.cshtml" model="new PostEditVM()" />
     <partial name="_GroupMembersModal" model="new List<GroupMemberList>()" />
-
 </div>
+
 @section Scripts {
     <script>
+        // --- Toastify ---
         function showToast(message, isSuccess) {
             if (typeof Toastify === 'function') {
                 Toastify({
@@ -110,39 +133,59 @@
             }
         }
 
-        window.handleGroupAction = function(groupId, method, successMessage) {
-
-            let actionText = (method === 'POST') ? 'tham gia' : 'rời';
-            if (!confirm(`Bạn có chắc chắn muốn ${actionText} nhóm này không?`)) {
-                return;
-            }
+        // --- Tham gia / Hủy ---
+        function handleGroupAction(groupId, method, successMessage) {
+            let actionText = (method === 'POST') ? 'tham gia' : 'hủy yêu cầu';
+            if (!confirm(`Bạn có chắc chắn muốn ${actionText} nhóm này không?`)) return;
 
             let url = (method === 'POST') ? '/GroupMember/JoinGroup' : '/GroupMember/LeaveGroup';
 
             fetch(url, {
                 method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(parseInt(groupId))
             })
-            .then(data => data.json()) 
+            .then(res => res.json())
             .then(data => {
-                if (data.status === 1) { // 1 là thành công theo quy ước ApiReponseModel
-                    showToast(data.mess, true);
-                    // Tải lại trang để cập nhật trạng thái nút (IsMember)
-                    setTimeout(() => window.location.reload(), 500);
-                } else {
-                    showToast(data.Mess || `Thao tác ${actionText} nhóm không thành công.`, false);
-                }
+                showToast(data.mess || successMessage, data.status === 1);
+                if (data.status === 1) setTimeout(() => window.location.reload(), 800);
             })
-            .catch(error => {
-                console.error(`Lỗi khi ${actionText} nhóm:`, error);
-                showToast('Đã xảy ra lỗi hệ thống. Vui lòng thử lại.', false);
-            });
-        };
+            .catch(() => showToast("Đã xảy ra lỗi hệ thống.", false));
+        }
 
-                async function openMembersModal(groupId, currentUserRole) {
+        // --- Rời nhóm ---
+        function leaveGroup(groupId) {
+            if (!confirm("Bạn có chắc chắn muốn rời nhóm này không?")) return;
+            fetch('/GroupMember/LeaveGroup', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(parseInt(groupId))
+            })
+            .then(res => res.json())
+            .then(data => {
+                showToast(data.mess || "Rời nhóm thành công!", data.status === 1);
+                if (data.status === 1) setTimeout(() => window.location.href = '/Group', 800);
+            });
+        }
+
+        // --- Xóa nhóm ---
+        function deleteGroup(groupId) {
+            if (!confirm("Bạn có chắc chắn muốn xóa nhóm này không?")) return;
+            fetch('/Group/DeleteGroup', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(parseInt(groupId))
+            })
+            .then(res => res.json())
+            .then(data => {
+                showToast(data.mess || "Nhóm đã được xóa thành công!", data.status === 1);
+                if (data.status === 1) setTimeout(() => window.location.href = '/Group/Index', 800);
+            })
+            .catch(() => showToast("Đã xảy ra lỗi hệ thống.", false));
+        }
+
+        // --- Modal thành viên ---
+        async function openMembersModal(groupId, currentUserRole) {
             try {
                 const res = await fetch(`/GroupMember/ShowMembersModal?groupId=${groupId}&currentUserRole=${currentUserRole}`);
                 const html = await res.text();
@@ -154,39 +197,30 @@
             }
         }
 
-
         function closeMembersModal() {
             const modal = document.getElementById('groupMembersModal');
-            if (modal) modal.classList.add('hidden');
-        }
-
-            const currentGroupId = @Model.ID ?? 0; // Giả định tất cả user cùng group
-
-        function kickMember(userId) {
-            if (!currentGroupId || !userId) return;
-
-            if (confirm("Bạn có chắc muốn kick thành viên này không?")) {
-                fetch('/GroupMember/DeleteMember', {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        groupId: currentGroupId,
-                        userId: userId
-                    })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    alert(data.mess || (data.mtatus === 1 ? "Đã kick thành viên." : "Không thể kick."));
-                    if (data.Status === 1) location.reload();
-                });
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
             }
         }
 
-        function toggleAdmin(userId, currentRole) {
-            if (!currentGroupId || !userId) return;
+        // --- JS cho các nút trong modal (chuyển từ partial sang đây) ---
+        const currentGroupId = @Model.ID;
 
+        function kickMember(userId) {
+            if (!confirm("Bạn có chắc muốn kick thành viên này không?")) return;
+            fetch(`/GroupMember/DeleteMember?groupId=${currentGroupId}&memberId=${userId}`, {
+              method: 'DELETE'
+            })
+            .then(res => res.json())
+            .then(data => {
+                showToast(data.mess || (data.status === 1 ? "Đã kick thành viên." : "Không thể kick."), data.status === 1);
+                if (data.status === 1) location.reload();
+            });
+        }
+
+        function toggleAdmin(userId, currentRole) {
             const isAdmin = currentRole.toLowerCase() === 'admin';
             const url = isAdmin ? '/GroupMember/RemoveAdmin' : '/GroupMember/AddAdmin';
             const confirmMsg = isAdmin ? 'Gỡ quyền admin?' : 'Thêm quyền admin?';
@@ -194,20 +228,41 @@
             if (confirm(confirmMsg)) {
                 fetch(url, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        groupId: currentGroupId,
-                        userId: userId
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ groupId: currentGroupId, userId: userId })
                 })
                 .then(res => res.json())
                 .then(data => {
-                    alert(data.mess || (data.status === 1 ? "Thành công." : "Không thể thực hiện."));
-                    if (data.Status === 1) location.reload();
+                    showToast(data.mess || (data.status === 1 ? "Thành công." : "Không thể thực hiện."), data.status === 1);
+                    if (data.status === 1) location.reload();
                 });
             }
+        }
+
+        function approveMember(userId) {
+            fetch('/GroupMember/ApproveJoin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupId: currentGroupId, userId: userId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                showToast(data.mess || (data.status === 1 ? "Đã duyệt thành viên." : "Không thể duyệt."), data.status === 1);
+                if (data.status === 1) location.reload();
+            });
+        }
+
+        function rejectMember(userId) {
+            fetch('/GroupMember/RejectJoin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupId: currentGroupId, userId: userId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                showToast(data.mess || (data.status === 1 ? "Đã từ chối yêu cầu." : "Không thể từ chối."), data.status === 1);
+                if (data.status === 1) location.reload();
+            });
         }
     </script>
 }

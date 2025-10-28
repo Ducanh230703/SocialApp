@@ -176,9 +176,9 @@ namespace Services
                 Mess = "Gửi yêu cầu thất bại",
             };
         }
-        public static async Task<ApiReponseModel<PaginatedResponse<SearchResult>>> FriendSearch(string FullName, int pageNumber, int pageSize)
+        public static async Task<ApiReponseModel<List<SearchResult>>> FriendSearch(string FullName)
         {
-            var response = new ApiReponseModel<PaginatedResponse<SearchResult>>
+            var response = new ApiReponseModel<List<SearchResult>>
             {
                 Status = 500,
                 Mess = "Lỗi không xác định."
@@ -186,8 +186,6 @@ namespace Services
 
             try
             {
-                if (pageNumber < 1) pageNumber = 1;
-                if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
                 string searchKeyword = $"N'%{FullName.Replace("'", "''")}%'"; 
 
@@ -195,55 +193,8 @@ namespace Services
                 {
                     response.Status = 1;
                     response.Mess = "Thành công. Không có từ khóa tìm kiếm.";
-                    response.Data = new PaginatedResponse<SearchResult>
-                    {
-                        Data = new List<SearchResult>(),
-                        PageNumber = pageNumber,
-                        PageSize = pageSize,
-                        TotalCount = 0
-                    };
                     return response;
                 }
-
-                string countSql = $@"
-                            SELECT COUNT(u.ID) AS TotalCount
-                            FROM [socialapp].[dbo].[Users] AS u
-                            WHERE u.IsDelete = 0 AND u.FullName LIKE {searchKeyword};
-                        ";
-                int totalCount = 0;
-                try
-                {
-                    string countJson = await connectDB.SelectJS(countSql);
-
-                    if (!string.IsNullOrEmpty(countJson))
-                    {
-                        using (JsonDocument doc = JsonDocument.Parse(countJson))
-                        {
-                            if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
-                            {
-                                if (doc.RootElement[0].TryGetProperty("TotalCount", out JsonElement countElement))
-                                {
-                                    countElement.TryGetInt32(out totalCount);
-                                }
-                                else if (doc.RootElement[0].EnumerateObject().Any() && doc.RootElement[0].EnumerateObject().First().Value.ValueKind == JsonValueKind.Number)
-                                {
-                                    doc.RootElement[0].EnumerateObject().First().Value.TryGetInt32(out totalCount);
-                                }
-                            }
-                            else if (doc.RootElement.ValueKind == JsonValueKind.Number)
-                            {
-                                doc.RootElement.TryGetInt32(out totalCount);
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Lỗi khi lấy tổng số người dùng trong FriendSearch (LIKE): {ex.Message}");
-                    totalCount = 0;
-                }
-
-                int offset = (pageNumber - 1) * pageSize;
 
                 string sql = $@"
                                 SELECT
@@ -256,7 +207,6 @@ namespace Services
                                     u.FullName LIKE {searchKeyword}
                                 ORDER BY
                                     u.FullName ASC  -- Sắp xếp theo tên
-                                OFFSET {offset} ROWS FETCH NEXT {pageSize} ROWS ONLY
                                 FOR JSON PATH;
                             ";
 
@@ -287,13 +237,7 @@ namespace Services
 
                 response.Status = 1;
                 response.Mess = "Tìm kiếm bạn bè thành công.";
-                response.Data = new PaginatedResponse<SearchResult>
-                {
-                    Data = friends,
-                    PageNumber = pageNumber,
-                    PageSize = pageSize,
-                    TotalCount = totalCount
-                };
+                response.Data = friends;
             }
             catch (Exception ex)
             {

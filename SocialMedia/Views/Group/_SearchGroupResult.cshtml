@@ -1,0 +1,34 @@
+﻿@model List<Models.ViewModel.Group.GroupSearchResult>
+
+@if (Model != null && Model.Any())
+{
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        @foreach (var group in Model)
+        {
+            <div class="bg-white rounded-xl shadow-sm p-4 flex items-center space-x-4">
+                <a href="/Group/Details/@group.ID">
+                    <img src="@(!string.IsNullOrEmpty(group.GroupPictureUrl)
+                                                     ? group.GroupPictureUrl
+                                                     : Url.Content("~/images/group-default.png"))"
+                 alt="@group.GroupName"
+                 class="w-16 h-16 rounded-full object-cover" />
+        </a>
+        <div class="flex-1">
+            <a href="/Group/Details/@group.ID"
+               class="text-lg font-semibold text-black hover:underline">
+                @group.GroupName
+            </a>
+            <p class="text-gray-500 text-sm">
+                @(group.MemberCount) thành viên
+            </p>
+        </div>
+    </div>
+        }
+    </div>
+}
+else
+{
+    <div class="bg-white rounded-xl shadow-sm p-4 text-center text-gray-500">
+        Không tìm thấy nhóm nào.
+    </div>
+}

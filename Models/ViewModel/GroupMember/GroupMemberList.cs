@@ -12,7 +12,6 @@ namespace Models.ViewModel.GroupMember
         public int UserID { get; set; }
         public string FullName { get; set; }
         public GroupMemberRole Role { get; set; } = GroupMemberRole.Member;
-
         public string ProfilePictureUrl { get; set; }
     }
 }

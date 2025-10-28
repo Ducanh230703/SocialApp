@@ -28,7 +28,7 @@ public class HomeController : Controller
     /// <summary>
     /// Action này dùng để tải trang ban đầu (full HTML) hoặc xử lý việc chỉnh sửa bài viết.
     /// </summary>
-        public async Task<IActionResult> Index(int pageNumber = 1, int pageSize = 3)
+        public async Task<IActionResult> Index(int pageNumber = 1, int pageSize = 2)
         {
             var token = Request.Cookies["AuthToken"];
             if (string.IsNullOrEmpty(token))
@@ -362,125 +362,125 @@ public class HomeController : Controller
     }
 
 
-    [HttpPost]
-    public async Task<IActionResult> AddPostComment(PostCommentVM postCommentVM)
-    {
-        var token = Request.Cookies["AuthToken"];
-        if (string.IsNullOrEmpty(token))
-        {
-            return Json(new { success = false, message = "Chưa xác thực" });
-        }
+    //[HttpPost]
+    //public async Task<IActionResult> AddPostComment(PostCommentVM postCommentVM)
+    //{
+    //    var token = Request.Cookies["AuthToken"];
+    //    if (string.IsNullOrEmpty(token))
+    //    {
+    //        return Json(new { success = false, message = "Chưa xác thực" });
+    //    }
 
-        try
-        {
-            var apiResponse = await ApiHelper.PostAsync<PostCommentVM, ApiReponseModel>($"/api/Post/addcomment/{postCommentVM.PostId}",postCommentVM,token);
+    //    try
+    //    {
+    //        var apiResponse = await ApiHelper.PostAsync<PostCommentVM, ApiReponseModel>($"/api/Post/addcomment/{postCommentVM.PostId}",postCommentVM,token);
 
-            if (apiResponse != null && apiResponse.Status == 1)
-            {
-                return Json(new { status = apiResponse.Status, message = apiResponse.Mess });
-            }
-            else
-            {
-                return Json(new
-                {
-                    success = false,
-                    message = apiResponse?.Mess ?? "Không thể thêm bình luận."
-                });
-            }
-        }
-        catch (Exception ex)
-        {
-            return Json(new { success = false, message = "Lỗi: " + ex.Message });
-        }
-    }
+    //        if (apiResponse != null && apiResponse.Status == 1)
+    //        {
+    //            return Json(new { status = apiResponse.Status, message = apiResponse.Mess });
+    //        }
+    //        else
+    //        {
+    //            return Json(new
+    //            {
+    //                success = false,
+    //                message = apiResponse?.Mess ?? "Không thể thêm bình luận."
+    //            });
+    //        }
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        return Json(new { success = false, message = "Lỗi: " + ex.Message });
+    //    }
+    //}
 
-    [HttpDelete]
-    public async Task<IActionResult> RemovePostComment(int CommentId)
-    {
-        var token = Request.Cookies["AuthToken"];
-        if (string.IsNullOrEmpty(token))
-        {
-            return Json(new { success = false, message = "Chưa xác thực" });
-        }
+    //[HttpDelete]
+    //public async Task<IActionResult> RemovePostComment(int CommentId)
+    //{
+    //    var token = Request.Cookies["AuthToken"];
+    //    if (string.IsNullOrEmpty(token))
+    //    {
+    //        return Json(new { success = false, message = "Chưa xác thực" });
+    //    }
 
-        try
-        {
-            var apiResponse = await ApiHelper.DeleteAsync<ApiReponseModel>($"/api/Post/deletecomment/{CommentId}", token);
+    //    try
+    //    {
+    //        var apiResponse = await ApiHelper.DeleteAsync<ApiReponseModel>($"/api/Post/deletecomment/{CommentId}", token);
 
-            if (apiResponse != null && apiResponse.Status == 1)
-            {
-                return Json(new { status = apiResponse.Status, message = apiResponse.Mess });
-            }
-            else
-            {
-                return Json(new { status = apiResponse.Status, message = apiResponse.Mess });
-            }
-        }
-        catch (Exception ex)
-        {
+    //        if (apiResponse != null && apiResponse.Status == 1)
+    //        {
+    //            return Json(new { status = apiResponse.Status, message = apiResponse.Mess });
+    //        }
+    //        else
+    //        {
+    //            return Json(new { status = apiResponse.Status, message = apiResponse.Mess });
+    //        }
+    //    }
+    //    catch (Exception ex)
+    //    {
 
-            Console.Error.WriteLine($"Exception in DeleteComment: {ex.Message}");
-            return Json(new { success = false, message = "Đã xảy ra lỗi khi xóa bình luận: " + ex.Message });
-        }
-    }
+    //        Console.Error.WriteLine($"Exception in DeleteComment: {ex.Message}");
+    //        return Json(new { success = false, message = "Đã xảy ra lỗi khi xóa bình luận: " + ex.Message });
+    //    }
+    //}
 
-    [HttpPost]
-    public async Task<IActionResult> LikePost(PostLikeVM postLikeVM)
-    {
-        var token = Request.Cookies["AuthToken"];
-        if (string.IsNullOrEmpty(token))
-        {
-            return Json(new { success = false, message = "Chưa xác thực" });
-        }
+    //[HttpPost]
+    //public async Task<IActionResult> LikePost(PostLikeVM postLikeVM)
+    //{
+    //    var token = Request.Cookies["AuthToken"];
+    //    if (string.IsNullOrEmpty(token))
+    //    {
+    //        return Json(new { success = false, message = "Chưa xác thực" });
+    //    }
 
-        try
-        {
-            var apiReponse = await ApiHelper.PostAsync<PostLikeVM, ApiReponseModel>("/api/Post/likepost", postLikeVM, token);
-            if (apiReponse != null && apiReponse.Status == 1)
-            {
-                return Json(new { status = apiReponse.Status, message = apiReponse.Mess });
-            }
-            else
-            {
-                return Json(new { status = apiReponse.Status, message = apiReponse.Mess });
-            }
-        }
-        catch (Exception ex)
-        {
+    //    try
+    //    {
+    //        var apiReponse = await ApiHelper.PostAsync<PostLikeVM, ApiReponseModel>("/api/Post/likepost", postLikeVM, token);
+    //        if (apiReponse != null && apiReponse.Status == 1)
+    //        {
+    //            return Json(new { status = apiReponse.Status, message = apiReponse.Mess });
+    //        }
+    //        else
+    //        {
+    //            return Json(new { status = apiReponse.Status, message = apiReponse.Mess });
+    //        }
+    //    }
+    //    catch (Exception ex)
+    //    {
 
-            Console.Error.WriteLine($"Exception in DeleteComment: {ex.Message}");
-            return Json(new { success = false, message = "Đã xảy ra lỗi khi xóa bình luận: " + ex.Message });
-        }
-    }
+    //        Console.Error.WriteLine($"Exception in DeleteComment: {ex.Message}");
+    //        return Json(new { success = false, message = "Đã xảy ra lỗi khi xóa bình luận: " + ex.Message });
+    //    }
+    //}
 
-    [HttpPost]
-    public async Task<IActionResult> Unlike(PostLikeVM postLikeVM)
-    {
-        var token = Request.Cookies["AuthToken"];
-        if (string.IsNullOrEmpty(token))
-        {
-            return Json(new { success = false, message = "Chưa xác thực" });
-        }
+    //[HttpPost]
+    //public async Task<IActionResult> Unlike(PostLikeVM postLikeVM)
+    //{
+    //    var token = Request.Cookies["AuthToken"];
+    //    if (string.IsNullOrEmpty(token))
+    //    {
+    //        return Json(new { success = false, message = "Chưa xác thực" });
+    //    }
 
-        try
-        {
-            var apiReponse = await ApiHelper.PostAsync<PostLikeVM, ApiReponseModel>("/api/Post/deletelikepost", postLikeVM, token);
-            if (apiReponse != null && apiReponse.Status == 1)
-            {
-                return Json(new { status = apiReponse.Status, message = apiReponse.Mess });
-            }
-            else
-            {
-                return Json(new { status = apiReponse.Status, message = apiReponse.Mess });
-            }
-        }
-        catch (Exception ex)
-        {
+    //    try
+    //    {
+    //        var apiReponse = await ApiHelper.PostAsync<PostLikeVM, ApiReponseModel>("/api/Post/deletelikepost", postLikeVM, token);
+    //        if (apiReponse != null && apiReponse.Status == 1)
+    //        {
+    //            return Json(new { status = apiReponse.Status, message = apiReponse.Mess });
+    //        }
+    //        else
+    //        {
+    //            return Json(new { status = apiReponse.Status, message = apiReponse.Mess });
+    //        }
+    //    }
+    //    catch (Exception ex)
+    //    {
 
-            Console.Error.WriteLine($"Exception in DeleteComment: {ex.Message}");
-            return Json(new { success = false, message = "Đã xảy ra lỗi khi hủy like: " + ex.Message });
-        }
-    }
+    //        Console.Error.WriteLine($"Exception in DeleteComment: {ex.Message}");
+    //        return Json(new { success = false, message = "Đã xảy ra lỗi khi hủy like: " + ex.Message });
+    //    }
+    //}
 
     [HttpPost]
     public async Task<IActionResult> Upstory(StoryVM storyVM)

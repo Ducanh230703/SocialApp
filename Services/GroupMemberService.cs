@@ -13,48 +13,57 @@ namespace Services
     public class GroupMemberService
     {
         public static string apiAvatar;
-        public static async Task<ApiReponseModel> JoinGroup(int UserID, int GroupID,int Role)
+        public static async Task<ApiReponseModel> JoinGroup(int userId, int groupId, int role)
         {
             var apiResponse = new ApiReponseModel();
 
-            StringBuilder sql = new StringBuilder("INSERT INTO GroupMembers (GroupId, UserId,Role) VALUES (@GroupId, @UserId,@Role)");
-            var parameters = new SortedList()
-            {
-                { "GroupId", GroupID },
-                { "UserId", UserID },
-                { "RoleId", Role },
-            };
-
             try
             {
+                string checkSql = "SELECT IsPrivate FROM Groups WHERE ID = @GroupId";
+                var checkParams = new SortedList() { { "GroupId", groupId } };
+                var groupTable = await connectDB.Select(checkSql, checkParams);
+
+                bool isPrivate = groupTable.Rows.Count > 0 && Convert.ToBoolean(groupTable.Rows[0]["IsPrivate"]);
+
+                int finalRole = isPrivate ? (int)GroupMemberRole.Pending : role;
+
+                StringBuilder sql = new("INSERT INTO GroupMembers (GroupId, UserId, Role) VALUES (@GroupId, @UserId, @Role)");
+                var parameters = new SortedList()
+                {
+                    { "GroupId", groupId },
+                    { "UserId", userId },
+                    { "Role", finalRole }
+                };
+
                 int rowsAffected = await connectDB.Insert(sql.ToString(), parameters);
 
                 if (rowsAffected > 0)
                 {
                     apiResponse.Status = 1;
-                    apiResponse.Mess = "Tham gia nhóm thành công";
+                    apiResponse.Mess = isPrivate
+                        ? "Yêu cầu tham gia nhóm đã được gửi, vui lòng chờ duyệt."
+                        : "Tham gia nhóm thành công.";
                 }
                 else
                 {
                     apiResponse.Status = 0;
-                    apiResponse.Mess = "Tham gia nhóm thất bại";
+                    apiResponse.Mess = "Không thể tham gia nhóm.";
                 }
             }
             catch (Exception ex)
             {
                 apiResponse.Status = -1;
-                apiResponse.Mess = $"Đã xảy ra lỗi khi thêm thành viên: {ex.Message}";
-                Console.WriteLine($"Error in AddMember: {ex.Message}");
+                apiResponse.Mess = $"Lỗi khi tham gia nhóm: {ex.Message}";
             }
 
             return apiResponse;
         }
 
-        public static async Task<ApiReponseModel> DeleteMember(GroupMember groupMember)
+        public static async Task<ApiReponseModel> DeleteMember(int groupId, int memberId)
         {
             var apiResponse = new ApiReponseModel();
 
-            var sql = $"DELETE FROM GroupMembers Where GroupId ={groupMember.GroupId} AND UserId = {groupMember.UserID} AND (Role = 2 OR Role = 1)";
+            var sql = $"DELETE FROM GroupMembers Where GroupId ={groupId} AND UserId = {memberId} AND (Role = 0 OR Role = 1)";
 
             try
             {
@@ -284,6 +293,134 @@ namespace Services
 
             return apiResponse;
         }
+
+        public static async Task<ApiReponseModel> ApproveMember(int approverId, int groupId, int userId)
+        {
+            var apiResponse = new ApiReponseModel();
+            try
+            {
+                // 🔹 Kiểm tra người duyệt có phải là admin hoặc owner
+                string checkSql = "SELECT Role FROM GroupMembers WHERE GroupId=@GroupId AND UserId=@UserId";
+                var checkParams = new SortedList()
+        {
+            { "GroupId", groupId },
+            { "UserId", approverId }
+        };
+                var table = await connectDB.Select(checkSql, checkParams);
+                if (table.Rows.Count == 0)
+                {
+                    apiResponse.Status = 0;
+                    apiResponse.Mess = "Bạn không ở trong nhóm này.";
+                    return apiResponse;
+                }
+
+                int role = Convert.ToInt32(table.Rows[0]["Role"]);
+                if (role < (int)GroupMemberRole.Admin)
+                {
+                    apiResponse.Status = 0;
+                    apiResponse.Mess = "Bạn không có quyền duyệt thành viên.";
+                    return apiResponse;
+                }
+
+                string sql = "UPDATE GroupMembers SET Role=@Role WHERE GroupId=@GroupId AND UserId=@UserId AND Role=@Pending";
+                var parameters = new SortedList()
+                {
+                    { "Role", (int)GroupMemberRole.Member },
+                    { "Pending", (int)GroupMemberRole.Pending },
+                    { "GroupId", groupId },
+                    { "UserId", userId }
+                };
+                int rows = await connectDB.Update(sql, parameters);
+
+                if (rows > 0)
+                {
+                    apiResponse.Status = 1;
+                    apiResponse.Mess = "Thành viên đã được duyệt vào nhóm.";
+                }
+                else
+                {
+                    apiResponse.Status = 0;
+                    apiResponse.Mess = "Không tìm thấy yêu cầu cần duyệt.";
+                }
+            }
+            catch (Exception ex)
+            {
+                apiResponse.Status = -1;
+                apiResponse.Mess = $"Lỗi khi duyệt thành viên: {ex.Message}";
+            }
+
+            return apiResponse;
+        }
+
+        public static async Task<ApiReponseModel> RejectJoinRequest(int approverId, int groupId, int userId)
+        {
+            var apiResponse = new ApiReponseModel();
+            try
+            {
+                // 1️⃣ Kiểm tra quyền của người thực hiện
+                string checkSql = "SELECT Role FROM GroupMembers WHERE GroupId=@GroupId AND UserId=@UserId";
+                var checkParams = new SortedList()
+        {
+            { "GroupId", groupId },
+            { "UserId", approverId }
+        };
+
+                var roleTable = await connectDB.Select(checkSql, checkParams);
+                if (roleTable.Rows.Count == 0)
+                {
+                    apiResponse.Status = 0;
+                    apiResponse.Mess = "Bạn không phải là thành viên nhóm.";
+                    return apiResponse;
+                }
+
+                int approverRole = Convert.ToInt32(roleTable.Rows[0]["Role"]);
+                if (approverRole < (int)GroupMemberRole.Admin)
+                {
+                    apiResponse.Status = 0;
+                    apiResponse.Mess = "Bạn không có quyền từ chối yêu cầu tham gia.";
+                    return apiResponse;
+                }
+
+                // 2️⃣ Kiểm tra người bị từ chối có đang ở trạng thái Pending không
+                string checkPendingSql = "SELECT * FROM GroupMembers WHERE GroupId=@GroupId AND UserId=@UserId AND Role=@Pending";
+                var pendingParams = new SortedList()
+        {
+            { "GroupId", groupId },
+            { "UserId", userId },
+            { "Pending", (int)GroupMemberRole.Pending }
+        };
+                var pendingTable = await connectDB.Select(checkPendingSql, pendingParams);
+
+                if (pendingTable.Rows.Count == 0)
+                {
+                    apiResponse.Status = 0;
+                    apiResponse.Mess = "Không tìm thấy yêu cầu đang chờ để từ chối.";
+                    return apiResponse;
+                }
+
+                string deleteSql = "DELETE FROM GroupMembers WHERE GroupId=@GroupId AND UserId=@UserId AND Role=@Pending";
+                int rowsDeleted = await connectDB.Delete(deleteSql, pendingParams);
+
+                if (rowsDeleted > 0)
+                {
+                    apiResponse.Status = 1;
+                    apiResponse.Mess = "Đã từ chối yêu cầu tham gia nhóm.";
+                }
+                else
+                {
+                    apiResponse.Status = 0;
+                    apiResponse.Mess = "Không thể từ chối yêu cầu.";
+                }
+            }
+            catch (Exception ex)
+            {
+                apiResponse.Status = -1;
+                apiResponse.Mess = $"Lỗi khi từ chối yêu cầu: {ex.Message}";
+            }
+
+            return apiResponse;
+        }
+
 
     }
 

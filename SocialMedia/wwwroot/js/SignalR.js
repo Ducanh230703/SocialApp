@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.log("SignalR.js: Found LoggedInUserId =", userId);
 
         connection = new signalR.HubConnectionBuilder()
-            .withUrl(`https://apiapp20250930133943-a3ewemhsd2egfgeq.canadacentral-01.azurewebsites.net/chathub?LoggedInUserId=${userId}`, {
+            .withUrl(`https://localhost:7024/chathub?LoggedInUserId=${userId}`, {
             })            .configureLogging(signalR.LogLevel.Information)
             .build();
 

@@ -13,8 +13,8 @@ using System.Threading.Tasks;
 
 namespace Services
 {
-     public class GroupService
-     {
+    public class GroupService
+    {
         public static string apiAvatar;
         public static async Task<ApiReponseModel<int>> CreateGroup(CreateGroupForm group)
         {
@@ -70,7 +70,7 @@ namespace Services
                     {
                         Status = 0,
                         Mess = "Tạo nhóm thất bại. Vui lòng thử lại.",
-                        Data = 0 
+                        Data = 0
                     };
                 }
             }
@@ -80,7 +80,7 @@ namespace Services
                 {
                     Status = -1,
                     Mess = $"Đã xảy ra lỗi: {ex.Message}",
-                    Data = 0 
+                    Data = 0
                 };
             }
         }
@@ -125,7 +125,7 @@ namespace Services
             }
         }
 
-        public static async Task<ApiReponseModel> ChangeName(int groupId, string groupName) 
+        public static async Task<ApiReponseModel> ChangeName(int groupId, string groupName)
         {
             var sql = "UPDATE SET GroupName = @groupName WHERE GroupId = @groupId";
             var param = new System.Collections.SortedList
@@ -243,7 +243,7 @@ namespace Services
             try
             {
                 DataTable dt = await connectDB.Select(sql);
-                var groupList = new List<Group>() ;
+                var groupList = new List<Group>();
                 if (dt.Rows.Count > 0)
                 {
                     foreach (DataRow row in dt.Rows)
@@ -267,27 +267,27 @@ namespace Services
                     Data = groupList
                 };
             }
-            catch (SqlException sqlEx) 
+            catch (SqlException sqlEx)
             {
                 return new ApiReponseModel<List<Group>>
                 {
                     Status = -1,
-                    Mess = $"Lỗi cơ sở dữ liệu: {sqlEx.Message}", 
+                    Mess = $"Lỗi cơ sở dữ liệu: {sqlEx.Message}",
                     Data = null
                 };
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 return new ApiReponseModel<List<Group>>
                 {
-                    Status = -2, 
+                    Status = -2,
                     Mess = $"Đã xảy ra lỗi không xác định: {ex.Message}",
                     Data = null
                 };
             }
         }
 
-        public static async Task<ApiReponseModel<GroupDetailResponseModel>> GetGroupDetail(int groupId,int loggedInUserId)
+        public static async Task<ApiReponseModel<GroupDetailResponseModel>> GetGroupDetail(int groupId, int loggedInUserId)
         {
             try
             {
@@ -306,7 +306,6 @@ namespace Services
                                 p.ImageUrl AS PostImageUrl,
                                 p.IsPrivate AS PostIsPrivate,
                                 p.DateCreated AS PostCreatedDate,
-                                p.DateUpdated AS PostDateUpdated,
                                 p.IsDeleted AS PostIsDeleted,
                                 p.UserId AS PostUserId,
                                 u.FullName AS PostUserFullName,
@@ -332,84 +331,140 @@ namespace Services
                  {"loggedInUserId",loggedInUserId }
             };
 
-            DataTable dt = await connectDB.Select(sql, param);
+                DataTable dt = await connectDB.Select(sql, param);
 
-            if (dt.Rows.Count == 0)
-            {
-                return new ApiReponseModel<GroupDetailResponseModel>
+                if (dt.Rows.Count == 0)
                 {
-                    Status = 0,
-                    Mess = "Không tìm thấy nhóm.",
-                    Data = null
-                };
-            }
+                    return new ApiReponseModel<GroupDetailResponseModel>
+                    {
+                        Status = 0,
+                        Mess = "Không tìm thấy nhóm.",
+                        Data = null
+                    };
+                }
                 var groupPicture = apiAvatar + dt.Rows[0]["GroupPictureUrl"].ToString;
                 var userPicture = apiAvatar + dt.Rows[0]["CreatedByUserProfilePictureUrl"].ToString;
 
                 var groupDetail = new GroupDetailResponseModel
-            {
-                ID = Convert.ToInt32(dt.Rows[0]["GroupId"]),
-                IsPrivate = Convert.ToBoolean(dt.Rows[0]["GroupIsPrivate"]),
-                GroupName = dt.Rows[0]["GroupName"].ToString(),
-                GroupPictureUrl = groupPicture,
-                CreatedByUserId = Convert.ToInt32(dt.Rows[0]["CreatedByUserId"]),
-                CreatedDate = Convert.ToDateTime(dt.Rows[0]["GroupCreatedDate"]),
-                IsMember = Convert.ToBoolean(dt.Rows[0]["IsMember"]),
-                CreatedByUserName = dt.Rows[0]["CreatedByUserName"].ToString(),
-                CreatedByUserProfilePictureUrl = userPicture,
-                MemberCount = Convert.ToInt32(dt.Rows[0]["MemberCount"]),
-                CurrentUserRole = Convert.ToInt32(dt.Rows[0]["CurrentUserRole"])
+                {
+                    ID = Convert.ToInt32(dt.Rows[0]["GroupId"]),
+                    IsPrivate = Convert.ToBoolean(dt.Rows[0]["GroupIsPrivate"]),
+                    GroupName = dt.Rows[0]["GroupName"].ToString(),
+                    GroupPictureUrl = groupPicture,
+                    CreatedByUserId = Convert.ToInt32(dt.Rows[0]["CreatedByUserId"]),
+                    CreatedDate = Convert.ToDateTime(dt.Rows[0]["GroupCreatedDate"]),
+                    IsMember = Convert.ToBoolean(dt.Rows[0]["IsMember"]),
+                    CreatedByUserName = dt.Rows[0]["CreatedByUserName"].ToString(),
+                    CreatedByUserProfilePictureUrl = userPicture,
+                    MemberCount = Convert.ToInt32(dt.Rows[0]["MemberCount"]),
+                    CurrentUserRole = dt.Rows[0]["CurrentUserRole"] == DBNull.Value? null : Convert.ToInt32(dt.Rows[0]["CurrentUserRole"])
                 };
 
-            var posts = new List<PostFull>();
-            foreach (DataRow row in dt.Rows)
-            {
-                if (row["PostId"] == DBNull.Value)
+                var posts = new List<PostFull>();
+                foreach (DataRow row in dt.Rows)
                 {
-                    continue;
+                    if (row["PostId"] == DBNull.Value)
+                    {
+                        continue;
+                    }
+
+                    var likeUserIdsString = row["LikeUserIds"] != DBNull.Value ? row["LikeUserIds"].ToString() : null;
+                    var likeUserIds = string.IsNullOrEmpty(likeUserIdsString)
+                        ? new List<int>()
+                        : likeUserIdsString.Split(',').Select(int.Parse).ToList();
+
+                    var userPic = apiAvatar + row["PostUserProfilePictureUrl"].ToString();
+                    posts.Add(new PostFull
+                    {
+                        Id = Convert.ToInt32(row["PostId"]),
+                        Content = row["Content"].ToString(),
+                        ImageUrl = row["PostImageUrl"] != DBNull.Value ? row["PostImageUrl"].ToString() : null,
+                        IsPrivate = Convert.ToBoolean(row["PostIsPrivate"]),
+                        Bio = row["PostUserBio"] != DBNull.Value ? row["PostUserBio"].ToString() : null,
+                        DateCreated = Convert.ToDateTime(row["PostCreatedDate"]),
+                        UserId = Convert.ToInt32(row["PostUserId"]),
+                        UserFullName = row["PostUserFullName"].ToString(),
+                        UserProfilePictureUrl = userPic,
+                        LikeUserIds = likeUserIds,
+                        Comments = new List<CommentDetail>()
+                    });
+                }
+                groupDetail.RecentPosts = posts;
+
+                return new ApiReponseModel<GroupDetailResponseModel>
+                {
+                    Status = 1,
+                    Mess = "Lấy chi tiết nhóm thành công.",
+                    Data = groupDetail
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiReponseModel<GroupDetailResponseModel>
+                {
+                    Status = -2,
+                    Mess = $"Đã xảy ra lỗi không xác định: {ex.Message}",
+                    Data = null
+                };
+            }
+        }
+        public static async Task<ApiReponseModel<List<Group>>> SearchGroup(string keyword)
+        {
+            try
+            {
+                var sql = @"
+                    SELECT g.*
+                    FROM Groups g
+                    WHERE g.GroupName LIKE '%' + @keyword + '%'
+                    ORDER BY g.CreatedDate DESC;
+                ";
+
+                var param = new SortedList
+                {
+                    { "keyword", keyword }                };
+
+                DataTable dt = await connectDB.Select(sql, param);
+                var result = new List<Group>();
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    result.Add(new Group
+                    {
+                        ID = Convert.ToInt32(row["ID"]),
+                        GroupName = row["GroupName"].ToString(),
+                        GroupPictureUrl = row["GroupPictureUrl"] != DBNull.Value ? row["GroupPictureUrl"].ToString() : null,
+                        IsPrivate = Convert.ToBoolean(row["IsPrivate"]),
+                        CreatedByUserId = Convert.ToInt32(row["CreatedByUserId"]),
+                        CreatedDate = Convert.ToDateTime(row["CreatedDate"])
+                    });
                 }
 
-                var likeUserIdsString = row["LikeUserIds"] != DBNull.Value ? row["LikeUserIds"].ToString() : null;
-                var likeUserIds = string.IsNullOrEmpty(likeUserIdsString)
-                    ? new List<int>()
-                    : likeUserIdsString.Split(',').Select(int.Parse).ToList();
-
-                var userPic = apiAvatar + row["PostUserProfilePictureUrl"].ToString();
-                posts.Add(new PostFull
+                return new ApiReponseModel<List<Group>>
                 {
-                    Id = Convert.ToInt32(row["PostId"]),
-                    Content = row["Content"].ToString(),
-                    ImageUrl = row["PostImageUrl"] != DBNull.Value ? row["PostImageUrl"].ToString() : null,
-                    IsPrivate = Convert.ToBoolean(row["PostIsPrivate"]),
-                    Bio = row["PostUserBio"] != DBNull.Value ? row["PostUserBio"].ToString() : null,
-                    DateCreated = Convert.ToDateTime(row["PostCreatedDate"]),
-                    DateUpdated = Convert.ToDateTime(row["PostDateUpdated"]),
-                    IsDeleted = Convert.ToBoolean(row["PostIsDeleted"]),
-                    UserId = Convert.ToInt32(row["PostUserId"]),
-                    UserFullName = row["PostUserFullName"].ToString(),
-                    UserProfilePictureUrl = userPic,
-                    LikeUserIds = likeUserIds,
-                    Comments = new List<CommentDetail>()
-                });
+                    Status = 1,
+                    Mess = "Tìm kiếm nhóm thành công.",
+                    Data = result
+                };
             }
-            groupDetail.RecentPosts = posts;
+            catch (SqlException ex)
+            {
+                return new ApiReponseModel<List<Group>>
+                {
+                    Status = -1,
+                    Mess = $"Lỗi SQL: {ex.Message}",
+                    Data = null
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiReponseModel<List<Group>>
+                {
+                    Status = -2,
+                    Mess = $"Lỗi không xác định: {ex.Message}",
+                    Data = null
+                };
+            }
+        }
 
-            return new ApiReponseModel<GroupDetailResponseModel>
-            {
-                Status = 1,
-                Mess = "Lấy chi tiết nhóm thành công.",
-                Data = groupDetail
-            };
-        }
-        catch (Exception ex)
-        {
-            return new ApiReponseModel<GroupDetailResponseModel>
-            {
-                Status = -2,
-                Mess = $"Đã xảy ra lỗi không xác định: {ex.Message}",
-                Data = null
-            };
-        }
-        }
     }
 }

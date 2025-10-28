@@ -1,5 +1,6 @@
 ﻿@using Models
 @model List<Models.ViewModel.GroupMember.GroupMemberList>
+
 @{
     var rawRole = ViewData["CurrentUserRole"];
     GroupMemberRole currentUserRole;
@@ -12,75 +13,119 @@
         currentUserRole = roleEnum;
     else
         currentUserRole = GroupMemberRole.Member;
+
+    var approvedMembers = Model.Where(m => m.Role != GroupMemberRole.Pending).ToList();
+    var pendingMembers = Model.Where(m => m.Role == GroupMemberRole.Pending).ToList();
 }
 
 <div id="groupMembersModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-xl shadow-lg w-96 p-5 relative">
-        <h2 class="text-lg font-semibold text-center mb-4">Danh sách thành viên</h2>
+    <div class="bg-white rounded-xl shadow-lg w-[420px] p-5 relative">
+        <h2 class="text-lg font-semibold text-center mb-4">👥 Danh sách thành viên</h2>
 
-        <button class="absolute top-2 right-3 text-gray-500 hover:text-gray-700" onclick="closeMembersModal()">
-            ✕
-        </button>
+        <button class="absolute top-2 right-3 text-gray-500 hover:text-gray-700" onclick="closeMembersModal()">✕</button>
 
-        @if (Model != null && Model.Any())
-        {
-            <ul class="divide-y divide-gray-200 max-h-80 overflow-y-auto">
-                @foreach (var member in Model)
+        <div class="space-y-4">
+
+            <!-- Thành viên đã duyệt -->
+            <div>
+                <h3 class="font-semibold mb-2 text-green-700">✅ Thành viên</h3>
+                @if (approvedMembers.Any())
                 {
-                    string roleLabel = member.Role switch
-                    {
-                        Models.GroupMemberRole.Owner => "👑 Chủ nhóm",
-                        Models.GroupMemberRole.Admin => "⭐ Quản trị viên",
-                        _ => "👤 Thành viên"
-                    };
-
-                    <li class="flex items-center justify-between p-2 hover:bg-gray-50 transition">
-                        <div class="flex items-center">
-                            <img src="@member.ProfilePictureUrl" class="w-10 h-10 rounded-full object-cover border mr-3" />
-                            <div>
-                                <div class="font-semibold">@member.FullName</div>
-                                <div class="text-xs text-gray-500">@roleLabel</div>
-                            </div>
-                        </div>
-
-                        @* Chỉ hiển thị nút nếu current user là Owner/Admin *@
-                        @if (currentUserRole == Models.GroupMemberRole.Owner ||
-                                        (currentUserRole == Models.GroupMemberRole.Admin && member.Role == Models.GroupMemberRole.Member))
+                    <ul class="divide-y divide-gray-200 max-h-60 overflow-y-auto">
+                        @foreach (var member in approvedMembers)
                         {
-                            <div class="flex space-x-1">
-                                @* Nếu là Owner hoặc Admin có quyền quản lý *@
-                                @if (currentUserRole == Models.GroupMemberRole.Owner && member.Role != Models.GroupMemberRole.Owner)
-                                {
-                                    <button class="text-sm text-blue-600 hover:text-blue-800"
-                                            onclick="toggleAdmin(@member.UserID, '@member.Role')">
-                                        @(member.Role == Models.GroupMemberRole.Admin ? "❌ Gỡ admin" : "⭐ Thêm admin")
-                                    </button>
-                                }
+                            string roleLabel = member.Role switch
+                            {
+                                GroupMemberRole.Owner => "👑 Chủ nhóm",
+                                GroupMemberRole.Admin => "⭐ Quản trị viên",
+                                _ => "👤 Thành viên"
+                            };
 
-                                @* Nút kick *@
-                                @if (member.Role != Models.GroupMemberRole.Owner)
+                            <li class="flex items-center justify-between p-2 hover:bg-gray-50 transition">
+                                <div class="flex items-center">
+                                    <img src="@member.ProfilePictureUrl" class="w-10 h-10 rounded-full object-cover border mr-3" />
+                                    <div>
+                                        <div class="font-semibold">@member.FullName</div>
+                                        <div class="text-xs text-gray-500">@roleLabel</div>
+                                    </div>
+                                </div>
+
+                                @if (currentUserRole == GroupMemberRole.Owner ||
+                                                        (currentUserRole == GroupMemberRole.Admin && member.Role == GroupMemberRole.Member))
                                 {
-                                    <button class="text-sm text-red-600 hover:text-red-800"
-                                            onclick="kickMember(@member.UserID)">
-                                        👢 Kick
-                                    </button>
+                                    <div class="flex space-x-2">
+                                        @if (currentUserRole == GroupMemberRole.Owner && member.Role != GroupMemberRole.Owner)
+                                        {
+                                            <button class="text-sm text-blue-600 hover:text-blue-800"
+                                                    onclick="toggleAdmin(@member.UserID, '@member.Role')">
+                                                @(member.Role == GroupMemberRole.Admin ? "❌ Gỡ admin" : "⭐ Thêm admin")
+                                            </button>
+                                        }
+
+                                        @if (member.Role != GroupMemberRole.Owner)
+                                        {
+                                            <button class="text-sm text-red-600 hover:text-red-800"
+                                                    onclick="kickMember(@member.UserID)">
+                                                👢 Kick
+                                            </button>
+                                        }
+                                    </div>
                                 }
-                            </div>
+                            </li>
                         }
-                    </li>
+                    </ul>
                 }
-            </ul>
-        }
-        else
-        {
-            <p class="text-gray-500 text-center">Không có thành viên nào trong nhóm.</p>
-        }
+                else
+                {
+                    <p class="text-gray-500 text-sm text-center">Không có thành viên nào.</p>
+                }
+            </div>
 
-        <div class="text-center mt-4">
-            <button class="bg-gray-700 text-white py-1 px-4 rounded-full hover:bg-gray-800 transition" onclick="closeMembersModal()">
+            @if (currentUserRole == GroupMemberRole.Owner || currentUserRole == GroupMemberRole.Admin)
+            {
+                <div class="border-t pt-3">
+                    <h3 class="font-semibold mb-2 text-yellow-700">⏳ Chờ duyệt</h3>
+                    @if (pendingMembers.Any())
+                    {
+                        <ul class="divide-y divide-gray-200 max-h-40 overflow-y-auto">
+                            @foreach (var member in pendingMembers)
+                            {
+                                <li class="flex items-center justify-between p-2 hover:bg-gray-50 transition">
+                                    <div class="flex items-center">
+                                        <img src="@member.ProfilePictureUrl" class="w-10 h-10 rounded-full object-cover border mr-3" />
+                                        <div>
+                                            <div class="font-semibold">@member.FullName</div>
+                                            <div class="text-xs text-gray-500">Đang chờ phê duyệt</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex space-x-2">
+                                        <button class="text-sm text-green-600 hover:text-green-800"
+                                                onclick="approveMember(@member.UserID)">
+                                            ✅ Duyệt
+                                        </button>
+                                        <button class="text-sm text-red-600 hover:text-red-800"
+                                                onclick="rejectMember(@member.UserID)">
+                                            ❌ Từ chối
+                                        </button>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="text-gray-500 text-sm text-center">Không có yêu cầu chờ duyệt.</p>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="text-center mt-5">
+            <button class="bg-gray-700 text-white py-1 px-4 rounded-full hover:bg-gray-800 transition"
+                    onclick="closeMembersModal()">
                 Đóng
             </button>
         </div>
     </div>
 </div>
-
