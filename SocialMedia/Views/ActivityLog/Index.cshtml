@@ -1,0 +1,162 @@
+﻿@model Models.ReponseModel.ApiReponseModel<Models.ReponseModel.PaginatedResponse<Models.ReponseModel.ActivityLogResponse>>
+@{
+    ViewData["Title"] = "Nhật ký Hoạt động";
+    Layout = "_Layout";
+
+    // Khai báo Model Data ngay trong khối code chung
+    var paginatedData = Model?.Data;
+    int totalPages = 0;
+    int currentPage = 0;
+
+    // Kiểm tra và tính toán nếu dữ liệu hợp lệ
+    if (paginatedData != null && Model.Status == 1)
+    {
+        totalPages = (int)Math.Ceiling((double)paginatedData.TotalCount / paginatedData.PageSize);
+        currentPage = paginatedData.PageNumber;
+    }
+}
+
+<div class="main-content">
+
+    @* ĐÃ THÊM: CONTAINER GIỚI HẠN CHIỀU RỘNG VÀ CĂN GIỮA (Max-width ~800px) *@
+    <div class="max-w-4xl mx-auto">
+
+        <div class="grid lg:grid-cols-3 grid-cols-1 gap-5">
+            <div class="lg:col-span-3 space-y-4">
+
+                <h1 class="text-2xl font-semibold text-gray-900 dark:text-white mb-6">
+                    <i class="icon-feather-list text-2xl mr-2"></i> Nhật ký Hoạt động Hệ thống
+                </h1>
+
+                @if (TempData["Error"] != null)
+                {
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                        <strong class="font-bold">Lỗi!</strong>
+                        <span class="block sm:inline"> @TempData["Error"] </span>
+                    </div>
+                }
+
+                @if (Model == null || Model.Status == 0 || paginatedData == null)
+                {
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                        <strong class="font-bold">Lỗi tải dữ liệu!</strong>
+                        <span class="block sm:inline"> @(Model?.Mess ?? "Không thể tải dữ liệu nhật ký hoạt động.") </span>
+                    </div>
+                }
+                else if (paginatedData.Data == null || !paginatedData.Data.Any())
+                {
+                    <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative" role="alert">
+                        <strong class="font-bold">Thông báo!</strong>
+                        <span class="block sm:inline"> Hiện chưa có bản ghi hoạt động nào. </span>
+                    </div>
+                }
+                else
+                {
+                    <div class="bg-white shadow-md rounded-xl p-4 dark:bg-slate-700">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-600">
+                                <thead class="bg-gray-50 dark:bg-slate-800">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Thời gian</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Người dùng</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Hành động</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Mục tiêu</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Mô tả</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200 dark:bg-slate-700 dark:divide-slate-600">
+                                    @foreach (var log in paginatedData.Data)
+                                    {
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                                                @log.DateCreated.ToString("dd/MM/yyyy HH:mm:ss")
+                                            </td>
+
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                                                @log.UserFullName
+                                            </td>
+
+                                            @{
+                                                string actionClass = log.ActionType switch
+                                                {
+                                                    "DELETE" => "text-red-600",
+                                                    "CREATE" => "text-green-600",
+                                                    "UPDATE" => "text-yellow-600",
+                                                    _ => "text-blue-600"
+                                                };
+                                            }
+
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium @actionClass">
+                                                @log.ActionType
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                                                @log.TargetType
+                                            </td>
+                                            <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-300 max-w-sm overflow-hidden text-ellipsis">
+                                                @log.Description
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <nav class="flex justify-center items-center mt-6">
+                        <ul class="flex items-center space-x-2">
+
+                            @* Nút Quay lại (Previous) *@
+                            @if (currentPage > 1)
+                            {
+                                <li>
+                                    <a href="@Url.Action("Index", new { pageNumber = currentPage - 1, pageSize = paginatedData.PageSize })"
+                                       class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-gray-300 dark:hover:bg-slate-600">
+                                        &laquo; Trước
+                                    </a>
+                                </li>
+                            }
+
+                            @* Vòng lặp các số trang *@
+                            @for (int i = 1; i <= totalPages; i++)
+                            {
+                                // Giới hạn số lượng nút hiển thị
+                                if (i == 1 || i == totalPages || (i >= currentPage - 2 && i <= currentPage + 2))
+                                {
+                                    <li>
+                                        <a href="@Url.Action("Index", new { pageNumber = i, pageSize = paginatedData.PageSize })"
+                                           class="px-3 py-2 leading-tight @(i == currentPage ? "text-white bg-blue-600 border border-blue-600" : "text-gray-500 bg-white border border-gray-300 hover:bg-gray-100") rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-gray-300 dark:hover:bg-slate-600 @(i == currentPage ? "dark:bg-blue-600 dark:border-blue-600 dark:text-white" : "")">
+                                            @i
+                                        </a>
+                                    </li>
+                                }
+                                // Thêm dấu ... nếu cần
+                                else if ((i == currentPage - 3 && currentPage > 3) || (i == currentPage + 3 && currentPage < totalPages - 2))
+                                {
+                                    <li><span class="px-3 py-2 leading-tight text-gray-500 dark:text-gray-300">...</span></li>
+                                }
+                            }
+
+                            @* Nút Tiếp theo (Next) *@
+                            @if (currentPage < totalPages)
+                            {
+                                <li>
+                                    <a href="@Url.Action("Index", new { pageNumber = currentPage + 1, pageSize = paginatedData.PageSize })"
+                                       class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-gray-300 dark:hover:bg-slate-600">
+                                        Sau &raquo;
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+
+                    <div class="text-center mt-4 text-sm text-gray-500 dark:text-gray-400">
+                        Hiển thị @paginatedData.Data.Count bản ghi trong tổng số @paginatedData.TotalCount
+                    </div>
+                }
+
+            </div>
+        </div>
+
+    </div> @* KẾT THÚC CONTAINER GIỚI HẠN CHIỀU RỘNG *@
+
+</div>

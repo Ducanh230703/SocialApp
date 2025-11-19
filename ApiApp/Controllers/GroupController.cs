@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Cache;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Models.ReponseModel;
@@ -23,7 +24,9 @@ namespace ApiApp.Controllers
         [HttpDelete("deletegr/{id}")]
         public async Task<Models.ReponseModel.ApiReponseModel> DeleteGroup(int id)
         {
-            return await GroupService.DeleteGroup(id);
+            var userId = CacheEx.DataUser.ID;
+
+            return await GroupService.DeleteGroup(id, userId);
         }
 
         [HttpPatch("updateimage")]

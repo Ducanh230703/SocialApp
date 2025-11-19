@@ -26,7 +26,7 @@
     {
         NotificationType.FriendRequest => Url.Action("Index", "FriendRequest") ?? "",
         NotificationType.Accept => Url.Action("Index", "FriendRequest") ?? "",
-        _ => Url.Action("Details", "Home", new { postId = notification.RelateId }) ?? "" 
+        _ => Url.Action("Details", "Home", new { postId = notification.RelatedId }) ?? "" 
     };
 
     <div class="relative flex items-center gap-3 p-2 duration-200 rounded-xl pr-10 hover:bg-secondery @(notification.IsRead ? "" : "bg-teal-500/5")">

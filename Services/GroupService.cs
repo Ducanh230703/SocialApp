@@ -165,8 +165,10 @@ namespace Services
             }
         }
 
-        public static async Task<ApiReponseModel> DeleteGroup(int groupId)
+        public static async Task<ApiReponseModel> DeleteGroup(int groupId, int userId)
         {
+            if (!await CheckGroupOwner(groupId, userId))
+                return new ApiReponseModel { Status = 0, Mess = "Bạn không có quyền xóa nhóm!" };
             var sql = @"BEGIN TRANSACTION;
                         BEGIN TRY
                             DELETE L
@@ -465,6 +467,12 @@ namespace Services
                 };
             }
         }
-
+        public static async Task<bool> CheckGroupOwner(int groupId, int userId)
+        {
+            var sql = "SELECT COUNT(*) FROM Groups WHERE ID = @groupId AND CreatedByUserId = @userId";
+            var param = new System.Collections.SortedList { { "groupId", groupId }, { "userId", userId } };
+            var dt = await connectDB.Select(sql, param);
+            return Convert.ToInt32(dt.Rows[0][0]) > 0;
+        }
     }
 }

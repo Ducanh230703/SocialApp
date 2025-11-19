@@ -59,10 +59,17 @@ namespace Services
             return apiResponse;
         }
 
-        public static async Task<ApiReponseModel> DeleteMember(int groupId, int memberId)
+        public static async Task<ApiReponseModel> DeleteMember(int groupId, int memberId,int callerId)
         {
             var apiResponse = new ApiReponseModel();
+            int callerRole = await GetUserRoleInGroup(groupId, callerId);
+            int memberRole = await GetUserRoleInGroup(groupId, memberId);
 
+            if (callerRole < (int)GroupMemberRole.Admin)
+                return new ApiReponseModel { Status = 0, Mess = "Bạn không có quyền thực hiện thao tác này!" };
+
+            if (memberRole == (int)GroupMemberRole.Owner)
+                return new ApiReponseModel { Status = 0, Mess = "Không thể xóa chủ nhóm!" };
             var sql = $"DELETE FROM GroupMembers Where GroupId ={groupId} AND UserId = {memberId} AND (Role = 0 OR Role = 1)";
 
             try
@@ -421,6 +428,14 @@ namespace Services
             return apiResponse;
         }
 
+        public static async Task<int> GetUserRoleInGroup(int groupId, int userId)
+        {
+            var sql = "SELECT Role FROM GroupMembers WHERE GroupId=@groupId AND UserId=@userId";
+            var param = new SortedList { { "groupId", groupId }, { "userId", userId } };
+            var dt = await connectDB.Select(sql, param);
+
+            return dt.Rows.Count == 0 ? -1 : Convert.ToInt32(dt.Rows[0]["Role"]);
+        }
 
     }
 

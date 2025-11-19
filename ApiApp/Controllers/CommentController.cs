@@ -23,7 +23,8 @@ namespace ApiApp.Controllers
         [HttpDelete("deletecomment/{commentId}")]
         public async Task<ApiReponseModel> DeleteComment(int commentId)
         {
-            var data = await CommentService.DeleteComment(commentId);
+            var userId = CacheEx.DataUser.ID;
+            var data = await CommentService.DeleteComment(commentId,userId);
             return data;
         }
     }

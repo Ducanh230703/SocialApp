@@ -267,30 +267,33 @@ namespace Services
         /// <param name="Content"></param>
         /// <param name="ImageUrls"></param>
         /// <returns></returns>
-        public static async Task<ApiReponseModel> UserEditPost(int PostId, string Content, string ImageUrls)
+        public static async Task<ApiReponseModel> UserEditPost(int PostId, string Content, string ImageUrls, int UserId)
         {
-            var sql = @"UPDATE Posts 
-                      SET Content = @Content,
-                          ImageUrl = @ImageUrls
-                      Where ID = @PostId;";
-                var param = new System.Collections.SortedList
+            // Kiểm tra quyền sở hữu
+            if (!await CheckPostOwner(PostId, UserId))
             {
-                {"PostId",PostId },
-                {"Content",(object)Content ?? DBNull.Value },
-                {"ImageUrls",(object)ImageUrls ?? DBNull.Value }
-            };
-            var rs = await connectDB.Update(sql, param);
-            if (rs > 0)
                 return new ApiReponseModel
                 {
-                    Status = 1,
-                    Mess = "Update thanh cong",
-                };
-            else
-                return new ApiReponseModel { 
                     Status = 0,
-                    Mess = "Update that bai",
+                    Mess = "Bạn không có quyền sửa bài viết này!"
                 };
+            }
+
+            var sql = @"UPDATE Posts 
+                SET Content = @Content,
+                    ImageUrl = @ImageUrls
+                Where ID = @PostId;";
+            var param = new System.Collections.SortedList
+    {
+        {"PostId",PostId },
+        {"Content",(object)Content ?? DBNull.Value },
+        {"ImageUrls",(object)ImageUrls ?? DBNull.Value }
+    };
+            var rs = await connectDB.Update(sql, param);
+
+            return rs > 0
+                ? new ApiReponseModel { Status = 1, Mess = "Cập nhật thành công" }
+                : new ApiReponseModel { Status = 0, Mess = "Cập nhật thất bại" };
         }
 
         /// <summary>
@@ -422,29 +425,31 @@ namespace Services
         /// </summary>
         /// <param name="PostId"></param>
         /// <returns></returns>
-        public static async Task<ApiReponseModel> UserDeletePost(int PostId)
+        public static async Task<ApiReponseModel> UserDeletePost(int PostId, int UserId)
         {
-            var sql = "DELETE FROM Comments WHERE PostId = @PostId;" +
-                    "DELETE FROM Likes WHERE PostId = @PostId;"+
-                    "DELETE FROM Posts WHERE ID = @PostId;";
-            var param = new System.Collections.SortedList
+            // Kiểm tra quyền sở hữu
+            if (!await CheckPostOwner(PostId, UserId))
             {
-                {"PostId",PostId }
-            };
-
-            var rs = await connectDB.Delete(sql, param);
-            if (rs > 0)
-                return new ApiReponseModel
-                {
-                    Status = 1,
-                    Mess = "Xóa bài viết thành công",
-                };
-            else
                 return new ApiReponseModel
                 {
                     Status = 0,
-                    Mess = "Xóa bài viết không thành công",
+                    Mess = "Bạn không có quyền xóa bài viết này!"
                 };
+            }
+
+            var sql = "DELETE FROM Comments WHERE PostId = @PostId;" +
+                      "DELETE FROM Likes WHERE PostId = @PostId;" +
+                      "DELETE FROM Posts WHERE ID = @PostId;";
+            var param = new System.Collections.SortedList
+    {
+        {"PostId",PostId }
+    };
+
+            var rs = await connectDB.Delete(sql, param);
+
+            return rs > 0
+                ? new ApiReponseModel { Status = 1, Mess = "Xóa bài viết thành công" }
+                : new ApiReponseModel { Status = 0, Mess = "Xóa bài viết thất bại" };
         }
 
         ///// <summary>
@@ -624,6 +629,24 @@ namespace Services
         //            Mess = "Hủy like thất bại"
         //        };
         //}
+
+        public static async Task<bool> CheckPostOwner(int postId, int userId)
+        {
+            var sql = "SELECT COUNT(*) FROM Posts WHERE ID = @PostId AND UserId = @UserId";
+            var param = new System.Collections.SortedList
+    {
+        {"PostId", postId },
+        {"UserId", userId }
+    };
+
+            var dt = await connectDB.Select(sql, param);
+            if (dt.Rows.Count > 0)
+            {
+                return Convert.ToInt32(dt.Rows[0][0]) > 0;
+            }
+
+            return false;
+        }
 
     }
 }

@@ -14,7 +14,6 @@ namespace Models
         public string FullName { get; set; }
         public string? ProfilePictureUrl { get; set; }
         public string? Bio { get; set; }
-        public bool IsDeleted { get; set; }
         public bool IsVerified { get; set; }
         public bool IsOnline { get; set; } = false;
         public DateTime DateCreated { get; set; }

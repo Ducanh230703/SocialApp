@@ -1,11 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Models.ReponseModel;
-using SocialMedia.Helper;
 using Newtonsoft.Json;
 using Models.ViewModel.Users;
-using System.Net.Http.Headers; // Thêm dòng này để sử dụng JsonConvert
+using System.Net.Http.Headers;
 
-namespace SocialMedia.Controllers
+namespace SocialMedia.Helper
 {
     public class UserController : Controller
     {

@@ -67,7 +67,9 @@ namespace ApiApp.Controllers
         [HttpPost("editpost")]
         public async Task<ApiReponseModel> EditPost([FromBody] PostEditVM postEditVM)
         {
-            var data = await PostService.UserEditPost(postEditVM.PostId, postEditVM.Content, postEditVM.ImageUrls);
+            var userId = CacheEx.DataUser.ID;
+
+            var data = await PostService.UserEditPost(postEditVM.PostId, postEditVM.Content, postEditVM.ImageUrls,userId);
             if (data.Status == 1)
             {
                 if (postEditVM.RemovedImageUrls != null && postEditVM.RemovedImageUrls.Any())
@@ -95,20 +97,9 @@ namespace ApiApp.Controllers
         [HttpDelete("deletebyid/{postId}")]
         public async Task<ApiReponseModel> DeleteById(int postId)
         {
-            try 
-            {
-                var data = await PostService.UserDeletePost(postId);
-                return data;
-            }
-            catch (Exception ex) 
-            {
-                Console.Error.WriteLine($"Lỗi khi xóa bài viết {postId}: {ex.Message}");
-                return new ApiReponseModel
-                {
-                    Status = 0,
-                    Mess = "Đã xảy ra lỗi khi xóa bài viết.", 
-                };
-            }
+            var userId = CacheEx.DataUser.ID;
+            var data = await PostService.UserDeletePost(postId, userId);
+            return data;
         }   
 
 

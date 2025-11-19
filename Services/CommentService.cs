@@ -111,27 +111,31 @@ namespace Services
         /// </summary>
         /// <param name="CommentId"></param>
         /// <returns></returns>
-        public static async Task<ApiReponseModel> DeleteComment(int CommentId)
+        public static async Task<ApiReponseModel> DeleteComment(int commentId, int userId)
         {
-            var sql = "DELETE FROM Comments Where ID = @ID";
-            var param = new System.Collections.SortedList
-            {
-                {"ID",CommentId },
-            };
+            if (!await CheckCommentOwner(commentId, userId))
+                return new ApiReponseModel { Status = 0, Mess = "Bạn không có quyền xóa bình luận này!" };
 
+            var sql = "DELETE FROM Comments WHERE ID = @commentId";
+            var param = new System.Collections.SortedList { { "commentId", commentId } };
             var rs = await connectDB.Delete(sql, param);
-            if (rs > 0)
-                return new ApiReponseModel
-                {
-                    Status = 1,
-                    Mess = "Xóa bình luận thành công"
-                };
-            else
-                return new ApiReponseModel
-                {
-                    Status = 0,
-                    Mess = "Xóa bình luận thất bại"
-                };
+
+            return rs > 0 ?
+                new ApiReponseModel { Status = 1, Mess = "Xóa bình luận thành công" } :
+                new ApiReponseModel { Status = 0, Mess = "Xóa bình luận thất bại" };
         }
+
+        public static async Task<bool> CheckCommentOwner(int commentId, int userId)
+        {
+            var sql = "SELECT COUNT(*) FROM Comments WHERE ID = @commentId AND UserId = @userId";
+            var param = new System.Collections.SortedList
+    {
+        {"commentId", commentId },
+        {"userId", userId }
+    };
+            var dt = await connectDB.Select(sql, param);
+            return Convert.ToInt32(dt.Rows[0][0]) > 0;
+        }
+
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Cache;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Models.ReponseModel;
@@ -19,7 +20,9 @@ namespace ApiApp.Controllers
         [HttpDelete("deletemember/{groupId}/{memberId}")]
         public async Task<ApiReponseModel> DeleteMember(int groupId, int memberId)
         {
-            return await Services.GroupMemberService.DeleteMember(groupId, memberId);
+            var userId = CacheEx.DataUser.ID;
+
+            return await Services.GroupMemberService.DeleteMember(groupId, memberId,userId);
         }
 
         [HttpDelete("leavegroup/{groupId}")]

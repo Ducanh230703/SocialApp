@@ -17,7 +17,7 @@ namespace Models
 
         public string Type { get; set; }
 
-        public string RelateId { get; set; }
+        public int RelatedId { get; set; }
 
         public DateTime NotificationDate { get; set; }
         public string ProfilePictureUrl { get; set; }

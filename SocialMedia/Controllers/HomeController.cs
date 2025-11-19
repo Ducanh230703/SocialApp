@@ -61,7 +61,7 @@ public class HomeController : Controller
             }
         }
 
-    [HttpGet]
+    [HttpGet]   
     public async Task<IActionResult> GetMorePosts(int pageNumber, int pageSize) 
     {
         var token = Request.Cookies["AuthToken"];
