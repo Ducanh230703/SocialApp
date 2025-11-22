@@ -305,6 +305,7 @@ namespace Services
                                 gu.ProfilePictureUrl AS CreatedByUserProfilePictureUrl,
                                 p.ID AS PostId,
                                 p.Content,
+                                p.IsAnnoy,
                                 p.ImageUrl AS PostImageUrl,
                                 p.IsPrivate AS PostIsPrivate,
                                 p.DateCreated AS PostCreatedDate,
@@ -359,7 +360,7 @@ namespace Services
                     CreatedByUserName = dt.Rows[0]["CreatedByUserName"].ToString(),
                     CreatedByUserProfilePictureUrl = userPicture,
                     MemberCount = Convert.ToInt32(dt.Rows[0]["MemberCount"]),
-                    CurrentUserRole = dt.Rows[0]["CurrentUserRole"] == DBNull.Value? null : Convert.ToInt32(dt.Rows[0]["CurrentUserRole"])
+                    CurrentUserRole = dt.Rows[0]["CurrentUserRole"] == DBNull.Value ? null : Convert.ToInt32(dt.Rows[0]["CurrentUserRole"])
                 };
 
                 var posts = new List<PostFull>();
@@ -380,6 +381,7 @@ namespace Services
                     {
                         Id = Convert.ToInt32(row["PostId"]),
                         Content = row["Content"].ToString(),
+                        IsAnnoy = Convert.ToBoolean(row["IsAnnoy"]),
                         ImageUrl = row["PostImageUrl"] != DBNull.Value ? row["PostImageUrl"].ToString() : null,
                         IsPrivate = Convert.ToBoolean(row["PostIsPrivate"]),
                         Bio = row["PostUserBio"] != DBNull.Value ? row["PostUserBio"].ToString() : null,

@@ -17,6 +17,7 @@ namespace Models
         public DateTime DateUpdated { get; set; }
         public int UserID { get; set; }
 
+        public bool IsAnnoy { get; set; } = false;  
         public int? GroupID { get; set; } = null;
     }
 }

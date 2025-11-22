@@ -1,8 +1,8 @@
-﻿
-@using Models
+﻿@using Models
 @using Models.ReponseModel
 @using SocialMedia.Helper
 @{
+    // --- Logic lấy thông tin người dùng giữ nguyên ---
     var token = Context.Request.Cookies["AuthToken"];
     ApiReponseModel<UserReponseModel> loggedInUser = null;
     string fullName = null;
@@ -39,7 +39,6 @@
 }
 
 <header class="z-[100] h-[--m-top] fixed top-0 w-full flex items-center bg-white/80 sky-50 backdrop-blur-xl border-b border-slate-200 xl:pl-[--w-side] lg:pl-[--w-side-sm] md:pl-[--w-side-sm]">
-
     <div class="2xl:w-[--w-side] lg:w-[--w-side-sm]">
         <div class="flex items-center gap-1">
             <button uk-toggle="target: #site__sidebar ; cls :!-translate-x-0"
@@ -51,7 +50,7 @@
             <div id="logo" class="flex items-center">
                 <a asp-controller="Home" asp-action="Index" class="flex items-center">
                     <img src="~/images/logo.png" class="w-10 ml-2 md:block hidden" />
-                    <span class="ml-2">Circle App</span>
+                    <span class="ml-2">V-Social</span>
                 </a>
             </div>
 
@@ -86,7 +85,6 @@
                     </div>
                 </div>
 
-
                 <button type="button" class="sm:p-2 p-1 rounded-full relative sm:bg-secondery" id="notificationsBtn">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 max-sm:hidden">
                         <path d="M5.85 3.5a.75.75 0 00-1.117-1 9.719 9.719 0 00-2.348 4.876.75.75 0 001.479.248A8.219 8.219 0 015.85 3.5zM19.267 2.5a.75.75 0 10-1.118 1 8.22 8.22 0 011.987 4.124.75.75 0 001.48-.248A9.72 9.72 0 0019.266 2.5z" />
@@ -96,24 +94,20 @@
                 </button>
 
                 <div class="hidden bg-white pr-1.5 rounded-lg drop-shadow-xl md:w-[365px] w-screen border2" uk-drop="offset:6;pos: bottom-right; mode: click; animate-out: true;">
-
                     <div class="flex items-center justify-between gap-2 p-4 pb-2">
                         <h3 class="font-bold text-xl">Notifications</h3>
                     </div>
-
                     <div class="text-sm h-[400px] w-full overflow-y-auto pr-2">
                         <div class="pl-2 p-1 text-sm font-normal" id="notification-dropdown">
                             No notifications...
                         </div>
                     </div>
-
                 </div>
 
                 <div class="rounded-full relative bg-secondery cursor-pointer shrink-0">
                     <img src="@profilePictureUrl" class="sm:w-9 sm:h-9 w-7 h-7 rounded-full shadow shrink-0" />
                 </div>
                 <div class="hidden bg-white rounded-lg drop-shadow-xl w-64 border2" uk-drop="offset:6;pos: bottom-right;animate-out: true;">
-
                     <a asp-controller="User" asp-action="Details" asp-route-userId="@(loggedInUser?.Data?.ID ?? 0)">
                         <div class="p-4 py-5 flex items-center gap-4">
                             <img src="@(string.IsNullOrEmpty(profilePictureUrl) ? Url.Content("~/images/avatar/user.png") : profilePictureUrl)"
@@ -145,26 +139,26 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/aspnet-signalr/1.0.27/signalr.min.js" integrity="sha512-a+73ErrZPjhqOu0qbW1QLsenEF4pvDjmnd+Ws6hkDyJlrwAigOQAxQhIT+fPNFWScUvtJQvn+G535TT2C6/G4g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
+    // --- Biến toàn cục cho Phân trang tin nhắn ---
     let currentMessagePage = 1;
-    const messagePageSize = 10; 
+    const messagePageSize = 10;
+    let isMessageLoading = false; // Cờ cho Infinite Scroll
+    let hasMoreMessages = true; // Cờ cho Infinite Scroll
 
     document.addEventListener("DOMContentLoaded", () => {
+        // --- Logic Thông báo giữ nguyên ---
         fetch("/Notification/GetCount", {
             method: 'GET',
-            headers: {
-                'Content-Type':'application/json'
-            }
+            headers: { 'Content-Type': 'application/json' }
         })
         .then(response => response.json())
         .then(data => {
             const notificationCount = (typeof data === 'object' && data !== null && data.status === 1 && data.data !== undefined)
-                                    ? data.data
-                                    : data;
-
+                                     ? data.data : data;
             const notificationsCountElement = document.getElementById("notificationsCount");
             if (notificationsCountElement) {
                 notificationsCountElement.innerHTML = notificationCount > 0 ? notificationCount : '';
-                notificationsCountElement.style.display = notificationCount > 0 ? '' : 'none'; 
+                notificationsCountElement.style.display = notificationCount > 0 ? '' : 'none';
             }
         })
         .catch(error => {
@@ -198,16 +192,15 @@
                 });
         });
 
+        // --- Logic Tìm kiếm giữ nguyên ---
         const searchForm = document.getElementById('search--box');
         if (searchForm) {
             searchForm.addEventListener('submit', function (e) {
                 e.preventDefault();
-
                 const searchInput = this.querySelector('input[name="query"]');
                 const query = searchInput.value.trim();
-
-                const pageNumber = 1; 
-                const pageSize = 5; 
+                const pageNumber = 1;
+                const pageSize = 5;
 
                 if (!query) {
                     if (typeof Toastify !== 'undefined') {
@@ -223,157 +216,195 @@
                     }
                     return;
                 }
-
                 window.location.href = `/FriendRequest/SearchResult?stringSearch=${encodeURIComponent(query)}&pageNumber=${pageNumber}&pageSize=${pageSize}`;
             });
         }
 
-        // fetch("/Message/GetUnreadMessageCount", {
-        //     method: 'GET',
-        //     headers: { 'Content-Type': 'application/json' }
-        // })
-        // .then(response => response.json())
-        // .then(data => {
-        //     const unreadCount = (typeof data === 'object' && data !== null && data.status === 1 && data.data !== undefined)
-        //                         ? data.data
-        //                         : data;
-        //     const messagesCountElement = document.getElementById("messagesCount");
-        //     if (messagesCountElement) {
-        //         messagesCountElement.innerHTML = unreadCount > 0 ? unreadCount : '';
-        //         messagesCountElement.style.display = unreadCount > 0 ? '' : 'none';
-        //     }
-        // })
-        // .catch(error => {
-        //     console.error("Lỗi khi lấy số lượng tin nhắn chưa đọc: ", error);
-        //     const messagesCountElement = document.getElementById("messagesCount");
-        //     if (messagesCountElement) messagesCountElement.innerHTML = '';
-        // });
-
+        // --- Kích hoạt tải tin nhắn lần đầu khi click nút messagesBtn ---
         document.getElementById('messagesBtn').addEventListener('click', () => {
             currentMessagePage = 1;
+            hasMoreMessages = true; // Reset trạng thái
             loadMessagesContent(currentMessagePage, messagePageSize);
         });
 
-        function loadMessagesContent(page, size) {
-            const messageDropdown = document.getElementById('message-dropdown');
-            if (messageDropdown) {
-                if (page === 1) {
-                    messageDropdown.innerHTML = '<div class="pl-2 p-1 text-sm font-normal">Đang tải tin nhắn...</div>';
-                }
+        // --- HÀM TẢI NỘI DUNG TIN NHẮN (ĐÃ TỐI ƯU CHO INFINITE SCROLL) ---
+        function loadMessagesContent(page, size, isScroll = false) {
+            return new Promise((resolve, reject) => {
+                const messageDropdown = document.getElementById('message-dropdown');
+                if (messageDropdown) {
+                    if (page === 1) {
+                        messageDropdown.innerHTML = '<div class="pl-2 p-1 text-sm font-normal">Đang tải tin nhắn...</div>';
+                    }
 
-                fetch(`/Message/GetMessengerList?pageNumber=${page}&pageSize=${size}`) // Sử dụng GetRecentConversations như đã thống nhất trong Controller
-                    .then(response => {
-                        if (!response.ok) {
-                            return response.text().then(text => {
-                                throw new Error(`Lỗi HTTP! Trạng thái: ${response.status}, Phản hồi: ${text}`);
-                            });
-                        }
-                        return response.text(); 
-                    })
-                    .then(html => {
-                        if (page === 1) {
-                            messageDropdown.innerHTML = html;
-                        } else {
-
-                            const loadMoreButtonContainer = messageDropdown.querySelector('.load-more-messages-container');
-                            if (loadMoreButtonContainer) {
-                                loadMoreButtonContainer.remove();
+                    fetch(`/Message/GetMessengerList?pageNumber=${page}&pageSize=${size}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.text().then(text => {
+                                    throw new Error(`Lỗi HTTP! Trạng thái: ${response.status}, Phản hồi: ${text}`);
+                                });
                             }
-                            messageDropdown.insertAdjacentHTML('beforeend', html);
+                            return response.text();
+                        })
+                        .then(html => {
+                            const trimmedHtml = html.trim();
+
+                            // Xóa chỉ báo đang tải (loading indicator)
+                            const indicator = messageDropdown.querySelector('.load-more-indicator');
+                            if (indicator) indicator.remove();
+
+                            if (page === 1) {
+                                // Tải trang đầu tiên: Thay thế nội dung
+                                messageDropdown.innerHTML = trimmedHtml || '<div class="pl-2 p-1 text-sm font-normal">Chưa có tin nhắn nào.</div>';
+                                // Nếu không có dữ liệu, coi như đã hết
+                                hasMoreMessages = trimmedHtml.length > 0;
+
+                            } else {
+                                // Tải các trang tiếp theo (Scroll)
+
+                                if (trimmedHtml.length === 0) {
+                                    // Đã hết tin nhắn
+                                    hasMoreMessages = false;
+                                    // Thêm thông báo đã tải hết
+                                    messageDropdown.insertAdjacentHTML('beforeend', '<div class="text-center p-2 text-xs text-gray-500">Đã tải hết tin nhắn.</div>');
+                                } else {
+                                    // Có tin nhắn mới: Nối thêm
+                                    messageDropdown.insertAdjacentHTML('beforeend', trimmedHtml);
+                                }
+                            }
+
+                            // Cập nhật biến trang hiện tại chỉ khi tải thành công và có dữ liệu (hoặc là trang 1)
+                            if (trimmedHtml.length > 0 || page === 1) {
+                                currentMessagePage = page;
+                            }
+                            resolve();
+                        })
+                        .catch(error => {
+                            console.error(`Lỗi khi tải tin nhắn (Trang ${page}): `, error);
+                            // Xóa chỉ báo tải khi lỗi (nếu có)
+                            const indicator = messageDropdown.querySelector('.load-more-indicator');
+                            if (indicator) indicator.remove();
+
+                            if (page === 1) {
+                                messageDropdown.innerHTML = '<div class="pl-2 p-1 text-sm font-normal text-red-500">Không thể tải tin nhắn. Vui lòng thử lại.</div>';
+                            } else {
+                                if (typeof Toastify !== 'undefined') {
+                                    Toastify({
+                                        text: "Không thể tải thêm tin nhắn.",
+                                        duration: 3000,
+                                        backgroundColor: "#f44336",
+                                        gravity: "bottom",
+                                        position: "center",
+                                    }).showToast();
+                                }
+                            }
+                            reject(error);
+                        });
+                } else {
+                    reject(new Error("Không tìm thấy message-dropdown"));
+                }
+            });
+        }
+
+        // --- HÀM TRỢ GIÚP (Nếu vẫn muốn dùng nút Load More) ---
+        window.loadMoreMessages = function(nextPageNumber, pageSize) {
+            loadMessagesContent(nextPageNumber, pageSize);
+        };
+
+        // --- LOGIC CUỘN VÔ HẠN (INFINITE SCROLL) ---
+        const messageDropdown = document.getElementById('message-dropdown');
+
+        if (messageDropdown) {
+            messageDropdown.addEventListener('scroll', function() {
+                // Kiểm tra xem đã cuộn gần đến cuối chưa (lấy ngưỡng 5px)
+                const isNearBottom = this.scrollHeight - this.scrollTop <= this.clientHeight + 5;
+
+                // Điều kiện để tải: Gần cuối + Còn tin nhắn + Không đang tải
+                if (isNearBottom && hasMoreMessages && !isMessageLoading && currentMessagePage > 0) {
+                    isMessageLoading = true; // Đặt cờ đang tải
+                    const nextPage = currentMessagePage + 1;
+
+                    // 1. Hiển thị chỉ báo tải
+                    const indicatorHTML = `<div class="load-more-indicator text-center p-2 text-blue-500 text-sm font-medium">Đang tải thêm tin nhắn...</div>`;
+                    this.insertAdjacentHTML('beforeend', indicatorHTML);
+
+                    // 2. Gọi hàm tải nội dung và xử lý Promise
+                    loadMessagesContent(nextPage, messagePageSize, true)
+                        .then(() => {
+                            // Tải thành công
+                            isMessageLoading = false;
+                        })
+                        .catch(error => {
+                            // Tải lỗi
+                            isMessageLoading = false;
+                            // Xử lý lỗi đã được thực hiện trong loadMessagesContent
+                        });
+                }
+            });
+        }
+
+        // --- Logic đánh dấu Thông báo đã đọc giữ nguyên ---
+        window.setNotificationAsRead = function(notificationId) {
+            console.log(`Đang cố gắng đánh dấu thông báo ${notificationId} là đã đọc.`);
+            const formData = new FormData();
+            formData.append("noticeId", notificationId);
+
+            fetch(`/Notification/SetRead`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(`Lỗi HTTP! Trạng thái: ${response.status}, Thông báo: ${err.message || JSON.stringify(err)}`); });
+                }
+                return response.json();
+            })
+            .then(apiResponse => {
+                if (apiResponse && apiResponse.status === 1) {
+                    console.log(`Thông báo ${notificationId} đã được đánh dấu là đã đọc thành công.`);
+
+                    // Loại bỏ chấm đỏ hoặc đổi màu nền
+                    const dotElement = document.querySelector(`div[onclick="setNotificationAsRead(${notificationId})"] .absolute.top-2.right-2.w-2.h-2.bg-red-600.rounded-full`);
+                    if (dotElement) {
+                        dotElement.remove();
+                    }
+
+                    const notificationItem = document.getElementById(`notification-item-${notificationId}`);
+                    if (notificationItem && notificationItem.classList.contains('bg-teal-500/5')) {
+                        notificationItem.classList.remove('bg-teal-500/5');
+                    }
+                    else if (dotElement) {
+                        const parentDiv = dotElement.closest('.relative.flex.items-center.gap-3');
+                        if (parentDiv && parentDiv.classList.contains('bg-teal-500/5')) {
+                            parentDiv.classList.remove('bg-teal-500/5');
                         }
-                        // Cập nhật biến trang hiện tại sau khi tải thành công
-                        currentMessagePage = page;
+                    }
+
+                    // Cập nhật lại số lượng thông báo chưa đọc
+                    fetch("/Notification/GetCount", {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const updatedCount = (typeof data === 'object' && data !== null && data.status === 1 && data.data !== undefined)
+                                             ? data.data : data;
+                        const notificationsCountElement = document.getElementById("notificationsCount");
+                        if (notificationsCountElement) {
+                            notificationsCountElement.innerHTML = updatedCount > 0 ? updatedCount : '';
+                            notificationsCountElement.style.display = updatedCount > 0 ? '' : 'none';
+                        }
                     })
                     .catch(error => {
-                        console.error("Lỗi khi tải tin nhắn gần đây: ", error);
-                        if (page === 1) { 
-                            messageDropdown.innerHTML = '<div class="pl-2 p-1 text-sm font-normal text-red-500">Không thể tải tin nhắn. Vui lòng thử lại.</div>';
-                        } else {
-                            console.error("Không thể tải thêm tin nhắn.", error);
-                            if (typeof Toastify !== 'undefined') {
-                                Toastify({
-                                    text: "Không thể tải thêm tin nhắn.",
-                                    duration: 3000,
-                                    backgroundColor: "#f44336",
-                                    gravity: "bottom",
-                                    position: "center",
-                                }).showToast();
-                            }
-                        }
+                        console.error("Lỗi khi cập nhật số lượng thông báo sau khi đánh dấu đã đọc: ", error);
                     });
-            }
-        }
-       
+
+                } else {
+                    console.error("Không thể đánh dấu thông báo là đã đọc:", apiResponse ? apiResponse.message || apiResponse.mess : "Lỗi API không xác định.");
+                }
+            })
+            .catch(error => {
+                console.error("Lỗi mạng hoặc lỗi không xác định khi đánh dấu thông báo là đã đọc: ", error);
+            });
+        };
     });
-
-
-    window.loadMoreMessages = function(nextPageNumber, pageSize) {
-        loadMessagesContent(nextPageNumber, pageSize);
-    };
-
-    window.setNotificationAsRead = function(notificationId) {
-        console.log(`Đang cố gắng đánh dấu thông báo ${notificationId} là đã đọc.`);
-        const formData = new FormData();
-        formData.append("noticeId", notificationId);
-
-        fetch(`/Notification/SetRead`, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => { throw new Error(`Lỗi HTTP! Trạng thái: ${response.status}, Thông báo: ${err.message || JSON.stringify(err)}`); });
-            }
-            return response.json();
-        })
-        .then(apiResponse => {
-            if (apiResponse && apiResponse.status === 1) {
-                console.log(`Thông báo ${notificationId} đã được đánh dấu là đã đọc thành công.`);
-
-                // Loại bỏ chấm đỏ hoặc đổi màu nền
-                const dotElement = document.querySelector(`div[onclick="setNotificationAsRead(${notificationId})"] .absolute.top-2.right-2.w-2.h-2.bg-red-600.rounded-full`); // Đảm bảo chọn đúng chấm đỏ
-                if (dotElement) {
-                    dotElement.remove();
-                }
-
-                const notificationItem = document.getElementById(`notification-item-${notificationId}`);
-                if (notificationItem && notificationItem.classList.contains('bg-teal-500/5')) {
-                    notificationItem.classList.remove('bg-teal-500/5');
-                }
-                // Nếu chấm đỏ là một phần tử riêng và không có ID trực tiếp,
-                // bạn có thể cần tìm phần tử cha gần nhất và loại bỏ chấm đỏ từ đó.
-                else if (dotElement) { // Kiểm tra lại nếu dotElement là phần tử cha của chấm đỏ
-                    const parentDiv = dotElement.closest('.relative.flex.items-center.gap-3');
-                    if (parentDiv && parentDiv.classList.contains('bg-teal-500/5')) {
-                        parentDiv.classList.remove('bg-teal-500/5');
-                    }
-                }
-
-                // Cập nhật lại số lượng thông báo chưa đọc
-                fetch("/Notification/GetCount", {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' } // Thêm header này cho rõ ràng
-                })
-                .then(response => response.json())
-                .then(data => {
-                    const updatedCount = (typeof data === 'object' && data !== null && data.status === 1 && data.data !== undefined)
-                                        ? data.data : data;
-                    const notificationsCountElement = document.getElementById("notificationsCount");
-                    if (notificationsCountElement) {
-                        notificationsCountElement.innerHTML = updatedCount > 0 ? updatedCount : '';
-                        notificationsCountElement.style.display = updatedCount > 0 ? '' : 'none';
-                    }
-                })
-                .catch(error => {
-                    console.error("Lỗi khi cập nhật số lượng thông báo sau khi đánh dấu đã đọc: ", error);
-                });
-
-            } else {
-                console.error("Không thể đánh dấu thông báo là đã đọc:", apiResponse ? apiResponse.message || apiResponse.mess : "Lỗi API không xác định.");
-            }
-        })
-        .catch(error => {
-            console.error("Lỗi mạng hoặc lỗi không xác định khi đánh dấu thông báo là đã đọc: ", error);
-        });
-    };
 </script>

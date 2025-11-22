@@ -24,11 +24,11 @@ namespace ApiApp.Controllers
         }
 
         [HttpPost("newpost")]
-        public async Task<ApiReponseModel> AddNewPost([FromBody] PostVM postVM)
+        public async Task<ApiReponseModel<int>> AddNewPost([FromBody] PostVM postVM)
         {
 
             var a = CacheEx.DataUser;
-            var data = await PostService.NewPost(postVM.Content, postVM.ImageUrls, a.ID,postVM.GroupID);
+            var data = await PostService.NewPost(postVM.Content, postVM.ImageUrls, a.ID,postVM.GroupID,postVM.IsAnnoy);
             return data;
         }
 

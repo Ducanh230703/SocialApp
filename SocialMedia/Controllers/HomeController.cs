@@ -215,6 +215,10 @@ public class HomeController : Controller
 
     //    return PartialView("_EditStatus", postEditVM);
     //}
+    // ... (Các using và Controller definition giữ nguyên)
+
+    // ... (Các Action khác giữ nguyên)
+
     [HttpPost]
     public async Task<IActionResult> CreatePost(PostVM postVM)
     {
@@ -224,7 +228,7 @@ public class HomeController : Controller
 
         try
         {
-            List<string> imageUrls = new();
+            // 1. Tải lên ảnh (Nếu có)
             string uploadResponse = null;
             if (postVM.Image != null && postVM.Image.Count > 0)
             {
@@ -240,27 +244,31 @@ public class HomeController : Controller
                 uploadResponse = await ApiHelper.PostFormAsync<string>("/api/Post/uploadimage", form, token);
             }
 
-
-
+            // 2. Gửi dữ liệu bài viết (bao gồm Post ID được trả về trong Data)
             var postData = new
             {
                 Content = postVM.Content,
                 ImageUrls = uploadResponse,
                 GroupID = postVM.GroupID,
+                IsAnnoy = postVM.IsAnnoy
             };
 
-            var apiResponse = await ApiHelper.PostAsync<object, ApiReponseModel>("/api/Post/newpost", postData, token);
+            // Đã sửa kiểu trả về để lấy Post ID
+            var apiResponse = await ApiHelper.PostAsync<object, ApiReponseModel<int>>("/api/Post/newpost", postData, token);
 
-            if (apiResponse != null && apiResponse.Status == 1)
+            if (apiResponse != null && apiResponse.Status == 1 && apiResponse.Data > 0)
             {
-                TempData["Success"] = "Đăng bài thành công!";
+                // THÀNH CÔNG: Chuyển hướng đến trang chi tiết của bài viết vừa tạo
+                int newPostId = apiResponse.Data;
+                TempData["Success"] = "Đăng bài thành công!"; // Giữ lại để hiển thị thông báo nếu cần
+                return RedirectToAction("Details", "Home", new { postId = newPostId });
             }
             else
             {
+                // THẤT BẠI
                 TempData["Error"] = "Đăng bài không thành công.";
+                return RedirectToAction("Index", "Home");
             }
-
-            return RedirectToAction("Index", "Home");
         }
         catch (Exception ex)
         {
@@ -269,6 +277,8 @@ public class HomeController : Controller
             return RedirectToAction("Index", "Home");
         }
     }
+
+    // ... (Các Action khác giữ nguyên)
 
     [HttpPost]
     public async Task<IActionResult> EditPost(PostEditVM postEditVM)    

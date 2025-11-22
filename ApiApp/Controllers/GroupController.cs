@@ -17,7 +17,7 @@ namespace ApiApp.Controllers
         public async Task<Models.ReponseModel.ApiReponseModel<int>> CreateGroup([FromBody] CreateGroupForm group)
         {
             var user = Cache.CacheEx.DataUser;
-                group.CreatedByUserId = user.ID;
+            group.CreatedByUserId = user.ID;
             return await GroupService.CreateGroup(group);
         }
 
@@ -41,8 +41,8 @@ namespace ApiApp.Controllers
             return await GroupService.ChangeName(group.ID, group.GroupName);
         }
 
-        [HttpGet("listgr")] 
-        public  async Task<ApiReponseModel<List<Group>>> GetListGroup()
+        [HttpGet("listgr")]
+        public async Task<ApiReponseModel<List<Group>>> GetListGroup()
         {
             return await GroupService.GetListGroup(Cache.CacheEx.DataUser.ID);
 
@@ -51,7 +51,7 @@ namespace ApiApp.Controllers
         [HttpGet("detail/{groupID}")]
         public async Task<ApiReponseModel<GroupDetailResponseModel>> Detail(int groupID)
         {
-            var data =await GroupService.GetGroupDetail(groupID,Cache.CacheEx.DataUser.ID);
+            var data = await GroupService.GetGroupDetail(groupID, Cache.CacheEx.DataUser.ID);
             return data;
         }
 

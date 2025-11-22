@@ -21,7 +21,7 @@ namespace Models.ReponseModel
         public string? UserProfilePictureUrl { get; set; }
         public int? GroupID { get; set; } = null;
         public string? GroupName { get; set; } = null;
-
+        public bool IsAnnoy { get; set; }
         public List<int>? LikeUserIds { get; set; } = new List<int>();
         public List<CommentDetail>? Comments { get; set; } = new List<CommentDetail>();
     }

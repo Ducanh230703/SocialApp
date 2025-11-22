@@ -24,26 +24,69 @@
 
     <!-- Header -->
     <div class="flex gap-3 sm:p-4 p-2.5 items-center text-sm font-medium">
-        <a href="/User/Details?userId=@Model.UserId">
-            <img src="@(!string.IsNullOrEmpty(Model.UserProfilePictureUrl) ? Model.UserProfilePictureUrl : Url.Content("~/images/avatar/user.png"))"
+
+        @* ==== Nếu bài viết ẩn danh ==== *@
+        @if (Model.IsAnnoy)
+        {
+            <img src="~/images/avatar/anonymous.png"
                  class="w-9 h-9 rounded-full object-cover border border-gray-200" />
-        </a>
-        <div class="flex-1">
-            <div class="flex flex-wrap items-center gap-1">
-                <a href="/User/Details?userId=@Model.UserId" class="font-semibold text-gray-900 hover:underline">@Model.UserFullName</a>
-                @if (isGroupPost)
-                {
-                    <span class="flex items-center text-gray-500 text-sm gap-1 ml-1">
-                        <ion-icon name="people-outline" class="text-xs"></ion-icon>
-                        <a asp-controller="Group" asp-action="Details" asp-route-id="@Model.GroupID" class="font-medium hover:underline">
-                            @Model.GroupName
-                        </a>
-                    </span>
-                }
+
+            <div class="flex-1">
+                <div class="flex flex-wrap items-center gap-1">
+                    <span class="font-semibold text-gray-900">Thành viên ẩn danh</span>
+
+                    @if (isGroupPost)
+                    {
+                        <span class="flex items-center text-gray-500 text-sm gap-1 ml-1">
+                            <ion-icon name="people-outline" class="text-xs"></ion-icon>
+                            <a asp-controller="Group" asp-action="Details" asp-route-id="@Model.GroupID"
+                               class="font-medium hover:underline">
+                                @Model.GroupName
+                            </a>
+                        </span>
+                    }
+                </div>
+
+                <div class="text-xs text-gray-400 mt-0.5" title="@Model.DateCreated.ToString("MM/dd/yyyy HH:mm")">
+                    @displayTime
+                </div>
             </div>
-            <div class="text-xs text-gray-400 mt-0.5" title="@Model.DateCreated.ToString("MM/dd/yyyy HH:mm")">@displayTime</div>
-        </div>
-        @if (isOwner)
+        }
+        else
+        {
+            @* ==== Bài viết bình thường ==== *@
+            <a href="/User/Details?userId=@Model.UserId">
+                <img src="@(!string.IsNullOrEmpty(Model.UserProfilePictureUrl) ? Model.UserProfilePictureUrl : Url.Content("~/images/avatar/user.png"))"
+                     class="w-9 h-9 rounded-full object-cover border border-gray-200" />
+            </a>
+
+            <div class="flex-1">
+                <div class="flex flex-wrap items-center gap-1">
+                    <a href="/User/Details?userId=@Model.UserId"
+                       class="font-semibold text-gray-900 hover:underline">
+                        @Model.UserFullName
+                    </a>
+
+                    @if (isGroupPost)
+                    {
+                        <span class="flex items-center text-gray-500 text-sm gap-1 ml-1">
+                            <ion-icon name="people-outline" class="text-xs"></ion-icon>
+                            <a asp-controller="Group" asp-action="Details" asp-route-id="@Model.GroupID"
+                               class="font-medium hover:underline">
+                                @Model.GroupName
+                            </a>
+                        </span>
+                    }
+                </div>
+
+                <div class="text-xs text-gray-400 mt-0.5" title="@Model.DateCreated.ToString("MM/dd/yyyy HH:mm")">
+                    @displayTime
+                </div>
+            </div>
+        }
+
+        @* Chỉ cho phép Edit/Delete khi không ẩn danh hoặc là chủ sở hữu *@
+        @if (isOwner && !Model.IsAnnoy)
         {
             <div class="flex gap-2 text-sm text-gray-600">
                 <a href="javascript:void(0)" onclick="openEditModal(@Model.Id)" class="hover:underline flex items-center gap-1">
@@ -55,6 +98,7 @@
             </div>
         }
     </div>
+
 
     <!-- Content -->
     @if (!string.IsNullOrEmpty(Model.Content))

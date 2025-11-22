@@ -29,8 +29,8 @@ namespace SocialMedia.Controllers
 
 
                 var apiResponse = await ApiHelper.GetAsync<ApiReponseModel<List<Group>>>("/api/Group/listgr", token);
-                
-                 if (apiResponse != null && apiResponse.Status == 1)
+
+                if (apiResponse != null && apiResponse.Status == 1)
                 {
                     return View(apiResponse.Data);
                 }
@@ -91,7 +91,7 @@ namespace SocialMedia.Controllers
 
         }
 
-        public async Task<IActionResult> DeleteGroup ([FromBody] int id)
+        public async Task<IActionResult> DeleteGroup([FromBody] int id)
         {
             var token = Request.Cookies["AuthToken"];
             if (string.IsNullOrEmpty(token))
@@ -99,7 +99,7 @@ namespace SocialMedia.Controllers
 
             try
             {
-                var apiResponse = await ApiHelper.DeleteAsync<ApiReponseModel>($"/api/Group/deletegr/{id}",token);
+                var apiResponse = await ApiHelper.DeleteAsync<ApiReponseModel>($"/api/Group/deletegr/{id}", token);
                 return Json(apiResponse);
             }
             catch (Exception ex)
@@ -108,7 +108,7 @@ namespace SocialMedia.Controllers
             }
         }
 
-        public async Task<IActionResult> Details(int id)    
+        public async Task<IActionResult> Details(int id)
         {
             var token = Request.Cookies["AuthToken"];
             if (string.IsNullOrEmpty(token))
@@ -177,4 +177,3 @@ namespace SocialMedia.Controllers
 
     }
 }
-    

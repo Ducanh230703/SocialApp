@@ -94,6 +94,7 @@ namespace Services
                             p.DateCreated,
                             p.DateUpdated,
                             p.UserId,
+                            p.IsAnnoy,
                             u.FullName AS UserFullName,
                             p.GroupID,
                             g.GroupName,
@@ -202,31 +203,38 @@ namespace Services
         /// <param name="ImageUrls"></param>
         /// <param name="UserId"></param>
         /// <returns></returns>
-        public static async Task<ApiReponseModel> NewPost(string Content, string ImageUrls, int UserId,int? groupID)
+        public static async Task<ApiReponseModel<int>> NewPost(string Content, string ImageUrls, int UserId, int? groupID, bool IsAnnoy)
         {
-            //var InfoUser = CacheEx.DataUser;
-            var sql = "INSERT INTO Posts (Content, ImageUrl,UserId,GroupID) VALUES (@Content,@ImageUrl,@UserId,@groupID);";
+            var sql = "INSERT INTO Posts (Content, ImageUrl, UserId, GroupID, IsAnnoy) VALUES (@Content, @ImageUrl, @UserId, @groupID, @IsAnnoy); SELECT SCOPE_IDENTITY();";
+
             var param = new System.Collections.SortedList
             {
                 {"Content",(object)Content ?? DBNull.Value},
                 {"ImageUrl", (object)ImageUrls ?? DBNull.Value },
                 {"UserId",UserId },
-                {"GroupID",(object)groupID ?? DBNull.Value }
+                {"GroupID",(object)groupID ?? DBNull.Value },
+                {"IsAnnoy",IsAnnoy }
             };
-            var rs = await connectDB.Insert(sql, param);
 
-            if (rs > 0)
-                return new ApiReponseModel
+            var newPostId = await connectDB.InsertAndGetId(sql, param);
+
+            if (newPostId > 0)
+            {
+                return new ApiReponseModel<int> 
                 {
                     Status = 1,
                     Mess = "Đăng bài thành công",
+                    Data = (int)newPostId 
                 };
+            }
             else
-                return new ApiReponseModel
+            {
+                return new ApiReponseModel<int>
                 {
                     Status = 0,
                     Mess = "Đăng bài thất bại",
                 };
+            }
         }
 
         /// <summary>

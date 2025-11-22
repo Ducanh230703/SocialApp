@@ -266,49 +266,48 @@ namespace Services
                 };
             }
 
-            //bool isVerified = Convert.ToBoolean(row["IsVerified"]);
-            //if (!isVerified)
-            //{
-            //    var otpCode = new Random().Next(100000, 999999).ToString();
-            //    bool isCached = Cache.CacheEx.SetOtp(Email, otpCode, TimeSpan.FromMinutes(5));
+            bool isVerified = Convert.ToBoolean(row["IsVerified"]);
+            if (!isVerified)
+            {
+                var otpCode = new Random().Next(100000, 999999).ToString();
+                bool isCached = Cache.CacheEx.SetOtp(Email, otpCode, TimeSpan.FromMinutes(5));
 
-            //    if (!isCached)
-            //    {
-            //        Cache.CacheEx.CleanUpOtp(Email);
-            //        return new ApiReponseModel<UserReponseModel>
-            //        {
-            //            Status = 0,
-            //            Mess = "Lỗi hệ thống khi tạo mã xác thực.",
-            //            Data = null
-            //        };
-            //    }
+                if (!isCached)
+                {
+                    Cache.CacheEx.CleanUpOtp(Email);
+                    return new ApiReponseModel<UserReponseModel>
+                    {
+                        Status = 0,
+                        Mess = "Lỗi hệ thống khi tạo mã xác thực.",
+                        Data = null
+                    };
+                }
 
-            //    // Gửi email OTP bằng service đã được inject
-            //    bool emailSent = await emailService.SendOtpEmail(Email, otpCode);
+                // Gửi email OTP bằng service đã được inject
+                bool emailSent = await emailService.SendOtpEmail(Email, otpCode);
 
-            //    if (emailSent)
-            //    {
-            //        return new ApiReponseModel<UserReponseModel>
-            //        {
-            //            Status = 2, // TRẢ VỀ STATUS 2 YÊU CẦU XÁC THỰC OTP
-            //            Mess = "Tài khoản của bạn chưa được xác thực. Mã OTP mới đã được gửi đến email.",
-            //            Data = null
-            //        };
-            //    }
-            //    else
-            //    {
-            //        // Nếu gửi email thất bại, xóa OTP đã cache để tránh lỗi
-            //        Cache.CacheEx.CleanUpTokens(Email);
-            //        return new ApiReponseModel<UserReponseModel>
-            //        {
-            //            Status = 0,
-            //            Mess = "Lỗi khi gửi email xác thực. Vui lòng thử lại sau.",
-            //            Data = null
-            //        };
-            //    }
-            //}
+                if (emailSent)
+                {
+                    return new ApiReponseModel<UserReponseModel>
+                    {
+                        Status = 2, // TRẢ VỀ STATUS 2 YÊU CẦU XÁC THỰC OTP
+                        Mess = "Tài khoản của bạn chưa được xác thực. Mã OTP mới đã được gửi đến email.",
+                        Data = null
+                    };
+                }
+                else
+                {
+                    // Nếu gửi email thất bại, xóa OTP đã cache để tránh lỗi
+                    Cache.CacheEx.CleanUpTokens(Email);
+                    return new ApiReponseModel<UserReponseModel>
+                    {
+                        Status = 0,
+                        Mess = "Lỗi khi gửi email xác thực. Vui lòng thử lại sau.",
+                        Data = null
+                    };
+                }
+            }
 
-            // ĐĂNG NHẬP THÀNH CÔNG (Đã xác thực)
             rs.Email = row["Email"].ToString();
             rs.FullName = row["FullName"].ToString();
             rs.Bio = row["Bio"].ToString();

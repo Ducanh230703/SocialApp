@@ -13,6 +13,8 @@ namespace Models.ViewModel.Home
         public List<IFormFile>? Image { get; set; }
         public string? ImageUrls { get; set; }
         public int? GroupID { get; set; } = null;
+
+        public bool IsAnnoy { get; set; }
     }
 
 }
