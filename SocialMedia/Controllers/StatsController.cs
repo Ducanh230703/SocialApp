@@ -29,14 +29,14 @@ namespace SocialMedia.Controllers
             {
                 endDate = startDate.Value.AddDays(6);
             }
-
-            var json = await ApiGetDashboardStats(startDate, endDate) as JsonResult;
-            var stats = json?.Value as StatsDashboardModel ?? new StatsDashboardModel();
-
-            ViewData["TotalPosts"] = stats.TotalPostsCount.ToString();
-            ViewData["DailyRegistrationsJson"] =
-                JsonSerializer.Serialize(stats.DailyRegistrations ?? new List<DailyRegistrationStats>());
-
+            var response = await ApiGetDashboardStats(startDate, endDate);
+            if (response.Status == -1)
+            {
+                return RedirectToAction("AccessDenied", "Error");
+            }
+                
+            ViewData["TotalPosts"] = response.Data.TotalPostsCount.ToString();
+            ViewData["DailyRegistrationsJson"] = response.Data.DailyRegistrations.Count.ToString();
             ViewData["StartDate"] = startDate.Value.ToString("yyyy-MM-dd");
             ViewData["EndDate"] = endDate.Value.ToString("yyyy-MM-dd");
 
@@ -44,16 +44,26 @@ namespace SocialMedia.Controllers
         }
 
 
+        // Trong SocialMedia.Controllers.StatsController
+
         [HttpGet]
-        public async Task<IActionResult> ApiGetDashboardStats(DateTime? startDate, DateTime? endDate)
+        public async Task<ApiReponseModel<StatsDashboardModel>> ApiGetDashboardStats(DateTime? startDate, DateTime? endDate)
         {
             var token = Request.Cookies["AuthToken"];
             if (string.IsNullOrEmpty(token))
-                return Json(new ApiReponseModel { Status = 0, Mess = "Unauthorized" });
+            {
+                // Trả về mô hình lỗi để Frontend xử lý
+                return new ApiReponseModel<StatsDashboardModel> { Status = -1, Mess = "Unauthorized" };
+            }
 
             if (startDate.HasValue && endDate.HasValue && startDate > endDate)
             {
-                return Json(new StatsDashboardModel());
+                // Trả về mô hình lỗi ngày tháng
+                return new ApiReponseModel<StatsDashboardModel>
+                {
+                    Status = 0,
+                    Mess = "Ngày bắt đầu không được lớn hơn ngày kết thúc."
+                };
             }
 
             try
@@ -69,16 +79,14 @@ namespace SocialMedia.Controllers
 
                 url = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(url, query);
 
+                // 🚨 NHẬN TOÀN BỘ PHẢN HỒI TỪ API BACKEND
                 var response = await ApiHelper.GetAsync<ApiReponseModel<StatsDashboardModel>>(url, token);
 
-                if (response.Status == 1 && response.Data != null)
-                    return Json(response.Data);
 
-                return Json(new StatsDashboardModel());
-            }
+                return response;            }
             catch
             {
-                return Json(new StatsDashboardModel());
+                return new ApiReponseModel<StatsDashboardModel> { Status = 0, Mess = "Lỗi hệ thống khi gọi API." };
             }
         }
     }

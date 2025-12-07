@@ -14,7 +14,7 @@ public class StatsController : ControllerBase
         if (Cache.CacheEx.DataUser.Role != "Admin")
             return new ApiReponseModel<StatsDashboardModel>
             {
-                Status = 0,
+                Status = -1,
                 Mess = "Bạn không có quyền truy cập!"
             };
         if (startDate.HasValue && endDate.HasValue && startDate > endDate)

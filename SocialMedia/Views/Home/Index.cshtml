@@ -1,4 +1,4 @@
-﻿﻿    @using Models.ReponseModel
+﻿@using Models.ReponseModel
 @using Models.ViewModel.Home
 @using Models.ViewModel.Story
 @model PaginatedResponse<PostFull>
@@ -14,13 +14,13 @@
 @if (!string.IsNullOrEmpty(errorMessage))
 {
     <script>
-        Toastify({
-            text: "@Html.Raw(errorMessage)", // Hiển thị thông báo chính xác
-            duration: 5000,
-            backgroundColor: "#ff4d4f",
-            gravity: "top",
-            position: "right",
-        }).showToast();
+        // Thay thế Toastify bằng Swal.fire cho lỗi từ TempData
+        Swal.fire({
+            icon: 'error',
+            title: 'Lỗi',
+            text: '@Html.Raw(errorMessage)',
+            confirmButtonText: 'Đóng'
+        });
     </script>
 }
 
@@ -62,10 +62,10 @@
                 </div>
                 <div class="uk-flex uk-flex-center mt-6">
                     <button id="loadMorePostsBtn"
-                            class="button lg:text-lg lg:py-4 flex items-center justify-center gap-2"
                             data-next-page="@(currentPage + 1)"
                             data-page-size="@pageSize"
-                            data-has-next-page="@(Model.HasNextPage.ToString().ToLower())">
+                            data-has-next-page="@(Model.HasNextPage.ToString().ToLower())"
+                            class="button lg:text-lg lg:py-4 flex items-center justify-center gap-2">
                         <ion-icon name="sync-outline" class="text-xl"></ion-icon>
                         <span>Tải thêm</span>
                     </button>
@@ -81,6 +81,8 @@
 <partial name="_Createstory" model="new StoryVM()" />
 <partial name="_EditStatus" model="new PostEditVM()" />
 
+@* Thêm SweetAlert2 CDN *@
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
     // Logged in user id từ server (hoặc null)
@@ -119,13 +121,13 @@
         connection.on("ReceiveNewComment", (postId, newComment) => {
             console.log("SignalR.js: Received a new comment.", newComment);
 
-            Toastify({
-                text: "Bình luận thành công!",
-                duration: 3000,
-                backgroundColor: "#4CAF50",
-                gravity: "top",
-                position: "center",
-            }).showToast();
+            // Thay thế showPopup bằng Swal.fire
+            Swal.fire({
+                icon: 'success',
+                title: "Bình luận Thành công",
+                text: "Bình luận của bạn đã được gửi thành công!",
+                confirmButtonText: 'Đóng'
+            });
 
             const postElement = document.getElementById(`post-${postId}`);
             if (postElement) {
@@ -174,13 +176,13 @@
                     const content = textarea?.value.trim();
 
                     if (!content) {
-                        Toastify({
+                        // Thay thế showPopup bằng Swal.fire
+                        Swal.fire({
+                            icon: 'warning',
+                            title: "Lỗi Bình luận",
                             text: "Nội dung bình luận không được để trống.",
-                            duration: 3000,
-                            backgroundColor: "#f44336",
-                            gravity: "top",
-                            position: "center",
-                        }).showToast();
+                            confirmButtonText: 'Đóng'
+                        });
                         return;
                     }
 
@@ -189,26 +191,27 @@
                             .then(() => {
                                 console.log("Comment request sent via SignalR.");
                                 if (textarea) textarea.value = '';
+                                // Thông báo thành công sẽ được xử lý trong SignalR.on("ReceiveNewComment")
                             })
                             .catch(err => {
                                 console.error("Failed to add comment via SignalR: " + err);
-                                Toastify({
+                                // Thay thế showPopup bằng Swal.fire
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: "Lỗi Gửi Bình luận",
                                     text: "Đã xảy ra lỗi khi gửi yêu cầu bình luận.",
-                                    duration: 3000,
-                                    backgroundColor: "#f44336",
-                                    gravity: "top",
-                                    position: "center",
-                                }).showToast();
+                                    confirmButtonText: 'Đóng'
+                                });
                             });
                     } else {
                         console.error("SignalR connection is not established.");
-                        Toastify({
+                        // Thay thế showPopup bằng Swal.fire
+                        Swal.fire({
+                            icon: 'error',
+                            title: "Lỗi Kết nối",
                             text: "Kết nối SignalR không khả dụng. Vui lòng thử lại sau.",
-                            duration: 3000,
-                            backgroundColor: "#f44336",
-                            gravity: "top",
-                            position: "center",
-                        }).showToast();
+                            confirmButtonText: 'Đóng'
+                        });
                     }
                 }
 
@@ -223,34 +226,34 @@
                         .then(response => response.json())
                         .then(data => {
                             if (data.status === 1) {
-                                Toastify({
+                                // Thay thế showPopup bằng Swal.fire
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: "Xóa Thành công",
                                     text: data.message || "Xóa bình luận thành công.",
-                                    duration: 3000,
-                                    backgroundColor: "#4CAF50",
-                                    gravity: "top",
-                                    position: "center"
-                                }).showToast();
+                                    confirmButtonText: 'Đóng'
+                                });
 
                                 form.closest('.flex.items-start.gap-3.relative')?.remove();
                             } else {
-                                Toastify({
+                                // Thay thế showPopup bằng Swal.fire
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: "Lỗi Xóa",
                                     text: data.message || "Không thể xóa bình luận.",
-                                    duration: 3000,
-                                    backgroundColor: "#f44336",
-                                    gravity: "top",
-                                    position: "center"
-                                }).showToast();
+                                    confirmButtonText: 'Đóng'
+                                });
                             }
                         })
                         .catch(error => {
                             console.error("Lỗi:", error);
-                            Toastify({
+                            // Thay thế showPopup bằng Swal.fire
+                            Swal.fire({
+                                icon: 'error',
+                                title: "Lỗi Hệ thống",
                                 text: "Đã xảy ra lỗi khi gửi yêu cầu xóa bình luận.",
-                                duration: 3000,
-                                backgroundColor: "#f44336",
-                                gravity: "top",
-                                position: "center"
-                            }).showToast();
+                                confirmButtonText: 'Đóng'
+                            });
                         });
                 }
             });
@@ -264,13 +267,13 @@
                 const postId = likeButton.getAttribute('data-post-id');
 
                 if (loggedInUserId === null || isNaN(parseInt(loggedInUserId))) {
-                    Toastify({
+                    // Thay thế showPopup bằng Swal.fire
+                    Swal.fire({
+                        icon: 'info',
+                        title: "Yêu cầu Đăng nhập",
                         text: "Bạn cần đăng nhập để thực hiện hành động này.",
-                        duration: 3000,
-                        backgroundColor: "#f44336",
-                        gravity: "top",
-                        position: "center",
-                    }).showToast();
+                        confirmButtonText: 'Đóng'
+                    });
                     return;
                 }
 
@@ -303,13 +306,13 @@
                     .then(response => {
                         if (!response.ok) {
                             if (response.status === 401) {
-                                Toastify({
+                                // Thay thế showPopup bằng Swal.fire
+                                Swal.fire({
+                                    icon: 'info',
+                                    title: "Yêu cầu Đăng nhập",
                                     text: "Bạn cần đăng nhập để thực hiện hành động này.",
-                                    duration: 3000,
-                                    backgroundColor: "#f44336",
-                                    gravity: "top",
-                                    position: "center",
-                                }).showToast();
+                                    confirmButtonText: 'Đóng'
+                                });
                                 return Promise.reject("Unauthorized");
                             }
                             return response.json().then(err => Promise.reject(err.message || 'Lỗi server không xác định'));
@@ -318,13 +321,13 @@
                     })
                     .then(data => {
                         if (data.status === 1) {
-                            Toastify({
+                            // Thay thế showPopup bằng Swal.fire
+                            Swal.fire({
+                                icon: 'success',
+                                title: "Thành công",
                                 text: successMessage,
-                                duration: 3000,
-                                backgroundColor: "#4CAF50",
-                                gravity: "top",
-                                position: "center",
-                            }).showToast();
+                                confirmButtonText: 'Đóng'
+                            });
 
                             // Tìm phần tử hiển thị số like: ưu tiên <span> trong button, fallback .like-count
                             const likeCountElement = likeButton.querySelector('span')
@@ -357,32 +360,32 @@
                             }
 
                         } else {
-                            Toastify({
+                            // Thay thế showPopup bằng Swal.fire
+                            Swal.fire({
+                                icon: 'error',
+                                title: "Lỗi Thao tác",
                                 text: data.message || errorMessage,
-                                duration: 3000,
-                                backgroundColor: "#f44336",
-                                gravity: "top",
-                                position: "center",
-                            }).showToast();
+                                confirmButtonText: 'Đóng'
+                            });
                         }
                     })
                     .catch(err => {
                         console.error(err);
                         if (err !== "Unauthorized") {
-                            Toastify({
+                            // Thay thế showPopup bằng Swal.fire
+                            Swal.fire({
+                                icon: 'error',
+                                title: "Lỗi Hệ thống",
                                 text: err || errorMessage,
-                                duration: 3000,
-                                backgroundColor: "#f44336",
-                                gravity: "top",
-                                position: "center",
-                            }).showToast();
+                                confirmButtonText: 'Đóng'
+                            });
                         }
                     });
             });
         }
 
-            if (loadMoreBtn && postsContainer) {
-                window.addEventListener('scroll', function () {
+        if (loadMoreBtn && postsContainer) {
+            window.addEventListener('scroll', function () {
                 const isAtBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight;
                 if (isAtBottom && !isFetching) {
                     isFetching = true;
@@ -415,7 +418,7 @@
                                 noMorePostsDiv.innerHTML = "<span>Đã hết bài viết.</span>";
                                 if (loadMoreBtn.parentNode) {
                                     loadMoreBtn.parentNode.replaceChild(noMorePostsDiv, loadMoreBtn);
-                                    }
+                                }
                             } else {
                                 postsContainer.insertAdjacentHTML('beforeend', html);
                                 loadMoreBtn.setAttribute('data-next-page', nextPage + 1);
@@ -425,13 +428,13 @@
                         .catch(err => {
                             console.error(err);
                             loadMoreBtn.style.display = 'flex';
-                            Toastify({
+                            // Thay thế showPopup bằng Swal.fire
+                            Swal.fire({
+                                icon: 'error',
+                                title: "Lỗi Tải Bài viết",
                                 text: "Có lỗi xảy ra khi tải thêm bài viết.",
-                                duration: 3000,
-                                backgroundColor: "#f44336",
-                                gravity: "top",
-                                position: "center",
-                            }).showToast();
+                                confirmButtonText: 'Đóng'
+                            });
                         })
                         .finally(() => {
                             isFetching = false;
@@ -454,35 +457,35 @@
                     .then(res => res.json())
                     .then(data => {
                         if (data.status === 1) {
-                            Toastify({
-                                text: data.message || "Xóa bài viết thành công.",
-                                duration: 3000,
-                                backgroundColor: "#4CAF50",
-                                gravity: "top",
-                                position: "center",
-                            }).showToast();
-
                             UIkit.modal('#postDeleteDialog').hide();
-                            document.querySelector(`.post-container[data-post-id="${postId}"]`)?.remove();
+                            // Thay thế showPopup bằng Swal.fire và thêm reload trang
+                            Swal.fire({
+                                icon: 'success',
+                                title: "Xóa Thành công",
+                                text: data.message || "Xóa bài viết thành công. Trang sẽ được tải lại.",
+                                confirmButtonText: 'Đóng'
+                            }).then(() => {
+                                location.reload();
+                            });
                         } else {
-                            Toastify({
+                            // Thay thế showPopup bằng Swal.fire
+                            Swal.fire({
+                                icon: 'error',
+                                title: "Lỗi Xóa Bài viết",
                                 text: data.message || "Không thể xóa bài viết.",
-                                duration: 3000,
-                                backgroundColor: "#f44336",
-                                gravity: "top",
-                                position: "center",
-                            }).showToast();
+                                confirmButtonText: 'Đóng'
+                            });
                         }
                     })
                     .catch(error => {
                         console.error("Lỗi:", error);
-                        Toastify({
+                        // Thay thế showPopup bằng Swal.fire
+                        Swal.fire({
+                            icon: 'error',
+                            title: "Lỗi Hệ thống",
                             text: "Có lỗi xảy ra khi xóa bài viết.",
-                            duration: 3000,
-                            backgroundColor: "#f44336",
-                            gravity: "top",
-                            position: "center",
-                        }).showToast();
+                            confirmButtonText: 'Đóng'
+                        });
                     });
             });
         }
@@ -492,5 +495,4 @@
     if (window.history && window.history.replaceState) {
         window.history.replaceState(null, document.title, window.location.href);
     }
-
 </script>

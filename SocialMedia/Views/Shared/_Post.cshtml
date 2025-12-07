@@ -117,7 +117,7 @@
     }
 
     @* ============================================= *@
-    @* PHẦN HIỂN THỊ HÌNH ẢNH (FANCYBOX FIX) *@
+    @* PHẦN HIỂN THỊ HÌNH ẢNH (ĐÃ GIẢM KÍCH THƯỚC KHUNG) *@
     @* ============================================= *@
     @if (imageUrls.Length > 0)
     {
@@ -138,7 +138,7 @@
                     <a href="@img"
                        data-fancybox="@galleryId"
                        data-caption="Ảnh @(i + 1) của bài viết @Model.Id"
-                       class="relative block w-full h-[180px] sm:h-[220px] overflow-hidden rounded-lg cursor-pointer">
+                       class="relative block w-full aspect-square h-[170px] overflow-hidden rounded-lg cursor-pointer">
 
                         <img src="@img"
                              class="w-full h-full object-cover rounded-lg"
@@ -264,7 +264,6 @@
 
 <script>
     // **Khởi tạo lại FancyBox** ngay sau khi Partial View này được chèn vào DOM.
-    // Điều này giải quyết lỗi FancyBox không nhận ra các phần tử tải bất đồng bộ (nếu có).
     if (typeof Fancybox !== 'undefined') {
         Fancybox.bind(document.getElementById('post-@Model.Id').querySelectorAll("[data-fancybox]"), {
             // Cấu hình rõ ràng để đảm bảo các nút được chèn vào DOM
@@ -286,30 +285,28 @@
     }
 </script>
 
-@section Styles {
-    <style>
-        /* QUY TẮC GHI ĐÈ ĐỂ BUỘC HIỂN THỊ NÚT UI */
-        .fancybox__button {
-            opacity: 1 !important;
-            visibility: visible !important;
-            display: flex !important;
-            background: rgba(0, 0, 0, 0.6) !important; /* Đảm bảo nền nút hiển thị */
-            color: #fff !important;
-            width: 44px !important;
-            height: 44px !important;
-            border-radius: 50%;
-            z-index: 100000 !important; /* Đảm bảo nó không bị che */
-        }
-        
-        /* Đảm bảo các mũi tên trái/phải hiển thị */
-        .fancybox__nav .fancybox__button {
-            visibility: visible !important;
-        }
+<style>
 
-        /* Đảm bảo thanh Toolbar không bị ẩn */
-        .fancybox__toolbar {
-            opacity: 1 !important;
-            visibility: visible !important;
-        }
-    </style>
-}
+    .fancybox__button {
+        opacity: 1 !important;
+        visibility: visible !important;
+        display: flex !important;
+        background: rgba(0, 0, 0, 0.6) !important; /* Đảm bảo nền nút hiển thị */
+        color: #fff !important;
+        width: 44px !important;
+        height: 44px !important;
+        border-radius: 50%;
+        z-index: 100 !important; /* Đảm bảo nó không bị che */
+    }
+    
+    /* Đảm bảo các mũi tên trái/phải hiển thị */
+    .fancybox__nav .fancybox__button {
+        visibility: visible !important;
+    }
+
+    /* Đảm bảo thanh Toolbar không bị ẩn */
+    .fancybox__toolbar {
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+</style>

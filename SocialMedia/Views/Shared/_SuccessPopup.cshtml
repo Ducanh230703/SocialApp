@@ -17,11 +17,14 @@
 </div>
 
 <script>
+    // Hàm hiển thị Popup
     function showPopup(title, message, isSuccess = true) {
         const popup = document.getElementById('popup-message');
         const icon = document.getElementById('popup-icon');
         const titleEl = document.getElementById('popup-title');
         const content = document.getElementById('popup-content');
+        // Thêm tham chiếu đến nút Đóng
+        const closeBtn = popup.querySelector('button');
 
         titleEl.textContent = title;
         content.textContent = message;
@@ -30,16 +33,27 @@
             icon.classList.remove('text-red-600');
             icon.classList.add('text-green-600');
             icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />';
+            // Khi thành công, nút Đóng sẽ tải lại trang
+            closeBtn.onclick = closePopupAndReload;
         } else {
             icon.classList.remove('text-green-600');
             icon.classList.add('text-red-600');
             icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />';
+            // Khi thất bại, nút Đóng chỉ ẩn popup
+            closeBtn.onclick = closePopup;
         }
 
         popup.classList.remove('hidden');
     }
 
+    // Hàm chỉ ẩn Popup
     function closePopup() {
         document.getElementById('popup-message').classList.add('hidden');
+    }
+
+    // Hàm ẩn Popup và tải lại trang (dùng cho trường hợp thành công)
+    function closePopupAndReload() {
+        closePopup();
+        location.reload();
     }
 </script>
