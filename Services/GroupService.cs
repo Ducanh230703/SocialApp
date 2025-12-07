@@ -329,10 +329,10 @@ namespace Services
                         ";
 
                 var param = new SortedList
-            {
-                { "groupId", groupId },
-                 {"loggedInUserId",loggedInUserId }
-            };
+        {
+            { "groupId", groupId },
+            {"loggedInUserId",loggedInUserId }
+        };
 
                 DataTable dt = await connectDB.Select(sql, param);
 
@@ -345,8 +345,10 @@ namespace Services
                         Data = null
                     };
                 }
-                var groupPicture = apiAvatar + dt.Rows[0]["GroupPictureUrl"].ToString;
-                var userPicture = apiAvatar + dt.Rows[0]["CreatedByUserProfilePictureUrl"].ToString;
+
+                // Sửa lỗi cú pháp: Thêm () sau ToString
+                var groupPicture = apiAvatar + dt.Rows[0]["GroupPictureUrl"].ToString();
+                var userPicture = apiAvatar + dt.Rows[0]["CreatedByUserProfilePictureUrl"].ToString();
 
                 var groupDetail = new GroupDetailResponseModel
                 {
@@ -377,12 +379,30 @@ namespace Services
                         : likeUserIdsString.Split(',').Select(int.Parse).ToList();
 
                     var userPic = apiAvatar + row["PostUserProfilePictureUrl"].ToString();
+
+                    // XỬ LÝ NHIỀU URL TRONG PostImageUrl:
+                    var rawPostImageUrls = row["PostImageUrl"] != DBNull.Value ? row["PostImageUrl"].ToString() : null;
+                    string postImageUrl = null;
+
+                    if (!string.IsNullOrEmpty(rawPostImageUrls))
+                    {
+                        var individualUrls = rawPostImageUrls.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                                             .Select(u => u.Trim());
+
+                        // Thêm apiAvatar vào từng URL riêng lẻ
+                        var prefixedUrls = individualUrls.Select(u => apiAvatar + u);
+
+                        // Nối lại bằng dấu phẩy
+                        postImageUrl = string.Join(",", prefixedUrls);
+                    }
+                    // HẾT PHẦN XỬ LÝ
+
                     posts.Add(new PostFull
                     {
                         Id = Convert.ToInt32(row["PostId"]),
                         Content = row["Content"].ToString(),
                         IsAnnoy = Convert.ToBoolean(row["IsAnnoy"]),
-                        ImageUrl = row["PostImageUrl"] != DBNull.Value ? row["PostImageUrl"].ToString() : null,
+                        ImageUrl = postImageUrl, // Đã sử dụng chuỗi đã xử lý
                         IsPrivate = Convert.ToBoolean(row["PostIsPrivate"]),
                         Bio = row["PostUserBio"] != DBNull.Value ? row["PostUserBio"].ToString() : null,
                         DateCreated = Convert.ToDateTime(row["PostCreatedDate"]),

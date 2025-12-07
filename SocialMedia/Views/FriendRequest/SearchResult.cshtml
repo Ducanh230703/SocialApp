@@ -13,7 +13,7 @@
 
 <main id="site__main" class="2xl:ml-[--w-side] xl:ml-[--w-side-sm] p-2.5 h-[calc(100vh-var(--m-top))] mt-[--m-top]">
     <div class="container p-4" style="width:950px">
-        <h1 class="text-3xl font-bold mb-6">Tìm kiếm bạn bè</h1>
+        <h1 class="text-3xl font-bold mb-6">Tìm kiếm bạn bè và nhóm</h1>
 
         <div class="search-form-container mb-6">
             <form id="search-page-form" class="flex gap-2">
@@ -31,32 +31,33 @@
                     class="px-4 py-2 rounded-full text-sm font-semibold transition
                    bg-blue-500 text-white hover:bg-blue-600 focus:ring-2 focus:ring-blue-400"
                     id="friendBtn">
-                👥 Người dùng
+                👥 **Người dùng**
             </button>
 
             <button onclick="changeSearchType('group')"
                     class="px-4 py-2 rounded-full text-sm font-semibold transition
                    bg-gray-200 hover:bg-gray-300 text-gray-800 focus:ring-2 focus:ring-gray-300"
                     id="groupBtn">
-                🏘️ Nhóm
+                🏘️ **Nhóm**
             </button>
         </div>
         <div id="search-results-main-container" class="mt-4">
             @if (Model != null && Model.Any())
             {
                 <h2 class="text-2xl font-bold mb-4" id="search-results-title">Kết quả tìm kiếm cho: "@initialQuery"</h2>
+                @* Giả định _SearchResult.cshtml là Partial View hiển thị danh sách SearchResult *@
                 await Html.RenderPartialAsync("~/Views/FriendRequest/_SearchResult.cshtml", Model);
             }
             else if (!string.IsNullOrEmpty(initialQuery))
             {
                 <div class="bg-white rounded-xl shadow-sm p-4 text-center text-gray-500">
-                    Không tìm thấy kết quả nào cho "@initialQuery".
+                    Không tìm thấy kết quả nào cho **"@initialQuery"**.
                 </div>
-            }   
+            }
             else
             {
                 <div class="bg-white rounded-xl shadow-sm p-4 text-center text-gray-500">
-                    Vui lòng nhập từ khóa để tìm kiếm bạn bè.
+                    Vui lòng nhập từ khóa để **tìm kiếm bạn bè và nhóm**.
                     @if (string.IsNullOrEmpty(Context.Request.Cookies["AuthToken"]))
                     {
                         <p class="mt-2">Bạn cần <a href="/Authentication/Login" class="text-blue-500 hover:underline">đăng nhập</a> để sử dụng tính năng tìm kiếm.</p>
@@ -73,25 +74,40 @@
         document.addEventListener("DOMContentLoaded", function () {
             const searchPageForm = document.getElementById("search-page-form");
             const searchResultsMainContainer = document.getElementById("search-results-main-container");
-        const searchInput = document.querySelector("#search-page-form input[name='query']");
-                    const friendBtn = document.getElementById("friendBtn");
+            const searchInput = document.querySelector("#search-page-form input[name='query']");
+            const friendBtn = document.getElementById("friendBtn");
             const groupBtn = document.getElementById("groupBtn");
+
+            // Cập nhật kiểu nút ban đầu (đảm bảo 'friend' luôn được chọn mặc định)
+            updateButtonStyles();
 
             // Gửi request khi nhấn Enter hoặc nút "Tìm kiếm"
             searchPageForm.addEventListener("submit", function (e) {
                 e.preventDefault();
                 const query = searchInput.value.trim();
-                if (!query) return alert("Vui lòng nhập từ khóa tìm kiếm.");
+                if (!query) {
+                    alert("Vui lòng nhập từ khóa tìm kiếm.");
+                    return;
+                }
+                // Hiển thị trạng thái đang tải
+                searchResultsMainContainer.innerHTML = `<div class="text-center text-blue-500">Đang tìm kiếm...</div>`;
                 doSearch(query);
             });
 
 
             // Khi chuyển loại tìm kiếm (Người dùng / Nhóm)
             window.changeSearchType = function (type) {
+                if (currentSearchType === type) return; // Không làm gì nếu không thay đổi
                 currentSearchType = type;
                 updateButtonStyles();
                 const query = searchInput.value.trim();
-                if (query) doSearch(query);
+                if (query) {
+                    // Hiển thị trạng thái đang tải
+                    searchResultsMainContainer.innerHTML = `<div class="text-center text-blue-500">Đang tìm kiếm...</div>`;
+                    doSearch(query);
+                } else {
+                    searchResultsMainContainer.innerHTML = `<div class="bg-white rounded-xl shadow-sm p-4 text-center text-gray-500">Vui lòng nhập từ khóa để tìm kiếm ${type === 'friend' ? 'người dùng' : 'nhóm'}.</div>`;
+                }
             };
 
             // Hàm chung gọi request
@@ -101,50 +117,61 @@
             }
 
             function updateButtonStyles() {
-                const active = ["bg-blue-500", "text-white"];
-                const inactive = ["bg-gray-200", "text-gray-800"];
-                if (currentSearchType === "friend") {
-                    friendBtn.classList.add(...active);
-                    friendBtn.classList.remove(...inactive);
-                    groupBtn.classList.add(...inactive);
-                    groupBtn.classList.remove(...active);
-                } else {
-                    groupBtn.classList.add(...active);
-                    groupBtn.classList.remove(...inactive);
-                    friendBtn.classList.add(...inactive);
-                    friendBtn.classList.remove(...active);
-                }
+                const active = ["bg-blue-500", "text-white", "hover:bg-blue-600", "focus:ring-blue-400"];
+                const inactive = ["bg-gray-200", "text-gray-800", "hover:bg-gray-300", "focus:ring-gray-300"];
+                const activeEl = currentSearchType === "friend" ? friendBtn : groupBtn;
+                const inactiveEl = currentSearchType === "friend" ? groupBtn : friendBtn;
+
+                activeEl.classList.add(...active);
+                activeEl.classList.remove(...inactive);
+                inactiveEl.classList.add(...inactive);
+                inactiveEl.classList.remove(...active);
             }
 
-            // ======== Gọi API ========
+            // ======== Gọi API Tìm kiếm Người dùng (Friend) ========
             function searchFriend(query) {
                 fetch(`/FriendRequest/SearchResult?stringSearch=${encodeURIComponent(query)}`, {
                     method: "GET",
                     headers: { "X-Requested-With": "XMLHttpRequest" }
                 })
-                    .then(res => res.ok ? res.text() : Promise.reject("Không thể tải kết quả người dùng."))
+                    .then(res => {
+                        if (res.ok) return res.text();
+                        // Nếu status code là 404/500...
+                        throw new Error(`Lỗi tải kết quả người dùng (HTTP Status: ${res.status})`);
+                    })
                     .then(html => {
                         searchResultsMainContainer.innerHTML = `
                             <h2 class="text-2xl font-bold mb-4">Kết quả tìm kiếm người dùng cho: "${query}"</h2>
                             ${html}
                         `;
                     })
-                    .catch(err => searchResultsMainContainer.innerHTML = `<div class="text-center text-red-500">${err}</div>`);
+                    .catch(error => {
+                        searchResultsMainContainer.innerHTML = `<div class="text-center text-red-500 p-4">${error.message || "Không thể tải kết quả người dùng."}</div>`;
+                        console.error("Search Friend Error:", error);
+                    });
             }
 
+            // ======== Gọi API Tìm kiếm Nhóm (Group) ========
             function searchGroup(query) {
                 fetch(`/Group/SearchGroup?query=${encodeURIComponent(query)}`, {
                     method: "GET",
                     headers: { "X-Requested-With": "XMLHttpRequest" }
                 })
-                    .then(res => res.ok ? res.text() : Promise.reject("Không thể tải kết quả nhóm."))
+                    .then(res => {
+                        if (res.ok) return res.text();
+                        // Nếu status code là 404/500...
+                        throw new Error(`Lỗi tải kết quả nhóm (HTTP Status: ${res.status})`);
+                    })
                     .then(html => {
                         searchResultsMainContainer.innerHTML = `
                             <h2 class="text-2xl font-bold mb-4">Kết quả tìm kiếm nhóm cho: "${query}"</h2>
                             ${html}
                         `;
                     })
-                    .catch(err => searchResultsMainContainer.innerHTML = `<div class="text-center text-red-500">${err}</div>`);
+                    .catch(error => {
+                        searchResultsMainContainer.innerHTML = `<div class="text-center text-red-500 p-4">${error.message || "Không thể tải kết quả nhóm."}</div>`;
+                        console.error("Search Group Error:", error);
+                    });
             }
         });
     </script>

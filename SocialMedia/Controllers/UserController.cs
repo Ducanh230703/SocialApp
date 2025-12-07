@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Models;
 using Models.ReponseModel;
-using Newtonsoft.Json;
 using Models.ViewModel.Users;
+using Newtonsoft.Json;
+using SocialMedia.Helper;
 using System.Net.Http.Headers;
 
-namespace SocialMedia.Helper
+namespace SocialMedia.Controllers
 {
     public class UserController : Controller
     {
@@ -70,6 +72,32 @@ namespace SocialMedia.Helper
             if (apiResponse != null && apiResponse.Status == 1 && apiResponse.Data?.ListPost != null)
             {
                 return PartialView("_PostList", apiResponse.Data.ListPost.Data);
+            }
+            return NotFound();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetMoreUserPostsIndex(int pageNumber = 1, int pageSize = 3)
+        {
+            var token = Request.Cookies["AuthToken"];
+            if (string.IsNullOrEmpty(token))
+            {
+                return Unauthorized();
+            }
+
+            int loggedInUserId = 0;
+            var loggedInUserIdCookie = Request.Cookies["LoggedInUserId"];
+            if (!string.IsNullOrEmpty(loggedInUserIdCookie) && int.TryParse(loggedInUserIdCookie, out int parsedUserId))
+            {
+                loggedInUserId = parsedUserId;
+            }
+
+            var apiResponse = await ApiHelper.GetAsync<ApiReponseModel<PaginatedResponse<PostFull>>>($"/api/User/getmorepostindex?pageNumber={pageNumber}&pageSize={pageSize}", token);
+
+            if (apiResponse != null && apiResponse.Status == 1)
+            {
+                ViewBag.LoggedInUserId = loggedInUserId;
+                return PartialView("_PostList", apiResponse.Data.Data);
             }
             return NotFound();
         }

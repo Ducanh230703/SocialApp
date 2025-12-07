@@ -1,0 +1,207 @@
+﻿@{
+    ViewData["Title"] = "Thống Kê Hoạt Động";
+}
+
+<div class="main-content mt-5">
+    <div class="max-w-4xl mx-auto">
+
+        <h2 class="text-2xl font-bold mb-4">Thống Kê Hoạt Động</h2>
+
+        <form id="filter-form" class="flex space-x-3 mb-6 items-center">
+            <label>Từ:</label>
+            <input type="date" id="startDate" value="@ViewData["StartDate"]" class="border rounded p-2" />
+
+            <label>Đến:</label>
+            <input type="date" id="endDate" value="@ViewData["EndDate"]" class="border rounded p-2" />
+
+            <button class="bg-blue-600 text-white px-4 py-2 rounded" type="submit">Xem thống kê</button>
+        </form>
+
+        <div class="p-4 border rounded bg-gray-100 mb-6">
+            <h3 class="text-xl font-semibold">Tổng số bài đăng</h3>
+            <p id="totalPosts" class="text-3xl font-bold text-blue-600">
+                @(ViewData["TotalPosts"] ?? "0")
+            </p>
+        </div>
+
+        <canvas id="registrationsChart" width="400" height="200" class="mb-10"></canvas>
+
+        <div id="initial-data-container"
+             data-registrations="@ViewData["DailyRegistrationsJson"]"
+             data-alert-message="@ViewData["AlertMessage"]">
+        </div>
+
+    </div>
+</div>
+
+<div id="popup-message" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+    <div class="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full text-center">
+        <svg id="popup-icon" xmlns="http://www.w3.org/2000/svg" fill="none"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+             class="w-10 h-10 mx-auto mb-3 text-green-600">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+
+        <h3 id="popup-title" class="text-lg font-semibold text-gray-800 mb-2">Thành công!</h3>
+        <p id="popup-content" class="text-gray-600">Thao tác của bạn đã được thực hiện.</p>
+
+        <button onclick="closePopup()"
+                class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+            Đóng
+        </button>
+    </div>
+</div>
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        let registrationsChart;
+
+        // --- Hàm Quản lý Popup ---
+        function showPopup(title, message, isSuccess = true) {
+            const popup = document.getElementById('popup-message');
+            const icon = document.getElementById('popup-icon');
+            const titleEl = document.getElementById('popup-title');
+            const content = document.getElementById('popup-content');
+
+            // Lấy nút Đóng để đổi màu theo trạng thái
+            const closeButton = popup.querySelector('button');
+
+            titleEl.textContent = title;
+            content.textContent = message;
+
+            icon.classList.remove('text-green-600', 'text-red-600');
+            closeButton.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'bg-red-600', 'hover:bg-red-700');
+
+            if (isSuccess) {
+                icon.classList.add('text-green-600');
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />';
+                closeButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            } else {
+                icon.classList.add('text-red-600');
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />';
+                closeButton.classList.add('bg-red-600', 'hover:bg-red-700');
+            }
+
+            popup.classList.remove('hidden');
+        }
+
+        function closePopup() {
+            document.getElementById('popup-message').classList.add('hidden');
+        }
+
+        // --- Hàm Vẽ Biểu đồ ---
+        function renderChart(data) {
+            console.log("Render chart with:", data);
+
+            let labels, values;
+
+            if (!Array.isArray(data) || data.length === 0) {
+                // nếu không có dữ liệu
+                labels = ["Không có dữ liệu"];
+                values = [0];
+            } else {
+                labels = data.map(x => x.date);
+                values = data.map(x => x.count);
+            }
+
+            const ctx = document.getElementById("registrationsChart").getContext("2d");
+
+            if (registrationsChart) {
+                registrationsChart.destroy();
+            }
+
+            registrationsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Số người đăng ký",
+                        data: values,
+                        borderWidth: 2,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false,
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Khởi tạo và Xử lý sự kiện khi tải trang ---
+        document.addEventListener("DOMContentLoaded", function() {
+            const dataContainer = document.getElementById("initial-data-container");
+
+            // Đọc dữ liệu JSON an toàn
+            const jsonString = dataContainer.getAttribute("data-registrations");
+            const initialData = JSON.parse(jsonString || "[]");
+
+            // Đọc thông báo lỗi (Nếu không phải Admin)
+            const alertMessage = dataContainer.getAttribute("data-alert-message");
+
+            console.log("Initial Data:", initialData);
+
+            // 1. Kiểm tra và hiển thị popup lỗi (chặn Admin khi tải trang)
+            if (alertMessage && alertMessage.length > 0) {
+                // Nếu có thông báo lỗi từ server (Controller View đã chặn)
+                showPopup("Lỗi Truy Cập", alertMessage, false);
+                // Vẫn vẽ biểu đồ rỗng nếu dữ liệu là rỗng
+                renderChart([]);
+            } else {
+                // 2. Vẽ biểu đồ với dữ liệu ban đầu
+                renderChart(initialData);
+            }
+        });
+
+        // --- Sự kiện submit form (Lọc dữ liệu) ---
+        document.getElementById("filter-form").addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const startDate = document.getElementById("startDate").value;
+            const endDate = document.getElementById("endDate").value;
+
+            const url = `/Stats/ApiGetDashboardStats?startDate=${startDate}&endDate=${endDate}`;
+
+            try {
+                const res = await fetch(url);
+                const apiResponse = await res.json();
+
+                console.log("API Response:", apiResponse);
+
+                // 🚨 KIỂM TRA TRẠNG THÁI (API Controller trả về ApiReponseModel<StatsDashboardModel>)
+                if (apiResponse.status === 0) {
+                    // Nếu Status = 0 (Lỗi), hiển thị popup lỗi
+                    showPopup("Lỗi Truy Cập", apiResponse.mess, false);
+
+                    // Reset giao diện về 0 và biểu đồ rỗng
+                    document.getElementById("totalPosts").textContent = 0;
+                    renderChart([]);
+                    return;
+                }
+
+                // Logic thành công (Status = 1)
+                const statsData = apiResponse.data;
+                document.getElementById("totalPosts").textContent = statsData.totalPostsCount ?? 0;
+                renderChart(statsData.dailyRegistrations ?? []);
+
+                showPopup("Thành công", "Đã cập nhật thống kê theo phạm vi ngày mới.", true);
+
+            } catch (error) {
+                console.error("Fetch failed:", error);
+                showPopup("Lỗi Hệ Thống", "Không thể kết nối đến máy chủ API.", false);
+            }
+        });
+    </script>
+}

@@ -14,7 +14,7 @@ namespace SocialMedia.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetNoticeAll()
+        public async Task<IActionResult> GetNoticeAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 5)
         {
             var token = Request.Cookies["AuthToken"];
             if (string.IsNullOrEmpty(token))
@@ -23,10 +23,11 @@ namespace SocialMedia.Controllers
                 return Json(new { success = false, message = "Unauthorized: Authentication token missing. Please log in again." });
             }
 
-            var apireponse = await ApiHelper.GetAsync<ApiReponseModel<PaginatedResponse<Notification>>>("/api/Notification/getnotification", token);
+            var apiPath = $"/api/Notification/getnotification?pageNumber={pageNumber}&pageSize={pageSize}";
+            var apireponse = await ApiHelper.GetAsync<ApiReponseModel<PaginatedResponse<Notification>>>(apiPath, token);
 
             if (apireponse.Status == 1)
-                return PartialView("_Notification", apireponse.Data.Data); 
+                return PartialView("_Notification", apireponse.Data);
             else
                 return BadRequest("Lỗi Api");
         }

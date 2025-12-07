@@ -20,6 +20,8 @@ GroupMemberService.apiAvatar = builder.Configuration.GetConnectionString("Defaul
 NotificationService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
 FriendRequestService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");   
 MessageService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
+GroupService.apiAvatar = builder.Configuration.GetConnectionString("Defaultapihost");
+
 
 
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));

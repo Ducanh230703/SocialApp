@@ -14,7 +14,7 @@ namespace Services
     public class NotificationService
     {
         public static string apiAvatar;
-        public static async Task<PaginatedResponse<Notification>> GetNotice(int receiverId, int pageNumber, int pageSize)
+        public static async Task<PaginatedResponse<Notification>>   GetNotice(int receiverId, int pageNumber, int pageSize)
         {
             if (pageNumber < 1) pageNumber = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
@@ -54,12 +54,12 @@ namespace Services
             }
             int offset = (pageNumber - 1) * pageSize;
 
-            string sql = @" Select n.*, u_sender.ProfilePictureUrl
+            string sql = $@" Select n.*, u_sender.ProfilePictureUrl
                             From Notifications n
                             join Users u_sender on u_sender.ID = n.SenderId
                             Where ReceiverId = @receiverId
                             ORDER BY NotificationDate DESC
-                            OFFSET 0 ROWS FETCH NEXT 5 ROWS ONLY
+                            OFFSET {offset}  ROWS FETCH NEXT {pageSize} ROWS ONLY
                             FOR JSON PATH
                             ";
 

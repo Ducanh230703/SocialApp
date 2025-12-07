@@ -313,6 +313,7 @@ namespace Services
             rs.Bio = row["Bio"].ToString();
             rs.ID = Convert.ToInt16(row["ID"]);
             rs.ProfilePictureUrl = row["ProfilePictureUrl"].ToString();
+            rs.Role = row["Role"].ToString();
 
             string token = Cache.CacheEx.SetTokenEx(rs);
             userReponse.ID = rs.ID;
@@ -322,8 +323,9 @@ namespace Services
             userReponse.ID = rs.ID;
             userReponse.ProfilePictureUrl = rs.ProfilePictureUrl;
             userReponse.Token = token;
+            userReponse.Role = rs.Role;
 
-            if (token != null)
+                if (token != null)
             {
                 return new ApiReponseModel<UserReponseModel>
                 {
@@ -447,8 +449,9 @@ namespace Services
                 userdata.Email = row["Email"].ToString();
                 userdata.FullName = row["FullName"].ToString();
                 userdata.Bio = row["Bio"] == DBNull.Value ? null : row["Bio"].ToString();
-                userdata.ProfilePictureUrl = row["ProfilePictureUrl"] == DBNull.Value ? null : row["ProfilePictureUrl"].ToString();
+                userdata.ProfilePictureUrl = row["ProfilePictureUrl"] == DBNull.Value ? "user.png" : row["ProfilePictureUrl"].ToString();
 
+                userdata.ProfilePictureUrl = apiAvatar + userdata.ProfilePictureUrl;
                 return new ApiReponseModel<UserReponseModel>
                 {
                     Status = 1,
@@ -518,6 +521,7 @@ namespace Services
                                 p.UserId,
                                 u.FullName AS UserFullName,
                                 u.Bio,
+                                p.GroupID,
                                 ISNULL(u.ProfilePictureUrl, '') AS UserProfilePictureUrl,
                                 (
                                     SELECT JSON_QUERY('[' + STRING_AGG(CAST(l.UserId AS NVARCHAR(MAX)), ',') + ']')
@@ -542,7 +546,7 @@ namespace Services
                                 ) AS Comments
                             FROM Posts p
                             JOIN Users u ON u.ID = p.UserId
-                            WHERE p.UserId = {UserId}
+                            WHERE p.UserId = {UserId} AND GroupID IS NULL
                             ORDER BY p.DateCreated DESC
                             OFFSET {offset} ROWS FETCH NEXT {pageSize} ROWS ONLY
                             FOR JSON PATH";
@@ -562,16 +566,22 @@ namespace Services
                         if (!string.IsNullOrEmpty(post.ImageUrl))
                         {
                             string[] fileNames = post.ImageUrl.Split(',');
-
+    
                             var fullImageUrls = fileNames.Select(fileName =>
                             {
                                 return $"{apiAvatar}{Uri.EscapeDataString(fileName.Trim())}";
                             }).ToList();
                             post.ImageUrl = string.Join(",", fullImageUrls);
+
+                            
                         }
                         if (!string.IsNullOrEmpty(post.UserProfilePictureUrl))
                         {
-                            post.UserProfilePictureUrl = apiAvatar + post.UserProfilePictureUrl;
+                            if (post.IsAnnoy)
+                            {
+                                post.UserProfilePictureUrl = apiAvatar + "user.png";
+                            }
+                            else post.UserProfilePictureUrl = apiAvatar + post.UserProfilePictureUrl;
                         }
 
                         if (post.Comments != null)
@@ -664,7 +674,7 @@ namespace Services
                 userInfo.ID = userDetails.Data.ID;
                 userInfo.FullName = userDetails.Data.FullName;
                 userInfo.Email = userDetails.Data.Email;
-                userInfo.ProfilePictureUrl = apiAvatar + userDetails.Data.ProfilePictureUrl;
+                userInfo.ProfilePictureUrl =userDetails.Data.ProfilePictureUrl;
                 userInfo.Bio = userDetails.Data.Bio;
             }
             else
@@ -913,5 +923,149 @@ namespace Services
             else
                 return new ApiReponseModel { Status = 0, Mess = "Thay đổi email thất bại." };
         }
+
+        public static async Task<PaginatedResponse<PostFull>> GetPostByIdIndex(int pageNumber, int pageSize, int UserId)
+        {
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1 || pageSize > 100) pageSize = 10;
+
+            string countSql = @"SELECT COUNT(p.ID) FROM Posts p JOIN Users u ON u.ID = p.UserId";
+            int totalCount = 0;
+            try
+            {
+                string countJson = await connectDB.SelectJS(countSql);
+
+                if (!string.IsNullOrEmpty(countJson))
+                {
+                    using (JsonDocument doc = JsonDocument.Parse(countJson))
+                    {
+                        if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
+                        {
+                            if (doc.RootElement[0].TryGetProperty("Column1", out JsonElement countElement))
+                            {
+                                countElement.TryGetInt32(out totalCount);
+                            }
+                            else if (doc.RootElement[0].EnumerateObject().Any() && doc.RootElement[0].EnumerateObject().First().Value.ValueKind == JsonValueKind.Number)
+                            {
+                                doc.RootElement[0].EnumerateObject().First().Value.TryGetInt32(out totalCount);
+                            }
+                        }
+                        else if (doc.RootElement.ValueKind == JsonValueKind.Number)
+                        {
+                            doc.RootElement.TryGetInt32(out totalCount);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi khi lấy tổng số bài viết: {ex.Message}");
+                totalCount = 0;
+            }
+
+            int offset = (pageNumber - 1) * pageSize;
+
+            string sql = $@"SELECT
+                                p.ID AS Id,
+                                p.Content,
+                                p.ImageUrl,
+                                p.IsPrivate,
+                                p.DateCreated,
+                                p.UserId,
+                                u.FullName AS UserFullName,
+                                u.Bio,
+                                p.GroupID,
+                                ISNULL(u.ProfilePictureUrl, '') AS UserProfilePictureUrl,
+                                (
+                                    SELECT JSON_QUERY('[' + STRING_AGG(CAST(l.UserId AS NVARCHAR(MAX)), ',') + ']')
+                                    FROM Likes l
+                                    WHERE l.PostId = p.ID
+                                ) AS LikeUserIds,
+                                CAST(
+                                (
+                                    SELECT TOP 2
+                                        c.ID,
+                                        c.Content,
+                                        c.DateCreated,
+                                        c.UserId,
+                                        cu.FullName AS UserFullName,
+                                        ISNULL(cu.ProfilePictureUrl, '') AS UserProfilePictureUrl
+                                    FROM Comments c
+                                    LEFT JOIN Users cu ON cu.ID = c.UserId
+                                    WHERE c.PostId = p.ID
+                                    ORDER BY c.DateCreated DESC
+                                    FOR JSON PATH
+                                ) AS NVARCHAR(MAX)
+                                ) AS Comments
+                            FROM Posts p
+                            JOIN Users u ON u.ID = p.UserId
+                            WHERE p.UserId = {UserId}
+                            ORDER BY p.DateCreated DESC
+                            OFFSET {offset} ROWS FETCH NEXT {pageSize} ROWS ONLY
+                            FOR JSON PATH";
+
+            List<PostFull> posts = new List<PostFull>();
+            string json = await connectDB.SelectJS(sql);
+
+            if (!string.IsNullOrEmpty(json) && json != "[]")
+            {
+                try
+                {
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    posts = JsonSerializer.Deserialize<List<PostFull>>(json, options) ?? new List<PostFull>();
+
+                    foreach (var post in posts)
+                    {
+                        if (!string.IsNullOrEmpty(post.ImageUrl))
+                        {
+                            string[] fileNames = post.ImageUrl.Split(',');
+
+                            var fullImageUrls = fileNames.Select(fileName =>
+                            {
+                                return $"{apiAvatar}{Uri.EscapeDataString(fileName.Trim())}";
+                            }).ToList();
+                            post.ImageUrl = string.Join(",", fullImageUrls);
+
+
+                        }
+                        if (!string.IsNullOrEmpty(post.UserProfilePictureUrl))
+                        {
+                            if (post.IsAnnoy)
+                            {
+                                post.UserProfilePictureUrl = apiAvatar + "user.png";
+                            }
+                            else post.UserProfilePictureUrl = apiAvatar + post.UserProfilePictureUrl;
+                        }
+
+                        if (post.Comments != null)
+                        {
+                            foreach (var comment in post.Comments)
+                            {
+                                comment.UserProfilePictureUrl = apiAvatar + comment.UserProfilePictureUrl;
+                            }
+                        }
+
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    Console.WriteLine($"Lỗi Deserialize JSON trong PostService.GetAllPosts (data): {ex.Message}");
+                    Console.WriteLine($"JSON gây lỗi: {json}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Lỗi không mong muốn khi deserialize posts: {ex.Message}");
+                }
+            }
+
+            return new PaginatedResponse<PostFull>
+            {
+                Data = posts,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+        }
+
     }
 }

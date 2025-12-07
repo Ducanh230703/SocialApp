@@ -17,7 +17,7 @@ namespace ApiApp.Controllers
         {
             var user = CacheEx.DataUser;
             var dataReponse = await NotificationService.GetNotice(user.ID, pageNumber, pageSize);
-            if (dataReponse.Data != null)
+                if (dataReponse.Data != null)
                 return new ApiReponseModel<PaginatedResponse<Notification>>
                 {
                     Status = 1,

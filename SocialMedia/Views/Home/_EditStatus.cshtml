@@ -2,32 +2,44 @@
     <div class="uk-modal-dialog uk-modal-body bg-white rounded-lg shadow-lg w-full max-w-xl p-4 relative">
         <button class="uk-modal-close-outside" type="button" uk-close></button>
 
-        <h2 class="text-lg font-semibold text-center mb-4">Chỉnh sửa bài viết</h2>
-        <button class="absolute top-2 right-2 text-gray-500" onclick="closeEditModal()">×</button>
+        <h2 class="text-lg font-bold text-center mb-4 text-gray-800">Chỉnh sửa bài viết</h2>
+        
+        <button type="button" class="absolute top-2 right-2 text-gray-500 hover:text-gray-900 text-2xl" onclick="closeEditModal()">×</button>
+        
         <form id="editPostForm" asp-action="EditPost" asp-controller="Home" method="post" enctype="multipart/form-data">
-            <input type="hidden" name="PostId" id="postIdInput" value="@Model.PostId" />
-            <textarea name="Content" id="editContent" class="w-full border rounded p-2 mb-2">@Model.Content</textarea>
+            <input type="hidden" name="PostId" id="postIdInput" value="@Model?.PostId" />
 
-            <label>Ảnh mới:</label>
-            <input type="file" name="Image" id="editImageInput" multiple accept="image/*" class="mb-2" />
+            <textarea name="Content" id="editContent" class="w-full border border-gray-300 rounded p-2 mb-3 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] text-gray-700" placeholder="Nội dung bài viết...">@Model?.Content</textarea>
 
-            <div id="existingImagesContainer" class="flex flex-wrap gap-2 mb-2">
-                @if (Model.ImageUrls != null)
+            <label class="block text-sm font-medium text-gray-700 mb-1">Ảnh mới:</label>
+            <input type="file" name="Image" id="editImageInput" multiple accept="image/*" class="mb-3 text-sm text-gray-500" />
+
+            <div id="existingImagesContainer" class="flex flex-wrap gap-2 mb-3 p-2 border border-dashed border-gray-300 rounded-lg">
+                @if (Model?.ImageUrls != null && !string.IsNullOrEmpty(Model.ImageUrls))
                 {
                     foreach (var url in Model.ImageUrls.Split(','))
                     {
-                        <div class="existing-image relative" data-url="@url">
-                            <img src="@url" class="w-20 h-20 object-cover rounded border" />
-                            <button type="button" class="remove-old-image absolute top-0 right-0 bg-red-600 text-white rounded-full w-5 h-5 text-xs">×</button>
-                        </div>
+                        var trimmedUrl = url.Trim();
+                        if (!string.IsNullOrEmpty(trimmedUrl))
+                        {
+                            <div class="existing-image relative group" data-url="@trimmedUrl">
+                                <img src="@trimmedUrl" alt="Ảnh hiện tại" class="w-20 h-20 object-cover rounded border border-gray-200 shadow-sm" />
+                                <button type="button" class="remove-old-image absolute top-0 right-0 bg-red-600 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity">×</button>
+                            </div>
+                        }
                     }
+                }
+                else
+                {
+                    <p id="noExistingImages" class="text-sm text-gray-400">Chưa có ảnh hiện tại.</p>
                 }
             </div>
 
-            <div id="editImagePreviewContainer" class="flex flex-wrap gap-2 mb-2"></div>
-            <div id="removedImageContainer"></div>
+            <div id="editImagePreviewContainer" class="flex flex-wrap gap-2 mb-3"></div>
+            
+            <div id="removedImageContainer" class="hidden"></div> 
 
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Lưu thay đổi</button>
+            <button type="submit" class="w-full bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">Lưu thay đổi</button>
         </form>
     </div>
 </div>
@@ -41,10 +53,12 @@
         const editPostForm = document.getElementById("editPostForm");
         const editContent = document.getElementById("editContent");
         const postIdInput = document.querySelector("#editPostForm input[name='PostId']");
+        const noExistingImagesText = document.getElementById("noExistingImages");
 
         let selectedNewImages = [];
+        
+        // --- 1. Xử lý Kéo và Thả (Drag and Drop) ---
 
-        // Thêm các sự kiện kéo thả vào form
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             editPostForm.addEventListener(eventName, preventDefaults, false);
         });
@@ -55,31 +69,34 @@
         }
 
         editPostForm.addEventListener('dragenter', () => {
-            editPostForm.classList.add('border-blue-500');
+            editPostForm.classList.add('border-blue-500', 'border-2'); // Tạo hiệu ứng kéo
             editPostForm.classList.remove('border-gray-300');
         }, false);
 
         editPostForm.addEventListener('dragleave', () => {
-            editPostForm.classList.remove('border-blue-500');
-            editPostForm.classList.add('border-gray-300');
+            editPostForm.classList.remove('border-blue-500', 'border-2');
+            // Bạn có thể cần thêm lại lớp border mặc định nếu form không có border
         }, false);
 
         editPostForm.addEventListener('drop', handleDrop, false);
 
         function handleDrop(e) {
-            editPostForm.classList.remove('border-blue-500');
-            editPostForm.classList.add('border-gray-300');
+            editPostForm.classList.remove('border-blue-500', 'border-2');
             const dt = e.dataTransfer;
             const files = dt.files;
 
-            // Tự động kích hoạt sự kiện "change" trên input file để xử lý
+            // Truyền files trực tiếp vào input và kích hoạt sự kiện change để xử lý
             editImageInput.files = files;
             const changeEvent = new Event('change');
             editImageInput.dispatchEvent(changeEvent);
         }
 
+        // --- 2. Hàm Đóng và Đặt lại Form ---
+
         window.closeEditModal = function () {
-            UIkit.modal('#editPostModal').hide();
+            if (typeof UIkit !== 'undefined' && UIkit.modal) {
+                UIkit.modal('#editPostModal').hide();
+            }
             resetEditForm();
         };
 
@@ -91,77 +108,89 @@
             selectedNewImages = [];
             removedImageContainer.innerHTML = "";
             existingImagesContainer.innerHTML = "";
+            // Đảm bảo thông báo "Chưa có ảnh" hiển thị lại nếu container trống
+            if (noExistingImagesText) existingImagesContainer.appendChild(noExistingImagesText);
         }
 
-            function renderExistingImagesFromApi(imageUrlsString) {
-        existingImagesContainer.innerHTML = '';
+        // --- 3. Render ảnh cũ từ API (Hàm này nhận chuỗi URL từ API) ---
+        function renderExistingImagesFromApi(imageUrlsString) {
+            existingImagesContainer.innerHTML = ''; // Xóa nội dung hiện tại
+            
+            if (imageUrlsString && typeof imageUrlsString === 'string') {
+                const filenames = imageUrlsString.split(',');
+                
+                filenames.forEach(filename => {
+                    const trimmedFilename = filename.trim();
+                    if (trimmedFilename === '') return;
 
-        if (imageUrlsString && typeof imageUrlsString === 'string') {
-            // Tách chuỗi URL (ngăn cách bởi dấu phẩy) thành mảng các URL riêng lẻ
-            const filenames = imageUrlsString.split(',');
+                    // Logic Tách Tên File/URL
+                    // Bạn cần một chuỗi định danh duy nhất (tên file) để gửi lên server khi xóa.
+                    // Nếu URL có dạng: .../file?fileName=TÊN_FILE.jpg&...
+                    let fileNameOnly = trimmedFilename;
+                    const parts = trimmedFilename.split('fileName=');
 
-            filenames.forEach(filename => {
-                const trimmedFilename = filename.trim();
-                if (trimmedFilename === '') return;
-
-                // ✨ LOGIC TRÍCH XUẤT TÊN FILE (chuỗi sau fileName=) ✨
-                let fileNameOnly = trimmedFilename;
-                const parts = trimmedFilename.split('fileName='); // Cắt chuỗi tại 'fileName='
-
-                if (parts.length > 1) {
-                    // Lấy phần thứ hai của mảng (phần sau 'fileName=')
-                    fileNameOnly = parts[1];
-
-                    // Nếu có các tham số khác theo sau (ví dụ: &amp;width=...), cắt chúng đi
-                    const otherParamsIndex = fileNameOnly.indexOf('&');
-                    if (otherParamsIndex !== -1) {
-                        fileNameOnly = fileNameOnly.substring(0, otherParamsIndex);
+                    if (parts.length > 1) {
+                        fileNameOnly = parts[1];
+                        const otherParamsIndex = fileNameOnly.indexOf('&');
+                        if (otherParamsIndex !== -1) {
+                            fileNameOnly = fileNameOnly.substring(0, otherParamsIndex);
+                        }
                     }
-                }
-                // **********************************
+                    
+                    const imageUrlFull = trimmedFilename;
 
-                // 1. Dùng URL đầy đủ để hiển thị ảnh
-                const imageUrlFull = trimmedFilename;
+                    const imageDiv = document.createElement("div");
+                    imageDiv.className = "existing-image relative group";
+                    // LƯU CHUỖI ĐÃ CẮT (tên file hoặc URL gốc) vào data-url
+                    imageDiv.dataset.url = fileNameOnly; 
 
-                const imageDiv = document.createElement("div");
-                imageDiv.className = "existing-image relative";
-                // 2. LƯU CHUỖI ĐÃ CẮT (tên file) vào data-url để gửi lên API
-                imageDiv.dataset.url = fileNameOnly; // <-- ĐÂY LÀ PHẦN BẠN CẦN
+                    const img = document.createElement("img");
+                    img.src = imageUrlFull;
+                    img.alt = "Ảnh cũ";
+                    img.className = "w-20 h-20 object-cover rounded border";
 
-                const img = document.createElement("img");
-                img.src = imageUrlFull;
-                img.className = "w-20 h-20 object-cover rounded border";
+                    const removeBtn = document.createElement("button");
+                    removeBtn.type = "button";
+                    removeBtn.innerText = "×";
+                    removeBtn.className = "remove-old-image absolute top-0 right-0 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-80 hover:opacity-100 transition-opacity";
 
-                const removeBtn = document.createElement("button");
-                removeBtn.type = "button";
-                removeBtn.innerText = "×";
-                removeBtn.className = "remove-old-image absolute top-0 right-0 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs";
-
-                imageDiv.appendChild(img);
-                imageDiv.appendChild(removeBtn);
-                existingImagesContainer.appendChild(imageDiv);
-            });
+                    imageDiv.appendChild(img);
+                    imageDiv.appendChild(removeBtn);
+                    existingImagesContainer.appendChild(imageDiv);
+                });
+            }
+            
+            if (existingImagesContainer.childElementCount === 0) {
+                 if (noExistingImagesText) existingImagesContainer.appendChild(noExistingImagesText);
+            }
         }
-    }
 
+
+        // --- 4. Mở Modal và Tải Dữ liệu Post ---
         window.openEditModal = function (postId) {
-            resetEditForm();
+            resetEditForm(); // Đặt lại form trước khi tải dữ liệu mới
+            
             fetch(`/Home/GetPostById?postId=${postId}`)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                        throw new Error(`Lỗi HTTP! Trạng thái: ${response.status}`);
                     }
                     return response.json();
                 })
                 .then(data => {
                     if (!data) {
-                        throw new Error('Empty or invalid data received from API');
+                        throw new Error('Dữ liệu rỗng hoặc không hợp lệ nhận được từ API.');
                     }
-                    console.log("Data fetched for post:", data);
+                    
                     editContent.value = data.content || '';
                     postIdInput.value = data.postId || '';
-                    renderExistingImagesFromApi(data.imageUrls);
-                    UIkit.modal('#editPostModal').show();
+                    
+                    // Render ảnh cũ
+                    renderExistingImagesFromApi(data.imageUrls); 
+                    
+                    if (typeof UIkit !== 'undefined' && UIkit.modal) {
+                         UIkit.modal('#editPostModal').show();
+                    }
                 })
                 .catch(err => {
                     console.error('Lỗi khi lấy dữ liệu bài viết:', err);
@@ -169,26 +198,35 @@
                 });
         };
 
-        UIkit.util.on('#editPostModal', 'hidden', function () {
-            resetEditForm();
-        });
-
+        // --- 5. Xử lý xóa ảnh cũ (Thêm input ẩn) ---
         existingImagesContainer.addEventListener("click", function (event) {
             if (event.target && event.target.matches(".remove-old-image")) {
                 const imageDiv = event.target.closest(".existing-image");
-                const imageUrl = imageDiv.getAttribute("data-url");
+                const imageUrl = imageDiv.getAttribute("data-url"); // Lấy TÊN FILE/URL đã cắt
+                
+                // 1. Tạo input ẩn để thông báo cho server biết ảnh nào bị xóa
                 const hiddenInput = document.createElement("input");
                 hiddenInput.type = "hidden";
                 hiddenInput.name = "RemovedImageUrls";
                 hiddenInput.value = imageUrl;
                 removedImageContainer.appendChild(hiddenInput);
+                
+                // 2. Xóa div ảnh khỏi giao diện
                 imageDiv.remove();
+
+                // 3. Kiểm tra xem còn ảnh nào không
+                if (existingImagesContainer.childElementCount === 0) {
+                     if (noExistingImagesText) existingImagesContainer.appendChild(noExistingImagesText);
+                }
             }
         });
 
+        // --- 6. Xử lý Chọn ảnh mới và Xem trước (Preview) ---
+        
         editImageInput.addEventListener("change", function (event) {
             const newFiles = Array.from(event.target.files);
 
+            // Thêm các file mới vào mảng
             newFiles.forEach(file => {
                 const exists = selectedNewImages.some(f => f.name === file.name && f.size === file.size);
                 if (!exists) {
@@ -200,7 +238,12 @@
             const dt = new DataTransfer();
             selectedNewImages.forEach(f => dt.items.add(f));
             editImageInput.files = dt.files;
+            
+            // Cập nhật giao diện xem trước
+            renderNewImagesPreview();
+        });
 
+        function renderNewImagesPreview() {
             imagePreviewContainer.classList.toggle('hidden', selectedNewImages.length === 0);
             imagePreviewContainer.innerHTML = '';
 
@@ -209,43 +252,49 @@
                 reader.onload = function (e) {
                     const wrapper = document.createElement("div");
                     wrapper.className = "relative";
+                    
                     const img = document.createElement("img");
                     img.src = e.target.result;
                     img.className = "w-24 h-24 object-cover rounded";
+                    
                     const removeBtn = document.createElement("button");
                     removeBtn.type = "button";
                     removeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>`;
                     removeBtn.className = "absolute top-0 right-0 -mt-1 -mr-1 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow remove-new-image";
                     removeBtn.dataset.index = index;
+                    
                     wrapper.appendChild(img);
                     wrapper.appendChild(removeBtn);
                     imagePreviewContainer.appendChild(wrapper);
                 };
                 reader.readAsDataURL(file);
             });
-        });
-
+        }
+        
+        // Xử lý xóa ảnh mới được chọn
         imagePreviewContainer.addEventListener("click", function (e) {
             if (e.target.closest(".remove-new-image")) {
                 const removeBtn = e.target.closest(".remove-new-image");
                 const indexToRemove = parseInt(removeBtn.dataset.index);
-                selectedNewImages = selectedNewImages.filter((_, idx) => idx !== indexToRemove);
+                
+                // Xóa file khỏi mảng
+                selectedNewImages.splice(indexToRemove, 1);
 
+                // Cập nhật FileList
                 const dt = new DataTransfer();
                 selectedNewImages.forEach(f => dt.items.add(f));
                 editImageInput.files = dt.files;
-
-                removeBtn.parentElement.remove();
-
-                imagePreviewContainer.querySelectorAll(".remove-new-image").forEach((btn, newIndex) => {
-                    btn.dataset.index = newIndex;
-                });
-
+                
+                // Cập nhật giao diện và re-index các nút còn lại
+                renderNewImagesPreview();
+                
                 if (selectedNewImages.length === 0) {
-                    imagePreviewContainer.classList.add("hidden");
+                     imagePreviewContainer.classList.add("hidden");
                 }
             }
         });
+
+        // --- 7. Xử lý Gửi Form (Submit) ---
 
         editPostForm.addEventListener("submit", function (e) {
             e.preventDefault();
@@ -253,64 +302,73 @@
             const existingImagesCount = existingImagesContainer.querySelectorAll(".existing-image").length;
             const newImagesCount = selectedNewImages.length;
 
+            // Validation
             if (content === "" && existingImagesCount === 0 && newImagesCount === 0) {
                 alert("Bài viết phải có nội dung hoặc ít nhất một ảnh.");
                 return; 
             }
+            
             const formData = new FormData();
 
+            // 1. Dữ liệu cơ bản
             formData.append("PostId", postIdInput.value);
             formData.append("Content", editContent.value);
 
+            // 2. Ảnh mới được chọn
             selectedNewImages.forEach(file => {
                 formData.append("Image", file);
             });
 
+            // 3. Ảnh cũ còn lại (danh sách URL)
             const remainingImageUrls = [];
             existingImagesContainer.querySelectorAll(".existing-image").forEach(div => {
-                const url = div.getAttribute("data-url");
+                const url = div.getAttribute("data-url"); // Lấy TÊN FILE đã cắt
                 if (url) {
                     remainingImageUrls.push(url);
                 }
             });
-            formData.append("ImageUrls", remainingImageUrls.join(","));
+            // Gửi danh sách URL ảnh còn lại dưới dạng chuỗi phân cách bởi dấu phẩy
+            formData.append("ImageUrls", remainingImageUrls.join(",")); 
 
+            // 4. Ảnh cũ bị xóa (đã được thêm vào removedImageContainer)
             const removedInputs = removedImageContainer.querySelectorAll("input[name='RemovedImageUrls']");
             removedInputs.forEach(input => {
                 formData.append("RemovedImageUrls", input.value);
             });
 
+            // Gửi yêu cầu Fetch
             fetch("/Home/EditPost", {
                 method: "POST",
-                body: formData
+                body: formData // FormData tự động thiết lập header Content-Type phù hợp
             })
                 .then(response => {
                     if (!response.ok) {
                         return response.json().then(errorData => {
-                            throw new Error(errorData.message || 'Server responded with an error.');
+                            throw new Error(errorData.message || 'Lỗi phản hồi từ Server.');
                         }).catch(() => {
-                            throw new Error('Network response was not ok, and could not parse error message.');
+                            throw new Error('Lỗi mạng hoặc không thể phân tích thông báo lỗi.');
                         });
                     }
                     return response.json();
                 })
                 .then(data => {
-                    if (data.status === 1) {
-                        alert("Cập nhật thành công!");
-                        UIkit.modal('#editPostModal').hide();
-                        location.reload();
+                    if (data.status === 1) { // Giả sử status 1 là thành công
+                        alert("Cập nhật bài viết thành công!");
+                        closeEditModal(); // Đóng modal qua hàm reset
+                        location.reload(); // Tải lại trang để xem bài viết mới
                     } else {
                         alert("Có lỗi xảy ra khi cập nhật: " + (data.message || "Không rõ lỗi."));
                     }
                 })
                 .catch(error => {
                     console.error("Lỗi khi gửi yêu cầu:", error);
-                    alert("Đã xảy ra lỗi: " + error.message);
+                    alert("Đã xảy ra lỗi hệ thống: " + error.message);
                 });
         });
-
+        
+        // Ẩn container xem trước ảnh mới khi khởi tạo nếu không có file nào
         if (editImageInput.files.length === 0) {
-            imagePreviewContainer.classList.add("hidden");
+             imagePreviewContainer.classList.add("hidden");
         }
     });
 </script>

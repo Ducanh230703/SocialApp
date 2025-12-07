@@ -2,7 +2,6 @@
 @using Models.ReponseModel
 @using SocialMedia.Helper
 @{
-    // --- Logic lấy thông tin người dùng giữ nguyên ---
     var token = Context.Request.Cookies["AuthToken"];
     ApiReponseModel<UserReponseModel> loggedInUser = null;
     string fullName = null;
@@ -139,60 +138,313 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/aspnet-signalr/1.0.27/signalr.min.js" integrity="sha512-a+73ErrZPjhqOu0qbW1QLsenEF4pvDjmnd+Ws6hkDyJlrwAigOQAxQhIT+fPNFWScUvtJQvn+G535TT2C6/G4g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
-    // --- Biến toàn cục cho Phân trang tin nhắn ---
+    // ------------------------------------------------------------------
+    // ## BIẾN TOÀN CỤC
+    // ------------------------------------------------------------------
+
+    // --- BIẾN TOÀN CỤC CHO PHÂN TRANG TIN NHẮN ---
     let currentMessagePage = 1;
     const messagePageSize = 10;
-    let isMessageLoading = false; // Cờ cho Infinite Scroll
-    let hasMoreMessages = true; // Cờ cho Infinite Scroll
+    let isMessageLoading = false;
+    let hasMoreMessages = true;
+
+    // --- BIẾN TOÀN CỤC CHO PHÂN TRANG THÔNG BÁO (ĐÃ TỐI ƯU) ---
+    let currentNotificationPage = 1;
+    const notificationPageSize = 5;
+    let isNotificationLoading = false;
+    let hasMoreNotifications = true; // QUAN TRỌNG: Cờ kiểm soát việc tải thêm
+    let scrollTimeout = null; // Để debounce (làm chậm) sự kiện scroll
+
 
     document.addEventListener("DOMContentLoaded", () => {
-        // --- Logic Thông báo giữ nguyên ---
-        fetch("/Notification/GetCount", {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
-        })
-        .then(response => response.json())
-        .then(data => {
-            const notificationCount = (typeof data === 'object' && data !== null && data.status === 1 && data.data !== undefined)
-                                     ? data.data : data;
-            const notificationsCountElement = document.getElementById("notificationsCount");
-            if (notificationsCountElement) {
-                notificationsCountElement.innerHTML = notificationCount > 0 ? notificationCount : '';
-                notificationsCountElement.style.display = notificationCount > 0 ? '' : 'none';
-            }
-        })
-        .catch(error => {
-            console.error("Lỗi khi lấy số lượng thông báo: ", error);
-            const notificationsCountElement = document.getElementById("notificationsCount");
-            if (notificationsCountElement) notificationsCountElement.innerHTML = '';
-        });
 
+        // --- HÀM LẤY SỐ LƯỢNG THÔNG BÁO CHƯA ĐỌC LẦN ĐẦU (Giữ nguyên) ---
+        function getUnreadNotificationCount() {
+            fetch("/Notification/GetCount", {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const notificationCount = (typeof data === 'object' && data !== null && data.status === 1 && data.data !== undefined)
+                                            ? data.data : data;
+                const notificationsCountElement = document.getElementById("notificationsCount");
+                if (notificationsCountElement) {
+                    notificationsCountElement.innerHTML = notificationCount > 0 ? notificationCount : '';
+                    notificationsCountElement.style.display = notificationCount > 0 ? '' : 'none';
+                }
+            })
+            .catch(error => {
+                console.error("Lỗi khi lấy số lượng thông báo: ", error);
+                const notificationsCountElement = document.getElementById("notificationsCount");
+                if (notificationsCountElement) notificationsCountElement.innerHTML = '';
+            });
+        }
+
+        getUnreadNotificationCount();
+
+        // ------------------------------------------------------------------
+        // ## HÀM TẢI NỘI DUNG
+        // ------------------------------------------------------------------
+
+        // --- HÀM TẢI NỘI DUNG THÔNG BÁO (ĐÃ SỬA LỖI HAS MORE) ---
+        function loadNotificationsContent(page, size) {
+            return new Promise((resolve, reject) => {
+                const notificationDropdownContent = document.getElementById('notification-dropdown');
+                isNotificationLoading = true; // Bắt đầu tải
+
+                if (!notificationDropdownContent) {
+                    isNotificationLoading = false;
+                    reject(new Error("Không tìm thấy notification-dropdown"));
+                    return;
+                }
+
+                // Xóa thông báo 'Đã tải hết' nếu có (khi tải lại trang 1)
+                if (page === 1) {
+                     // Đảm bảo xóa mọi nội dung cũ trước khi tải trang 1
+                    notificationDropdownContent.innerHTML = '<div class="pl-2 p-1 text-sm font-normal">Đang tải thông báo...</div>';
+                    const noMore = notificationDropdownContent.querySelector('.no-more-notifications');
+                    if(noMore) noMore.remove();
+                }
+
+                // Thêm chỉ báo tải cho các trang cuộn sau (nếu chưa có)
+                if (page > 1 && notificationDropdownContent.querySelector('.load-more-indicator-noti') === null && hasMoreNotifications) {
+                    const indicatorHTML = `<div class="load-more-indicator-noti text-center p-2 text-blue-500 text-sm font-medium">Đang tải thêm thông báo...</div>`;
+                    notificationDropdownContent.insertAdjacentHTML('beforeend', indicatorHTML);
+                }
+
+
+                fetch(`/Notification/GetNoticeAll?pageNumber=${page}&pageSize=${size}`)
+                    .then(resp => {
+                        if (!resp.ok) {
+                            return resp.text().then(text => { throw new Error(`Lỗi HTTP! Trạng thái: ${resp.status}, Phản hồi: ${text}`); });
+                        }
+                        return resp.text();
+                    })
+                    .then(html => {
+                        const trimmedHtml = html.trim();
+
+                        // Xóa chỉ báo đang tải
+                        const indicator = notificationDropdownContent.querySelector('.load-more-indicator-noti');
+                        if (indicator) indicator.remove();
+
+                        // Đếm số lượng item được trả về
+                        const itemTemplate = document.createElement('div');
+                        itemTemplate.innerHTML = trimmedHtml;
+                        const itemsLoadedInThisCall = itemTemplate.querySelectorAll('.relative.flex.items-center.gap-3').length;
+
+                        if (page === 1) {
+                            // Trang đầu tiên: Thay thế nội dung
+                            notificationDropdownContent.innerHTML = trimmedHtml || '<div class="pl-2 p-1 text-sm font-normal">Chưa có thông báo nào.</div>';
+                        } else {
+                            // Các trang tiếp theo (Scroll): Nối thêm
+                            notificationDropdownContent.insertAdjacentHTML('beforeend', trimmedHtml);
+                        }
+
+                        // QUAN TRỌNG: Cập nhật hasMoreNotifications
+                        if (itemsLoadedInThisCall === 0) {
+                            hasMoreNotifications = false;
+                            // Chỉ thêm thông báo 'Đã tải hết' một lần (và chỉ khi không phải là Trang 1 rỗng)
+                            if (notificationDropdownContent.querySelector('.no-more-notifications') === null && (page > 1 || (page === 1 && trimmedHtml.length > 0))) {
+                                notificationDropdownContent.insertAdjacentHTML('beforeend', '<div class="text-center p-2 text-xs text-gray-500 no-more-notifications">Đã tải hết thông báo.</div>');
+                            }
+                        } else {
+                            // Nếu có dữ liệu, chuyển đến trang tiếp theo
+                            currentNotificationPage = page;
+                        }
+
+                        // Nếu Trang 1 rỗng, cũng nên set hasMoreNotifications = false
+                        if (page === 1 && trimmedHtml.length === 0) {
+                            hasMoreNotifications = false;
+                        }
+
+                        resolve();
+                    })
+                    .catch(error => {
+                        console.error(`Lỗi khi tải thông báo (Trang ${page}): `, error);
+                        // Xóa chỉ báo tải khi lỗi (nếu có)
+                        const indicator = notificationDropdownContent.querySelector('.load-more-indicator-noti');
+                        if (indicator) indicator.remove();
+
+                        if (page === 1) {
+                            notificationDropdownContent.innerHTML = '<div class="pl-2 p-1 text-sm font-normal text-red-500">Không thể tải thông báo. Vui lòng thử lại.</div>';
+                            hasMoreNotifications = false; // Chặn các lần thử tải tiếp theo nếu trang đầu lỗi
+                        } else {
+                            if (typeof Toastify !== 'undefined') {
+                                Toastify({ text: "Không thể tải thêm thông báo.", duration: 3000, backgroundColor: "#f44336", gravity: "bottom", position: "center" }).showToast();
+                            }
+                        }
+                        reject(error);
+                    })
+                    .finally(() => {
+                        isNotificationLoading = false; // Luôn tắt cờ đang tải khi hoàn thành
+                    });
+            });
+        }
+
+        // --- HÀM TẢI NỘI DUNG TIN NHẮN (Đã sửa lỗi HAS MORE) ---
+        function loadMessagesContent(page, size) {
+             return new Promise((resolve, reject) => {
+                 const messageDropdown = document.getElementById('message-dropdown');
+                 isMessageLoading = true;
+
+                 if (messageDropdown) {
+                     if (page === 1) {
+                         messageDropdown.innerHTML = '<div class="pl-2 p-1 text-sm font-normal">Đang tải tin nhắn...</div>';
+                         const noMore = messageDropdown.querySelector('.no-more-messages');
+                         if(noMore) noMore.remove();
+                     }
+
+
+                     fetch(`/Message/GetMessengerList?pageNumber=${page}&pageSize=${size}`)
+                         .then(response => {
+                             if (!response.ok) {
+                                 return response.text().then(text => {
+                                     throw new Error(`Lỗi HTTP! Trạng thái: ${response.status}, Phản hồi: ${text}`);
+                                 });
+                             }
+                             return response.text();
+                         })
+                         .then(html => {
+                             const trimmedHtml = html.trim();
+                             const itemTemplate = document.createElement('div');
+                             itemTemplate.innerHTML = trimmedHtml;
+                             const itemsLoadedInThisCall = itemTemplate.querySelectorAll('.relative.flex.items-center.gap-3').length;
+
+                             // Xóa chỉ báo đang tải (loading indicator)
+                             const indicator = messageDropdown.querySelector('.load-more-indicator');
+                             if (indicator) indicator.remove();
+
+                             if (page === 1) {
+                                 messageDropdown.innerHTML = trimmedHtml || '<div class="pl-2 p-1 text-sm font-normal">Chưa có tin nhắn nào.</div>';
+                             } else {
+                                 messageDropdown.insertAdjacentHTML('beforeend', trimmedHtml);
+                             }
+
+                             // QUAN TRỌNG: Cập nhật hasMoreMessages
+                             if (itemsLoadedInThisCall === 0) {
+                                hasMoreMessages = false;
+                                // Thêm thông báo đã tải hết
+                                if (messageDropdown.querySelector('.no-more-messages') === null && (page > 1 || (page === 1 && trimmedHtml.length > 0))) {
+                                    messageDropdown.insertAdjacentHTML('beforeend', '<div class="text-center p-2 text-xs text-gray-500 no-more-messages">Đã tải hết tin nhắn.</div>');
+                                }
+                             } else {
+                                currentMessagePage = page;
+                             }
+
+                             if (page === 1 && trimmedHtml.length === 0) {
+                                hasMoreMessages = false;
+                             }
+
+                             resolve();
+                         })
+                         .catch(error => {
+                             console.error(`Lỗi khi tải tin nhắn (Trang ${page}): `, error);
+                             const indicator = messageDropdown.querySelector('.load-more-indicator');
+                             if (indicator) indicator.remove();
+
+                             if (page === 1) {
+                                 messageDropdown.innerHTML = '<div class="pl-2 p-1 text-sm font-normal text-red-500">Không thể tải tin nhắn. Vui lòng thử lại.</div>';
+                                 hasMoreMessages = false;
+                             } else {
+                                 if (typeof Toastify !== 'undefined') {
+                                     Toastify({ text: "Không thể tải thêm tin nhắn.", duration: 3000, backgroundColor: "#f44336", gravity: "bottom", position: "center" }).showToast();
+                                 }
+                             }
+                             reject(error);
+                         })
+                         .finally(() => {
+                             isMessageLoading = false;
+                         });
+                 } else {
+                     isMessageLoading = false;
+                     reject(new Error("Không tìm thấy message-dropdown"));
+                 }
+             });
+         }
+
+
+        // ------------------------------------------------------------------
+        // ## XỬ LÝ SỰ KIỆN VÀ SCROLL (ĐÃ SỬA LỖI LẶP REQUEST)
+        // ------------------------------------------------------------------
+
+        // --- 2. KÍCH HOẠT TẢI THÔNG BÁO LẦN ĐẦU KHI CLICK NÚT ---
         document.getElementById('notificationsBtn').addEventListener('click', () => {
-            const notificationDropdown = document.getElementById('notification-dropdown');
-            if (notificationDropdown) {
-                notificationDropdown.innerHTML = '<div class="pl-2 p-1 text-sm font-normal">Đang tải thông báo...</div>';
-            }
-            fetch('/Notification/GetNoticeAll')
-                .then(resp => {
-                    if (!resp.ok) {
-                        return resp.text().then(text => { throw new Error(`Lỗi HTTP! Trạng thái: ${resp.status}, Phản hồi: ${text}`); });
-                    }
-                    return resp.text();
-                })
-                .then(html => {
-                    if (notificationDropdown) {
-                        notificationDropdown.innerHTML = html;
-                    }
-                })
-                .catch(error => {
-                    console.error("Lỗi khi tải thông báo: ", error);
-                    if (notificationDropdown) {
-                        notificationDropdown.innerHTML = '<div class="pl-2 p-1 text-sm font-normal text-red-500">Không thể tải thông báo. Vui lòng thử lại.</div>';
-                    }
-                });
+            // Reset trạng thái trước khi tải trang 1
+            currentNotificationPage = 1;
+            hasMoreNotifications = true;
+            isNotificationLoading = false; // Đảm bảo cờ tắt trước khi gọi
+
+            loadNotificationsContent(currentNotificationPage, notificationPageSize);
+            // isNotificationLoading sẽ được bật trong hàm loadNotificationsContent
         });
 
-        // --- Logic Tìm kiếm giữ nguyên ---
+        // --- 3. LOGIC CUỘN VÔ HẠN (INFINITE SCROLL) CHO THÔNG BÁO ---
+        const notificationScrollContainer = document.querySelector('#notificationsBtn + div > .text-sm.h-\\[400px\\]');
+
+        if (notificationScrollContainer) {
+            notificationScrollContainer.addEventListener('scroll', function() {
+                // Kiểm tra xem đã cuộn đến gần cuối chưa
+                const isNearBottom = this.scrollHeight - this.scrollTop <= this.clientHeight + 5;
+
+                // KIỂM TRA CHẶT CHẼ:
+                // 1. Đã cuộn gần cuối (`isNearBottom`)
+                // 2. VẪN CÒN thông báo để tải (`hasMoreNotifications`)
+                // 3. KHÔNG đang tải (`!isNotificationLoading`)
+                // 4. Trang hiện tại phải lớn hơn 0 (đã tải trang 1 thành công hoặc đang ở lần cuộn thứ 2 trở đi)
+                if (isNearBottom && hasMoreNotifications && !isNotificationLoading && currentNotificationPage >= 1) {
+                    // Đặt cờ loading ngay lập tức để chặn request lặp
+                    isNotificationLoading = true;
+                    const nextPage = currentNotificationPage + 1;
+
+                    // Gọi hàm tải nội dung
+                    loadNotificationsContent(nextPage, notificationPageSize)
+                        .then(() => { /* Tải thành công. isNotificationLoading sẽ tắt trong hàm */ })
+                        .catch(error => { /* Tải lỗi. isNotificationLoading sẽ tắt trong hàm */ });
+                }
+            });
+        }
+
+
+        // --- 4. KÍCH HOẠT TẢI TIN NHẮN LẦN ĐẦU KHI CLICK NÚT ---
+        document.getElementById('messagesBtn').addEventListener('click', () => {
+            currentMessagePage = 1;
+            hasMoreMessages = true;
+            isMessageLoading = false; // Đảm bảo cờ tắt trước khi gọi
+            loadMessagesContent(currentMessagePage, messagePageSize);
+            // isMessageLoading sẽ được bật trong hàm loadMessagesContent
+        });
+
+        // --- 5. LOGIC CUỘN VÔ HẠN (INFINITE SCROLL) CHO TIN NHẮN ---
+        const messageDropdown = document.getElementById('message-dropdown');
+
+        if (messageDropdown) {
+            messageDropdown.addEventListener('scroll', function() {
+                const isNearBottom = this.scrollHeight - this.scrollTop <= this.clientHeight + 5;
+
+                if (isNearBottom && hasMoreMessages && !isMessageLoading && currentMessagePage >= 1) {
+                    isMessageLoading = true;
+                    const nextPage = currentMessagePage + 1;
+
+                    // Xóa thông báo 'Đã tải hết' nếu có (tránh hiển thị chung với loading indicator)
+                    const noMore = this.querySelector('.no-more-messages');
+                    if(noMore) noMore.remove();
+
+                    // 1. Hiển thị chỉ báo tải
+                    const indicatorHTML = `<div class="load-more-indicator text-center p-2 text-blue-500 text-sm font-medium">Đang tải thêm tin nhắn...</div>`;
+                    if (this.querySelector('.load-more-indicator') === null) {
+                         this.insertAdjacentHTML('beforeend', indicatorHTML);
+                    }
+
+                    // 2. Gọi hàm tải nội dung
+                    loadMessagesContent(nextPage, messagePageSize)
+                        .then(() => { /* Tải thành công */ })
+                        .catch(error => { /* Tải lỗi */ });
+                }
+            });
+        }
+
+        // --- 6. LOGIC TÌM KIẾM (Giữ nguyên) ---
         const searchForm = document.getElementById('search--box');
         if (searchForm) {
             searchForm.addEventListener('submit', function (e) {
@@ -220,129 +472,9 @@
             });
         }
 
-        // --- Kích hoạt tải tin nhắn lần đầu khi click nút messagesBtn ---
-        document.getElementById('messagesBtn').addEventListener('click', () => {
-            currentMessagePage = 1;
-            hasMoreMessages = true; // Reset trạng thái
-            loadMessagesContent(currentMessagePage, messagePageSize);
-        });
-
-        // --- HÀM TẢI NỘI DUNG TIN NHẮN (ĐÃ TỐI ƯU CHO INFINITE SCROLL) ---
-        function loadMessagesContent(page, size, isScroll = false) {
-            return new Promise((resolve, reject) => {
-                const messageDropdown = document.getElementById('message-dropdown');
-                if (messageDropdown) {
-                    if (page === 1) {
-                        messageDropdown.innerHTML = '<div class="pl-2 p-1 text-sm font-normal">Đang tải tin nhắn...</div>';
-                    }
-
-                    fetch(`/Message/GetMessengerList?pageNumber=${page}&pageSize=${size}`)
-                        .then(response => {
-                            if (!response.ok) {
-                                return response.text().then(text => {
-                                    throw new Error(`Lỗi HTTP! Trạng thái: ${response.status}, Phản hồi: ${text}`);
-                                });
-                            }
-                            return response.text();
-                        })
-                        .then(html => {
-                            const trimmedHtml = html.trim();
-
-                            // Xóa chỉ báo đang tải (loading indicator)
-                            const indicator = messageDropdown.querySelector('.load-more-indicator');
-                            if (indicator) indicator.remove();
-
-                            if (page === 1) {
-                                // Tải trang đầu tiên: Thay thế nội dung
-                                messageDropdown.innerHTML = trimmedHtml || '<div class="pl-2 p-1 text-sm font-normal">Chưa có tin nhắn nào.</div>';
-                                // Nếu không có dữ liệu, coi như đã hết
-                                hasMoreMessages = trimmedHtml.length > 0;
-
-                            } else {
-                                // Tải các trang tiếp theo (Scroll)
-
-                                if (trimmedHtml.length === 0) {
-                                    // Đã hết tin nhắn
-                                    hasMoreMessages = false;
-                                    // Thêm thông báo đã tải hết
-                                    messageDropdown.insertAdjacentHTML('beforeend', '<div class="text-center p-2 text-xs text-gray-500">Đã tải hết tin nhắn.</div>');
-                                } else {
-                                    // Có tin nhắn mới: Nối thêm
-                                    messageDropdown.insertAdjacentHTML('beforeend', trimmedHtml);
-                                }
-                            }
-
-                            // Cập nhật biến trang hiện tại chỉ khi tải thành công và có dữ liệu (hoặc là trang 1)
-                            if (trimmedHtml.length > 0 || page === 1) {
-                                currentMessagePage = page;
-                            }
-                            resolve();
-                        })
-                        .catch(error => {
-                            console.error(`Lỗi khi tải tin nhắn (Trang ${page}): `, error);
-                            // Xóa chỉ báo tải khi lỗi (nếu có)
-                            const indicator = messageDropdown.querySelector('.load-more-indicator');
-                            if (indicator) indicator.remove();
-
-                            if (page === 1) {
-                                messageDropdown.innerHTML = '<div class="pl-2 p-1 text-sm font-normal text-red-500">Không thể tải tin nhắn. Vui lòng thử lại.</div>';
-                            } else {
-                                if (typeof Toastify !== 'undefined') {
-                                    Toastify({
-                                        text: "Không thể tải thêm tin nhắn.",
-                                        duration: 3000,
-                                        backgroundColor: "#f44336",
-                                        gravity: "bottom",
-                                        position: "center",
-                                    }).showToast();
-                                }
-                            }
-                            reject(error);
-                        });
-                } else {
-                    reject(new Error("Không tìm thấy message-dropdown"));
-                }
-            });
-        }
-
-        // --- HÀM TRỢ GIÚP (Nếu vẫn muốn dùng nút Load More) ---
-        window.loadMoreMessages = function(nextPageNumber, pageSize) {
-            loadMessagesContent(nextPageNumber, pageSize);
-        };
-
-        // --- LOGIC CUỘN VÔ HẠN (INFINITE SCROLL) ---
-        const messageDropdown = document.getElementById('message-dropdown');
-
-        if (messageDropdown) {
-            messageDropdown.addEventListener('scroll', function() {
-                // Kiểm tra xem đã cuộn gần đến cuối chưa (lấy ngưỡng 5px)
-                const isNearBottom = this.scrollHeight - this.scrollTop <= this.clientHeight + 5;
-
-                // Điều kiện để tải: Gần cuối + Còn tin nhắn + Không đang tải
-                if (isNearBottom && hasMoreMessages && !isMessageLoading && currentMessagePage > 0) {
-                    isMessageLoading = true; // Đặt cờ đang tải
-                    const nextPage = currentMessagePage + 1;
-
-                    // 1. Hiển thị chỉ báo tải
-                    const indicatorHTML = `<div class="load-more-indicator text-center p-2 text-blue-500 text-sm font-medium">Đang tải thêm tin nhắn...</div>`;
-                    this.insertAdjacentHTML('beforeend', indicatorHTML);
-
-                    // 2. Gọi hàm tải nội dung và xử lý Promise
-                    loadMessagesContent(nextPage, messagePageSize, true)
-                        .then(() => {
-                            // Tải thành công
-                            isMessageLoading = false;
-                        })
-                        .catch(error => {
-                            // Tải lỗi
-                            isMessageLoading = false;
-                            // Xử lý lỗi đã được thực hiện trong loadMessagesContent
-                        });
-                }
-            });
-        }
-
-        // --- Logic đánh dấu Thông báo đã đọc giữ nguyên ---
+        // ------------------------------------------------------------------
+        // ## HÀM GỌI CHUNG ĐÁNH DẤU ĐÃ ĐỌC (Đã tối ưu hóa việc cập nhật Count)
+        // ------------------------------------------------------------------
         window.setNotificationAsRead = function(notificationId) {
             console.log(`Đang cố gắng đánh dấu thông báo ${notificationId} là đã đọc.`);
             const formData = new FormData();
@@ -362,41 +494,20 @@
                 if (apiResponse && apiResponse.status === 1) {
                     console.log(`Thông báo ${notificationId} đã được đánh dấu là đã đọc thành công.`);
 
-                    // Loại bỏ chấm đỏ hoặc đổi màu nền
-                    const dotElement = document.querySelector(`div[onclick="setNotificationAsRead(${notificationId})"] .absolute.top-2.right-2.w-2.h-2.bg-red-600.rounded-full`);
+                    // 1. Loại bỏ chấm đỏ và màu nền
+                    const itemSelector = `div[onclick="setNotificationAsRead(${notificationId})"]`;
+                    const dotElement = document.querySelector(`${itemSelector} .absolute.top-2.right-2.w-2.h-2.bg-red-600.rounded-full`);
                     if (dotElement) {
                         dotElement.remove();
                     }
 
-                    const notificationItem = document.getElementById(`notification-item-${notificationId}`);
+                    const notificationItem = document.getElementById(`notification-item-${notificationId}`) || (dotElement ? dotElement.closest('.relative.flex.items-center.gap-3') : null);
                     if (notificationItem && notificationItem.classList.contains('bg-teal-500/5')) {
                         notificationItem.classList.remove('bg-teal-500/5');
                     }
-                    else if (dotElement) {
-                        const parentDiv = dotElement.closest('.relative.flex.items-center.gap-3');
-                        if (parentDiv && parentDiv.classList.contains('bg-teal-500/5')) {
-                            parentDiv.classList.remove('bg-teal-500/5');
-                        }
-                    }
 
-                    // Cập nhật lại số lượng thông báo chưa đọc
-                    fetch("/Notification/GetCount", {
-                        method: 'GET',
-                        headers: { 'Content-Type': 'application/json' }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        const updatedCount = (typeof data === 'object' && data !== null && data.status === 1 && data.data !== undefined)
-                                             ? data.data : data;
-                        const notificationsCountElement = document.getElementById("notificationsCount");
-                        if (notificationsCountElement) {
-                            notificationsCountElement.innerHTML = updatedCount > 0 ? updatedCount : '';
-                            notificationsCountElement.style.display = updatedCount > 0 ? '' : 'none';
-                        }
-                    })
-                    .catch(error => {
-                        console.error("Lỗi khi cập nhật số lượng thông báo sau khi đánh dấu đã đọc: ", error);
-                    });
+                    // 2. Cập nhật lại số lượng thông báo chưa đọc (gọi lại hàm đã tối ưu)
+                    getUnreadNotificationCount();
 
                 } else {
                     console.error("Không thể đánh dấu thông báo là đã đọc:", apiResponse ? apiResponse.message || apiResponse.mess : "Lỗi API không xác định.");
@@ -406,5 +517,10 @@
                 console.error("Lỗi mạng hoặc lỗi không xác định khi đánh dấu thông báo là đã đọc: ", error);
             });
         };
+
+        // --- HÀM HỖ TRỢ LOAD MORE TIN NHẮN (Giữ nguyên - không dùng cho logic mới) ---
+        // window.loadMoreMessages = function(nextPageNumber, pageSize) {
+        //     loadMessagesContent(nextPageNumber, pageSize);
+        // };
     });
 </script>

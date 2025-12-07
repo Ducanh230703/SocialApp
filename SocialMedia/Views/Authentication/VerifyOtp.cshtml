@@ -2,7 +2,6 @@
 @model VerifyOtpViewModel
 
 <div class="sm:flex">
-    {{-- Form section (Cột Trái) --}}
     <div class="relative lg:w-[580px] md:w-96 w-full p-10 min-h-screen bg-white shadow-xl flex items-center pt-10 z-10">
         <div class="w-full lg:max-w-sm mx-auto space-y-10">
 
@@ -15,7 +14,6 @@
 
             @if (!string.IsNullOrEmpty(Model.Message))
             {
-                // Sử dụng màu đỏ cho lỗi, màu xanh cho thông báo thành công/info
                 var alertClass = Model.Message.Contains("thành công") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700";
                 <div class="p-3 @alertClass rounded-md text-sm font-medium">@Model.Message</div>
             }
@@ -47,13 +45,10 @@
         </div>
     </div>
 
-    {{-- Image slider (Cột Phải) --}}
     <div class="flex-1 relative bg-primary max-md:hidden">
-        @*image slider*@
         <div class="relative w-full h-full" tabindex="-1" uk-slideshow="animation: slide; autoplay: true">
 
             <ul class="uk-slideshow-items w-full h-full">
-                {{-- Slide 1 --}}
                 <li class="w-full">
                     <img src="~/images/welcome/welcome-03.png" alt="Xác thực bảo mật" class="w-full h-full object-cover uk-animation-kenburns uk-animation-reverse uk-transform-origin-center-left">
 
@@ -66,24 +61,22 @@
                     <div class="w-full h-96 bg-gradient-to-t from-black absolute bottom-0 left-0"></div>
                 </li>
 
-                {{-- Slide 2 --}}
                 <li class="w-full">
                     <img src="~/images/welcome/welcome-04.png" alt="Kết nối ngay" class="w-full h-full object-cover uk-animation-kenburns uk-animation-reverse uk-transform-origin-center-left">
                     <div class="absolute bottom-0 w-full uk-tr ansition-slide-bottom-small z-10">
                         <div class="max-w-xl w-full mx-auto pb-32 px-5 z-30 relative">
                             <h4 class="!text-white text-2xl font-semibold mt-7" uk-slideshow-parallax="y: 800,0,0"> Sẵn sàng kết nối </h4>
-                            <p class="!text-white text-lg mt-7 leading-8" uk-slideshow-parallax="y: 800,0,0;"> Chỉ còn một bước nữa là bạn có thể tham gia cộng đồng và tương tác với bạn bè.</p>
+                            <p class="!text-white text-lg mt-7 leading-8" uk-slideshow-parallax="y: 800,0,0"> Chỉ còn một bước nữa là bạn có thể tham gia cộng đồng và tương tác với bạn bè.</p>
                         </div>
                     </div>
                     <div class="w-full h-96 bg-gradient-to-t from-black absolute bottom-0 left-0"></div>
                 </li>
             </ul>
 
-            {{-- slide nav (chấm tròn điều hướng) --}}
             <div class="flex justify-center">
                 <ul class="inline-flex flex-wrap justify-center absolute bottom-8 gap-1.5 uk-dotnav uk-slideshow-nav"> </ul>
             </div>
 
         </div>
     </div>
-</div>
+</div

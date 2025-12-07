@@ -26,11 +26,11 @@
                 </a>
             </p>
 
-            @* Nút xem thành viên chỉ hiển thị nếu không ở trạng thái Pending *@
-            @if (Model.CurrentUserRole != -1)
+            @* Nút xem thành viên chỉ hiển thị nếu người dùng là thành viên hoặc đang chờ duyệt (-1) *@
+            @if (Model.CurrentUserRole != 3) @* Giả sử 3 là trạng thái chưa liên quan gì *@
             {
                 <button onclick="openMembersModal('@Model.ID', '@Model.CurrentUserRole')"
-                        class="bg-green-500 text-white py-2 px-6 rounded-full hover:bg-green-600 transition-colors ml-2">
+                        class="bg-green-500 text-white py-2 px-6 rounded-full hover:bg-green-600 transition-colors ml-2 mt-4">
                     Xem thành viên
                 </button>
             }
@@ -38,7 +38,7 @@
             <div class="mt-4">
                 @switch (Model.CurrentUserRole)
                 {
-                    case -1: // Pending
+                    case -1: // Pending (Đang chờ duyệt)
                              <button onclick="handleGroupAction('@Model.ID', 'DELETE', 'Đã hủy yêu cầu tham gia nhóm')"
                                      class="bg-yellow-500 text-white py-2 px-6 rounded-full hover:bg-yellow-600 transition-colors">
                                  Hủy yêu cầu tham gia nhóm
@@ -46,8 +46,8 @@
                         ;
                         break;
 
-                    case 0: // Member
-                    case 1: // Admin
+                    case 0: // Member (Thành viên)
+                    case 1: // Admin (Quản trị viên)
                             <button onclick="leaveGroup('@Model.ID')"
                                     class="bg-red-600 text-white py-2 px-6 rounded-full hover:bg-red-700 transition-colors">
                                 Rời nhóm
@@ -55,16 +55,16 @@
                         ;
                         break;
 
-                    case 2: // Owner
+                    case 2: // Owner (Chủ nhóm)
                             <button onclick="deleteGroup('@Model.ID')"
-                                    class="bg-red-600 text-white py-2 px-6 rounded-full hover:bg-gray-800 transition-colors ml-2">
+                                    class="bg-red-600 text-white py-2 px-6 rounded-full hover:bg-red-700 transition-colors ml-2">
                                 Xóa nhóm
                             </button>
                         ;
                         break;
 
-                    default: // Không phải thành viên
-                             <button onclick="handleGroupAction('@Model.ID', 'POST', 'Gửi yêu cầu tham gia nhóm')"
+                    default: // Không phải thành viên (Role khác -1, 0, 1, 2)
+                             <button onclick="handleGroupAction('@Model.ID', 'POST', '@(Model.IsPrivate ? "Yêu cầu tham gia đã được gửi" : "Đã tham gia nhóm")')"
                                      class="bg-blue-500 text-white py-2 px-6 rounded-full hover:bg-blue-600 transition-colors">
                                  Tham gia nhóm
                              </button>
@@ -75,6 +75,7 @@
         </div>
     </div>
 
+    @* Khung đăng bài chỉ hiển thị nếu người dùng là thành viên *@
     @if (Model.IsMember)
     {
         <div class="bg-white rounded-xl shadow-sm md:p-4 p-2 space-y-4 text-sm font-medium border1">
@@ -94,9 +95,11 @@
             </div>
         </div>
     }
+
+    @* Vùng hiển thị bài viết *@
     @if (Model.IsPrivate && Model.IsMember || !Model.IsPrivate)
     {
-        <div id="posts-container" style="width:580px" class="space-y-4">
+        <div id="posts-container" style="width:580px" class="space-y-4 mt-6">
             @if (Model.RecentPosts != null && Model.RecentPosts.Any())
             {
                 foreach (var post in Model.RecentPosts)
@@ -110,6 +113,16 @@
             }
         </div>
     }
+    else if (Model.IsPrivate && Model.CurrentUserRole == -1)
+    {
+        <p class="text-center text-gray-500 mt-6 p-4 bg-white rounded-xl shadow-sm">Bạn đã gửi yêu cầu tham gia. Bài viết sẽ hiển thị sau khi yêu cầu được duyệt.</p>
+    }
+    else if (Model.IsPrivate && Model.CurrentUserRole == 3) // Không phải thành viên và là nhóm riêng tư
+    {
+        <p class="text-center text-gray-500 mt-6 p-4 bg-white rounded-xl shadow-sm">Đây là nhóm riêng tư. Vui lòng tham gia để xem nội dung.</p>
+    }
+
+    @* Các Partial View cho Modal *@
     <partial name="/Views/Home/_CreateStatus.cshtml" model="new PostVM { GroupID = Model.ID };" />
     <partial name="/Views/Home/_PostDeleteConfirmation.cshtml" />
     <partial name="/Views/Home/_EditStatus.cshtml" model="new PostEditVM()" />
@@ -118,6 +131,10 @@
 
 @section Scripts {
     <script>
+        // Các hàm quản lý Toastify và Modal (giữ nguyên)
+        // Lưu ý: Các hàm kickMember, toggleAdmin, approveMember, rejectMember được đặt ở đây
+        // vì chúng cần biến currentGroupId và showToast, và có thể được gọi từ modal (được tải động).
+
         // --- Toastify ---
         function showToast(message, isSuccess) {
             if (typeof Toastify === 'function') {
@@ -133,7 +150,7 @@
             }
         }
 
-        // --- Tham gia / Hủy ---
+        // --- Tham gia / Hủy yêu cầu tham gia ---
         function handleGroupAction(groupId, method, successMessage) {
             let actionText = (method === 'POST') ? 'tham gia' : 'hủy yêu cầu';
             if (!confirm(`Bạn có chắc chắn muốn ${actionText} nhóm này không?`)) return;
@@ -164,13 +181,14 @@
             .then(res => res.json())
             .then(data => {
                 showToast(data.mess || "Rời nhóm thành công!", data.status === 1);
-                if (data.status === 1) setTimeout(() => window.location.href = '/Group', 800);
-            });
+                if (data.status === 1) setTimeout(() => window.location.href = '/Group', 800); // Chuyển hướng về trang danh sách nhóm
+            })
+            .catch(() => showToast("Đã xảy ra lỗi hệ thống khi rời nhóm.", false));
         }
 
-        // --- Xóa nhóm ---
+        // --- Xóa nhóm (Chỉ Chủ nhóm) ---
         function deleteGroup(groupId) {
-            if (!confirm("Bạn có chắc chắn muốn xóa nhóm này không?")) return;
+            if (!confirm("Bạn có chắc chắn muốn xóa nhóm này không? Thao tác này không thể hoàn tác!")) return;
             fetch('/Group/DeleteGroup', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
@@ -181,49 +199,72 @@
                 showToast(data.mess || "Nhóm đã được xóa thành công!", data.status === 1);
                 if (data.status === 1) setTimeout(() => window.location.href = '/Group/Index', 800);
             })
-            .catch(() => showToast("Đã xảy ra lỗi hệ thống.", false));
+            .catch(() => showToast("Đã xảy ra lỗi hệ thống khi xóa nhóm.", false));
         }
 
         // --- Modal thành viên ---
         async function openMembersModal(groupId, currentUserRole) {
             try {
+                // Tải nội dung modal từ controller
                 const res = await fetch(`/GroupMember/ShowMembersModal?groupId=${groupId}&currentUserRole=${currentUserRole}`);
+                if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+
                 const html = await res.text();
-                document.querySelectorAll('#groupMembersModal').forEach(e => e.remove());
+
+                // Xóa modal cũ nếu tồn tại và thêm modal mới
+                document.getElementById('groupMembersModal')?.remove();
                 document.body.insertAdjacentHTML('beforeend', html);
-                document.getElementById('groupMembersModal').classList.remove('hidden');
+
+                // Hiển thị modal (Giả sử modal sử dụng UIkit hoặc Tailwind class 'flex' để hiển thị)
+                const modalElement = document.getElementById('groupMembersModal');
+                if (modalElement) {
+                     // Dùng hàm show của UIkit nếu có, hoặc chỉ cần remove 'hidden'
+                     if (typeof UIkit !== 'undefined') {
+                         UIkit.modal(modalElement).show();
+                     } else {
+                         modalElement.classList.remove('hidden');
+                         modalElement.classList.add('flex', 'fixed', 'inset-0', 'bg-black/50', 'z-50', 'items-center', 'justify-center');
+                     }
+                }
             } catch (error) {
+                showToast("Lỗi tải danh sách thành viên.", false);
                 console.error("Lỗi tải danh sách thành viên:", error);
             }
         }
 
+        // Hàm đóng modal được gọi từ bên trong modal (ví dụ: nút đóng)
         function closeMembersModal() {
-            const modal = document.getElementById('groupMembersModal');
-            if (modal) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
+             const modal = document.getElementById('groupMembersModal');
+             if (modal && typeof UIkit !== 'undefined') {
+                 UIkit.modal(modal).hide();
+             } else if (modal) {
+                 modal.classList.add('hidden');
+                 modal.classList.remove('flex', 'fixed', 'inset-0', 'bg-black/50', 'z-50', 'items-center', 'justify-center');
+             }
         }
 
-        // --- JS cho các nút trong modal (chuyển từ partial sang đây) ---
+        // --- JS cho các hành động trong modal quản lý thành viên ---
         const currentGroupId = @Model.ID;
 
+        // Kick thành viên
         function kickMember(userId) {
-            if (!confirm("Bạn có chắc muốn kick thành viên này không?")) return;
+            if (!confirm("Bạn có chắc muốn kick thành viên này ra khỏi nhóm không?")) return;
             fetch(`/GroupMember/DeleteMember?groupId=${currentGroupId}&memberId=${userId}`, {
-              method: 'DELETE'
+             method: 'DELETE'
             })
             .then(res => res.json())
             .then(data => {
-                showToast(data.mess || (data.status === 1 ? "Đã kick thành viên." : "Không thể kick."), data.status === 1);
+                showToast(data.mess || (data.status === 1 ? "Đã kick thành viên thành công." : "Không thể kick thành viên."), data.status === 1);
                 if (data.status === 1) location.reload();
-            });
+            })
+            .catch(() => showToast("Đã xảy ra lỗi hệ thống.", false));
         }
 
+        // Thay đổi quyền Admin
         function toggleAdmin(userId, currentRole) {
             const isAdmin = currentRole.toLowerCase() === 'admin';
             const url = isAdmin ? '/GroupMember/RemoveAdmin' : '/GroupMember/AddAdmin';
-            const confirmMsg = isAdmin ? 'Gỡ quyền admin?' : 'Thêm quyền admin?';
+            const confirmMsg = isAdmin ? 'Gỡ quyền admin cho người này?' : 'Thêm quyền admin cho người này?';
 
             if (confirm(confirmMsg)) {
                 fetch(url, {
@@ -233,13 +274,16 @@
                 })
                 .then(res => res.json())
                 .then(data => {
-                    showToast(data.mess || (data.status === 1 ? "Thành công." : "Không thể thực hiện."), data.status === 1);
+                    showToast(data.mess || (data.status === 1 ? "Cập nhật quyền thành công." : "Không thể thực hiện."), data.status === 1);
                     if (data.status === 1) location.reload();
-                });
+                })
+                .catch(() => showToast("Đã xảy ra lỗi hệ thống.", false));
             }
         }
 
+        // Duyệt thành viên
         function approveMember(userId) {
+            if (!confirm("Bạn có chắc chắn muốn duyệt yêu cầu này?")) return;
             fetch('/GroupMember/ApproveJoin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -247,12 +291,15 @@
             })
             .then(res => res.json())
             .then(data => {
-                showToast(data.mess || (data.status === 1 ? "Đã duyệt thành viên." : "Không thể duyệt."), data.status === 1);
+                showToast(data.mess || (data.status === 1 ? "Đã duyệt thành viên thành công." : "Không thể duyệt."), data.status === 1);
                 if (data.status === 1) location.reload();
-            });
+            })
+            .catch(() => showToast("Đã xảy ra lỗi hệ thống.", false));
         }
 
+        // Từ chối thành viên
         function rejectMember(userId) {
+            if (!confirm("Bạn có chắc chắn muốn từ chối yêu cầu này?")) return;
             fetch('/GroupMember/RejectJoin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -260,9 +307,10 @@
             })
             .then(res => res.json())
             .then(data => {
-                showToast(data.mess || (data.status === 1 ? "Đã từ chối yêu cầu." : "Không thể từ chối."), data.status === 1);
+                showToast(data.mess || (data.status === 1 ? "Đã từ chối yêu cầu thành công." : "Không thể từ chối."), data.status === 1);
                 if (data.status === 1) location.reload();
-            });
+            })
+            .catch(() => showToast("Đã xảy ra lỗi hệ thống.", false));
         }
     </script>
 }

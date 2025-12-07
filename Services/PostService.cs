@@ -25,7 +25,7 @@ namespace Services
         /// Lấy tất cả bài viết
         /// </summary>
         /// <returns></returns>
-        public static async Task<PaginatedResponse<PostFull>> GetAllPosts(int pageNumber, int pageSize,int loggedInUserId)
+        public static async Task<PaginatedResponse<PostFull>> GetAllPosts(int pageNumber, int pageSize,int loggedInUserId)      
         {
             if (pageNumber < 1) pageNumber = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
@@ -153,6 +153,7 @@ namespace Services
                     {
                         if (!string.IsNullOrEmpty(post.ImageUrl))
                         {
+
                             string[] fileNames = post.ImageUrl.Split(',');
 
                             var fullImageUrls = fileNames.Select(fileName =>
@@ -163,7 +164,11 @@ namespace Services
                         }
                         if (!string.IsNullOrEmpty(post.UserProfilePictureUrl))
                         {
-                            post.UserProfilePictureUrl = apiAvatar + post.UserProfilePictureUrl;
+                            if (post.IsAnnoy)
+                            {
+                                post.UserProfilePictureUrl = apiAvatar + "user.png";
+                            }
+                            else post.UserProfilePictureUrl = apiAvatar + post.UserProfilePictureUrl;
 
                         }
 
@@ -319,6 +324,7 @@ namespace Services
                         p.DateCreated,
                         p.IsDeleted,
                         p.UserId,
+                        p.IsAnnoy,
                         u.FullName AS UserFullName,
                         u.ProfilePictureUrl AS UserProfilePictureUrl,
                         l.UserId AS LikeUserId,
@@ -367,6 +373,7 @@ namespace Services
                         DateCreated = Convert.ToDateTime(row["DateCreated"]),
                         UserId = Convert.ToInt32(row["UserId"]),
                         UserFullName = row["UserFullName"] + "",
+                        IsAnnoy = Convert.ToBoolean(row["IsAnnoy"]),
                         UserProfilePictureUrl =apiAvatar+ row["UserProfilePictureUrl"] + "",
                         LikeUserIds = new List<int>(),
                         Comments = new List<CommentDetail>()
@@ -435,7 +442,6 @@ namespace Services
         /// <returns></returns>
         public static async Task<ApiReponseModel> UserDeletePost(int PostId, int UserId)
         {
-            // Kiểm tra quyền sở hữu
             if (!await CheckPostOwner(PostId, UserId))
             {
                 return new ApiReponseModel
@@ -642,10 +648,10 @@ namespace Services
         {
             var sql = "SELECT COUNT(*) FROM Posts WHERE ID = @PostId AND UserId = @UserId";
             var param = new System.Collections.SortedList
-    {
-        {"PostId", postId },
-        {"UserId", userId }
-    };
+            {
+                {"PostId", postId },
+                {"UserId", userId }
+            };
 
             var dt = await connectDB.Select(sql, param);
             if (dt.Rows.Count > 0)

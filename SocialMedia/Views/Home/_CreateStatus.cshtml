@@ -1,10 +1,10 @@
-﻿﻿@using Models.ViewModel.Home
+﻿@using Models.ViewModel.Home
 @model PostVM
 
 <div class="hidden lg:p-20" id="create-status" uk-modal="">
     <div class="uk-modal-dialog tt relative overflow-hidden mx-auto bg-white shadow-xl rounded-lg md:w-[520px] w-full">
         <div class="text-center py-4 border-b mb-0">
-            <h2 class="text-sm font-medium text-black">Create Status</h2>
+            <h2 class="text-sm font-medium text-black">Tạo Bài Viết Mới</h2>
             <button type="button" class="button-icon absolute top-0 right-0 m-2.5 uk-modal-close">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -14,46 +14,51 @@
 
         <form asp-controller="Home" asp-action="CreatePost" enctype="multipart/form-data" id="createPostForm">
             <input type="hidden" name="GroupID" asp-for="GroupID" />
+
             <div class="space-y-5 mt-3 p-2">
-                <textarea name="Content" id="Content" class="w-full !text-black placeholder:!text-black !bg-white !border-transparent focus:!border-transparent focus:!ring-transparent !font-normal !text-xl" asp-for="Content" rows="2" placeholder="What do you have in mind?"></textarea>
+                <textarea name="Content" id="Content" class="w-full !text-black placeholder:!text-gray-500 !bg-white !border-transparent focus:!border-transparent focus:!ring-transparent !font-normal !text-xl resize-none" asp-for="Content" rows="3" placeholder="Bạn đang nghĩ gì?"></textarea>
             </div>
+
             <div class="flex items-center gap-2 text-sm py-2 px-4 font-medium flex-wrap">
-                <input id="imageUpload" type="file" class="hidden" name="Image" multiple accept="image/png, image/jpeg" />
+                <input id="imageUpload" type="file" class="hidden" name="Image" multiple accept="image/png, image/jpeg, image/gif" />
 
                 <div id="imagePreviewContainer" class="flex flex-wrap gap-2 hidden"></div>
 
-                <button type="button" id="imageUploadBtn" class="flex items-center gap-1.5 bg-sky-50 text-sky-600 rounded-full py-1 px-2 border-2 border-sky-100">
-                    <ion-icon name="image" class="text-base"></ion-icon> Image
+                <button type="button" id="imageUploadBtn" class="flex items-center gap-1.5 bg-sky-50 text-sky-600 rounded-full py-1 px-2 border-2 border-sky-100 transition-colors hover:bg-sky-100">
+                    <ion-icon name="image" class="text-base"></ion-icon> Ảnh
                 </button>
             </div>
-            <div id="isAnnoyContainer" class="p-5 hidden">
-                <label class="flex items-center gap-2 text-sm">
-                    <input type="checkbox" asp-for="IsAnnoy" />
+
+            <div id="isAnnoyContainer" class="p-5 pt-0 hidden">
+                <label class="flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" asp-for="IsAnnoy" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" />
                     <span>Đăng ẩn danh trong nhóm</span>
                 </label>
             </div>
 
-            <div class="p-5 flex justify-between items-center">
-                <button type="submit" class="button bg-blue-500 text-white py-2 px-12 text-[14px]">Create</button>
+            <div class="p-5 flex justify-between items-center border-t">
+                <button type="submit" class="button bg-blue-500 text-white py-2 px-12 text-[14px] rounded-lg hover:bg-blue-600 transition-colors">Đăng Bài</button>
             </div>
         </form>
     </div>
 </div>
- 
+
 <script>
     window.addEventListener("DOMContentLoaded", () => {
         const groupId = "@Model.GroupID";
 
+        // Hiển thị tùy chọn ẩn danh nếu đây là bài đăng trong nhóm
         if (groupId && groupId !== "0") {
             document.getElementById('isAnnoyContainer').classList.remove('hidden');
         }
-
 
         const imageUploadBtn = document.getElementById('imageUploadBtn');
         const imageUpload = document.getElementById('imageUpload');
         const imagePreviewContainer = document.getElementById('imagePreviewContainer');
         const createPostForm = document.getElementById('createPostForm');
-        let previewFiles = [];
+        let previewFiles = []; // Mảng để lưu trữ các file đã chọn
+
+        // --- Logic Drag and Drop ---
 
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             createPostForm.addEventListener(eventName, preventDefaults, false);
@@ -65,25 +70,27 @@
         }
 
         createPostForm.addEventListener('dragenter', () => {
-            createPostForm.classList.add('border-blue-500');
-            createPostForm.classList.remove('border-gray-300');
+            createPostForm.classList.add('border-blue-500', 'border-2'); // Thêm border để feedback
+            createPostForm.classList.remove('border-gray-300', 'border-1');
         }, false);
 
         createPostForm.addEventListener('dragleave', () => {
-            createPostForm.classList.remove('border-blue-500');
-            createPostForm.classList.add('border-gray-300');
+            createPostForm.classList.remove('border-blue-500', 'border-2');
+            createPostForm.classList.add('border-gray-300', 'border-1');
         }, false);
 
         createPostForm.addEventListener('drop', handleDrop, false);
 
         function handleDrop(e) {
-            createPostForm.classList.remove('border-blue-500');
-            createPostForm.classList.add('border-gray-300');
+            createPostForm.classList.remove('border-blue-500', 'border-2');
+            createPostForm.classList.add('border-gray-300', 'border-1');
 
             const droppedFiles = e.dataTransfer.files;
 
             handleNewFiles(droppedFiles);
         }
+
+        // --- Logic Click Chọn Ảnh ---
 
         imageUploadBtn.addEventListener('click', () => {
             imageUpload.click();
@@ -95,10 +102,13 @@
             handleNewFiles(selectedFiles);
         });
 
+        // --- Xử lý File chung (Drop và Click) ---
+
         function handleNewFiles(files) {
-            const newFiles = Array.from(files);
+            const newFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
 
             newFiles.forEach(file => {
+                // Kiểm tra trùng lặp dựa trên tên và kích thước
                 const exists = previewFiles.some(f => f.name === file.name && f.size === file.size);
                 if (!exists) {
                     previewFiles.push(file);
@@ -109,7 +119,7 @@
             updateImagePreview();
         }
 
-        // Function to update the image preview UI
+        // Cập nhật giao diện xem trước ảnh
         function updateImagePreview() {
             imagePreviewContainer.innerHTML = '';
             imagePreviewContainer.classList.toggle('hidden', previewFiles.length === 0);
@@ -122,23 +132,25 @@
 
                     const img = document.createElement('img');
                     img.src = e.target.result;
-                    img.classList.add('w-24', 'h-24', 'rounded');
+                    img.alt = "Ảnh xem trước " + (index + 1);
+                    img.classList.add('w-24', 'h-24', 'rounded', 'object-cover');
                     previewItem.appendChild(img);
 
                     const removeButton = document.createElement('button');
+                    // Sử dụng ký hiệu đóng tiêu chuẩn (x)
                     removeButton.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>`;
-                    removeButton.classList.add('absolute', 'top-0', 'right-0', '-mt-1', '-mr-1', 'bg-white', 'rounded-full', 'w-6', 'h-6', 'flex', 'items-center', 'justify-center', 'shadow');
+                    removeButton.classList.add('absolute', 'top-0', 'right-0', '-mt-1', '-mr-1', 'bg-red-500', 'rounded-full', 'w-6', 'h-6', 'flex', 'items-center', 'justify-center', 'shadow-md', 'transition-colors', 'hover:bg-red-600');
 
                     removeButton.addEventListener('click', (e) => {
                         e.preventDefault();
 
-                        // Remove the file from our main array
+                        // Xóa file khỏi mảng chính
                         previewFiles.splice(index, 1);
 
-                        // Update the input's FileList and the UI
+                        // Cập nhật FileList của input và giao diện
                         updateInputFiles();
                         updateImagePreview();
                     });
@@ -150,34 +162,39 @@
             });
         }
 
-        // Function to update the input's FileList object
+        // Cập nhật đối tượng FileList của input file để gửi đi
         function updateInputFiles() {
             const dt = new DataTransfer();
             previewFiles.forEach(f => dt.items.add(f));
             imageUpload.files = dt.files;
 
-            // Clear the input's value if there are no files, to allow re-uploading the same file
+            // Xóa giá trị của input nếu không còn file nào, cho phép tải lại cùng một file
             if (previewFiles.length === 0) {
                 imageUpload.value = '';
             }
         }
 
-        // Prevent form submission if content and files are empty
+        // --- Logic Ngăn Chặn Gửi Form Trống (Validation) ---
         createPostForm.addEventListener('submit', (event) => {
             const content = createPostForm.querySelector('#Content').value.trim();
             const files = imageUpload.files;
 
             if (content.length === 0 && files.length === 0) {
                 event.preventDefault();
-                Toastify({
-                    text: "Vui lòng nhập nội dung hoặc chọn ảnh để đăng.",
-                    duration: 3000,
-                    gravity: "top",
-                    position: "center",
-                    backgroundColor: "#f44336"
-                }).showToast();
+                // Sử dụng Toastify để hiển thị thông báo lỗi
+                if (typeof Toastify === 'function') {
+                    Toastify({
+                        text: "Vui lòng nhập nội dung hoặc chọn ảnh để đăng.",
+                        duration: 3000,
+                        gravity: "top",
+                        position: "center",
+                        backgroundColor: "#f44336"
+                    }).showToast();
+                } else {
+                    alert("Vui lòng nhập nội dung hoặc chọn ảnh để đăng.");
+                }
             }
         });
-        
+
     });
 </script>

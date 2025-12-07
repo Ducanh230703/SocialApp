@@ -15,5 +15,7 @@ namespace Models.ReponseModel
         public string ProfilePictureUrl { get; set; }
 
         public string Token { get; set; }
+
+        public string Role { get; set; }
     }
 }

@@ -15,6 +15,8 @@ namespace Models
         public string? ProfilePictureUrl { get; set; }
         public string? Bio { get; set; }
         public bool IsVerified { get; set; }
+
+        public string Role { get; set; }
         public bool IsOnline { get; set; } = false;
         public DateTime DateCreated { get; set; }
         public DateTime DateUpdated { get; set; }

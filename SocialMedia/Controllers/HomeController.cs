@@ -62,7 +62,7 @@ public class HomeController : Controller
         }
 
     [HttpGet]   
-    public async Task<IActionResult> GetMorePosts(int pageNumber, int pageSize) 
+    public async Task<IActionResult> GetMorePosts(int pageNumber, int pageSize,int profileId) 
     {
         var token = Request.Cookies["AuthToken"];
         if (string.IsNullOrEmpty(token))
@@ -81,8 +81,8 @@ public class HomeController : Controller
             }
 
             ViewBag.LoggedInUserId = loggedInUserId;
-            var allPosts = await ApiHelper.GetAsync<PaginatedResponse<PostFull>>($"/api/Post/getall?pageNumber={pageNumber}&pageSize={pageSize}", token);
-            return PartialView("_PostList", allPosts.Data);
+            var allPosts = await ApiHelper.GetAsync<ApiReponseModel<PaginatedResponse<PostFull>>>($"/api/User/getmorepost?pageNumber={pageNumber}&pageSize={pageSize}&profileId={profileId}", token);
+            return PartialView("_PostList", allPosts.Data.Data);
         }
         catch (HttpRequestException ex)
         {
@@ -560,6 +560,45 @@ public class HomeController : Controller
 
         return BadRequest("failed");
     }
+
+
+    [HttpGet]
+    public async Task<IActionResult> GetMorePostsIndex(int pageNumber, int pageSize)
+    {
+        var token = Request.Cookies["AuthToken"];
+        if (string.IsNullOrEmpty(token))
+        {
+            Response.StatusCode = 401;
+            return Json(new { success = false, message = "Unauthorized: Authentication token missing. Please log in again." });
+        }
+
+        try
+        {
+            int loggedInUserId = 0;
+            var loggedInUserIdCookie = Request.Cookies["LoggedInUserId"];
+            if (!string.IsNullOrEmpty(loggedInUserIdCookie) && int.TryParse(loggedInUserIdCookie, out int parsedUserId))
+            {
+                loggedInUserId = parsedUserId;
+            }
+
+            ViewBag.LoggedInUserId = loggedInUserId;
+            var allPosts = await ApiHelper.GetAsync<ApiReponseModel<PaginatedResponse<PostFull>>>($"/api/User/getmorepost?pageNumber={pageNumber}&pageSize={pageSize}", token);
+            return PartialView("_PostList", allPosts.Data.Data);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, $"Lỗi HttpRequest khi tải thêm bài viết từ API trong GetMorePosts: {ex.Message}");
+            Response.StatusCode = 500;
+            return Json(new { success = false, message = "Server error: Could not load more posts due to API request issue." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Lỗi không xác định khi tải thêm bài viết trong GetMorePosts: {ex.Message}");
+            Response.StatusCode = 500;
+            return Json(new { success = false, message = "An unexpected error occurred while loading more posts." });
+        }
+    }
+
 
 }
 

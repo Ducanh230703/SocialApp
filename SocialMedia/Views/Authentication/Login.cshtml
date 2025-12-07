@@ -5,45 +5,43 @@
     <div class="relative lg:w-[580px] md:w-96 w-full p-10 min-h-screen bg-white shadow-xl flex items-center pt-10 z-10">
         <div class="w-full lg:max-w-sm mx-auto space-y-10">
             <div>
-                <h2 class="text-2xl font-semibold mb-1.5">Sign in to your account</h2>
+                <h2 class="text-2xl font-semibold mb-1.5">Đăng nhập vào tài khoản của bạn</h2>
                 <p class="text-sm text-gray-700 font-normal">
                     @if (TempData["SuccessMessage"] != null)
                     {
                         <span class="text-green-500">@TempData["SuccessMessage"]</span>
                     }
                 </p>
-                <p class="text-sm text-gray-700 font-normal">If you have not signed up yet. <a asp-controller="Authentication" asp-action="Register" class="text-blue-700">Register here!</a></p>
+                <p class="text-sm text-gray-700 font-normal">Nếu bạn chưa có tài khoản. <a asp-controller="Authentication" asp-action="Register" class="text-blue-700">Đăng ký tại đây!</a></p>
             </div>
             <form asp-controller="Authentication" asp-action="Login" method="post" class="space-y-7 text-sm text-black font-medium">
                 <div class="col-span-2 text-red-500" asp-validation-summary="ModelOnly"></div>
                 <div>
-                    <label asp-for="Email">Email address</label>
+                    <label asp-for="Email">Địa chỉ Email</label>
                     <div class="mt-2.5">
                         <input asp-for="Email" id="email" name="email" type="email" placeholder="Email" required class="!w-full" />
                         <span asp-validation-for="Email" class="text-red-500 text-xs mt-1"></span>
                     </div>
                 </div>
                 <div>
-                    <label asp-for="Password">Password</label>
+                    <label asp-for="Password">Mật khẩu</label>
                     <div class="mt-2.5 password-container">
-                        <input asp-for="Password" id="password-field" name="password" type="password" required class="!w-full" />
+                        <input asp-for="Password" id="password-field" name="password" placeholder="Mật khẩu" type="password" required class="!w-full" />
                         <span asp-validation-for="Password" class="text-red-500 text-xs mt-1"></span>
                         <button type="button" onclick="togglePasswordVisibility('password-field')">👁️</button>
                     </div>
                 </div>
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2.5">
-                        <input id="rememberme" name="rememberme" type="checkbox">
-                        <label for="rememberme" class="font-normal">Remember me</label>
-                    </div>
-                    <a asp-controller="Authentication" asp-action="ForgotPassword" class="text-blue-700">Forget password</a>
+                    <a asp-controller="Authentication" asp-action="ForgotPassword" class="text-blue-700">Quên mật khẩu</a>
                 </div>
                 <div>
-                    <button type="submit" class="button bg-primary text-white w-full">Sign in</button>
+                    <button type="submit" class="button bg-primary text-white w-full">Đăng nhập</button>
                 </div>
-                <div class="text-center flex items-center gap-6">
-                    <hr class="flex-1 border-slate-200">
-                    Or continue with
+                <div class="text-center flex items-center gap-6 my-4">
+                    <hr class="flex-1 border-slate-200" style="margin-top:20px">
+
+                    <span class="text-base text-gray-500 font-medium whitespace-nowrap">HOẶC</span>
+
                     <hr class="flex-1 border-slate-200">
                 </div>
                 <div class="flex gap-2">
@@ -63,8 +61,8 @@
                     <img src="~/images/welcome/welcome-01.png" alt="" class="w-full h-full object-cover uk-animation-kenburns uk-animation-reverse uk-transform-origin-center-left">
                     <div class="absolute bottom-0 w-full uk-transition-slide-bottom-small z-10">
                         <div class="max-w-xl w-full mx-auto pb-32 px-5 z-30 relative">
-                            <h4 class="!text-white text-2xl font-semibold mt-7" uk-slideshow-parallax="y: 600,0,0">Connect with Friends</h4>
-                            <p class="!text-white text-lg mt-7 leading-8" uk-slideshow-parallax="y: 800,0,0;">Bridge the gap between miles and moments—connect with friends and weave memories together, one click at a time.</p>
+                            <h4 class="!text-white text-2xl font-semibold mt-7" uk-slideshow-parallax="y: 600,0,0">Kết nối với Bạn bè</h4>
+                            <p class="!text-white text-lg mt-7 leading-8" uk-slideshow-parallax="y: 800,0,0;">Xóa bỏ khoảng cách giữa dặm đường và khoảnh khắc—kết nối với bạn bè và cùng nhau dệt nên những ký ức, chỉ bằng một cú nhấp chuột.</p>
                         </div>
                     </div>
                     <div class="w-full h-96 bg-gradient-to-t from-black absolute bottom-0 left-0"></div>
@@ -73,8 +71,8 @@
                     <img src="~/images/welcome/welcome-02.png" alt="" class="w-full h-full object-cover uk-animation-kenburns uk-animation-reverse uk-transform-origin-center-left">
                     <div class="absolute bottom-0 w-full uk-tr ansition-slide-bottom-small z-10">
                         <div class="max-w-xl w-full mx-auto pb-32 px-5 z-30 relative">
-                            <h4 class="!text-white text-2xl font-semibold mt-7" uk-slideshow-parallax="y: 800,0,0"> Connect With Friends </h4>
-                            <p class="!text-white text-lg mt-7 leading-8" uk-slideshow-parallax="y: 800,0,0;"> Rekindle old ties and spark new ones—your next 'Remember when...' moment is just a friend request away.</p>
+                            <h4 class="!text-white text-2xl font-semibold mt-7" uk-slideshow-parallax="y: 800,0,0"> Kết nối Với Bạn bè </h4>
+                            <p class="!text-white text-lg mt-7 leading-8" uk-slideshow-parallax="y: 800,0,0;"> Hâm nóng mối quan hệ cũ và khơi dậy những kết nối mới—khoảnh khắc 'Bạn còn nhớ khi...' tiếp theo của bạn chỉ cách một lời mời kết bạn.</p>
                         </div>
                     </div>
                     <div class="w-full h-96 bg-gradient-to-t from-black absolute bottom-0 left-0"></div>

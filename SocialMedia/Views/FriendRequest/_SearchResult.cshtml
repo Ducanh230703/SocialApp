@@ -5,7 +5,6 @@
     var currentQuery = ViewData["SearchQuery"]?.ToString();
 }
 
-<!-- 🟩 Kết quả tìm kiếm -->
 @if (Model != null && Model.Any())
 {
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="search-results-grid">
@@ -16,8 +15,8 @@
             <div class="bg-white rounded-xl shadow-sm p-4 flex items-center space-x-4">
                 <a href="/User/Details?userId=@(result.ID)">
                     <img src="@(!string.IsNullOrEmpty(result.ProfilePictureUrl)
-                                                     ? result.ProfilePictureUrl
-                                                     : Url.Content("~/images/avatar/user.png"))"
+                                                                      ? result.ProfilePictureUrl
+                                                                      : Url.Content("~/images/avatar/user.png"))"
                  alt="@(result.FullName ?? "Người dùng")"
                  class="w-16 h-16 rounded-full object-cover">
         </a>

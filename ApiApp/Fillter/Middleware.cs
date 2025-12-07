@@ -31,6 +31,7 @@ namespace ApiApp.Fillter
                 return;
             }
 
+
             if (path.Contains("/login") || path.Contains("/register"))
             {
                 await _next(context);

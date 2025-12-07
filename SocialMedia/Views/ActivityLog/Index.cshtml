@@ -1,5 +1,6 @@
 ﻿@model Models.ReponseModel.ApiReponseModel<Models.ReponseModel.PaginatedResponse<Models.ReponseModel.ActivityLogResponse>>
 @{
+    // Dịch: "Activity Log" -> "Nhật ký Hoạt động"
     ViewData["Title"] = "Nhật ký Hoạt động";
     Layout = "_Layout";
 
@@ -28,7 +29,7 @@
                 @if (TempData["Error"] != null)
                 {
                     <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                        <strong class="font-bold">Lỗi!</strong>
+                        <strong class="font-bold">Lỗi!</strong> @* Dịch: "Error!" -> "Lỗi!" *@
                         <span class="block sm:inline"> @TempData["Error"] </span>
                     </div>
                 }
@@ -36,15 +37,15 @@
                 @if (Model == null || Model.Status == 0 || paginatedData == null)
                 {
                     <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                        <strong class="font-bold">Lỗi tải dữ liệu!</strong>
-                        <span class="block sm:inline"> @(Model?.Mess ?? "Không thể tải dữ liệu nhật ký hoạt động.") </span>
+                        <strong class="font-bold">Lỗi tải dữ liệu!</strong> @* Dịch: "Error loading data!" -> "Lỗi tải dữ liệu!" *@
+                        <span class="block sm:inline"> @(Model?.Mess ?? "Không thể tải dữ liệu nhật ký hoạt động.") </span> @* Dịch: "Could not load activity log data." -> "Không thể tải dữ liệu nhật ký hoạt động." *@
                     </div>
                 }
                 else if (paginatedData.Data == null || !paginatedData.Data.Any())
                 {
                     <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative" role="alert">
-                        <strong class="font-bold">Thông báo!</strong>
-                        <span class="block sm:inline"> Hiện chưa có bản ghi hoạt động nào. </span>
+                        <strong class="font-bold">Thông báo!</strong> @* Dịch: "Notice!" -> "Thông báo!" *@
+                        <span class="block sm:inline"> Hiện chưa có bản ghi hoạt động nào. </span> @* Dịch: "There are currently no activity records." -> "Hiện chưa có bản ghi hoạt động nào." *@
                     </div>
                 }
                 else
@@ -54,11 +55,11 @@
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-600">
                                 <thead class="bg-gray-50 dark:bg-slate-800">
                                     <tr>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Thời gian</th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Người dùng</th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Hành động</th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Mục tiêu</th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Mô tả</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Thời gian</th> @* Dịch: "Time" -> "Thời gian" *@
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Người dùng</th> @* Dịch: "User" -> "Người dùng" *@
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Hành động</th> @* Dịch: "Action" -> "Hành động" *@
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Mục tiêu</th> @* Dịch: "Target" -> "Mục tiêu" *@
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Mô tả</th> @* Dịch: "Description" -> "Mô tả" *@
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200 dark:bg-slate-700 dark:divide-slate-600">
@@ -107,7 +108,7 @@
                                 <li>
                                     <a href="@Url.Action("Index", new { pageNumber = currentPage - 1, pageSize = paginatedData.PageSize })"
                                        class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-gray-300 dark:hover:bg-slate-600">
-                                        &laquo; Trước
+                                        &laquo; Trước @* Dịch: "Previous" -> "Trước" *@
                                     </a>
                                 </li>
                             }
@@ -134,7 +135,7 @@
                                 <li>
                                     <a href="@Url.Action("Index", new { pageNumber = currentPage + 1, pageSize = paginatedData.PageSize })"
                                        class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-gray-300 dark:hover:bg-slate-600">
-                                        Sau &raquo;
+                                        Sau &raquo; @* Dịch: "Next" -> "Sau" *@
                                     </a>
                                 </li>
                             }
@@ -149,6 +150,6 @@
             </div>
         </div>
 
-    </div> 
+    </div>
 
 </div>

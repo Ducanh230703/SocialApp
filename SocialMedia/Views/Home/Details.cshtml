@@ -12,7 +12,6 @@
 <script>
     let loggedInUserId = @(ViewBag.LoggedInUserId != null ? ViewBag.LoggedInUserId.ToString() : "null");
 
-    // 1. Logic thêm bình luận (Giữ nguyên)
     document.querySelectorAll('.add-comment-form').forEach(form => {
         form.addEventListener('submit', async function (event) {
             event.preventDefault();
@@ -35,7 +34,6 @@
 
             try {
                 await connection.invoke("AddComment", parseInt(postId), content);
-                console.log("Comment added successfully.");
                 textarea.value = '';
             } catch (err) {
                 console.error("Failed to add comment:", err);
@@ -50,19 +48,15 @@
         });
     });
 
-    // 2. Logic xóa bình luận (Đã sửa lỗi cú pháp và logic URL)
     document.addEventListener('submit', function(e) {
-        // Sử dụng Event Delegation để bắt sự kiện submit của form xóa bình luận
         if (e.target && e.target.classList.contains('remove-comment-form')) {
             e.preventDefault();
 
             const form = e.target;
             const commentId = form.getAttribute('data-comment-id');
 
-            // FIX: Hardcode URL và đảm bảo dùng CommentId (PascalCase) để khớp với Controller C#
             const actionUrl = '/Comment/RemovePostComment?CommentId=' + commentId;
 
-            // Thêm kiểm tra ID
             if (!commentId || isNaN(parseInt(commentId))) {
                 Toastify({ text: "Lỗi: Không tìm thấy ID bình luận để xóa.", duration: 3000, backgroundColor: "#f44336", gravity: "top", position: "center" }).showToast();
                 return;
@@ -72,14 +66,12 @@
                 method: 'DELETE',
             })
                 .then(response => {
-                    // Luôn đảm bảo response.json() được gọi chỉ khi không có lỗi HTTP (4xx, 5xx)
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     return response.json();
                 })
                 .then(data => {
-                    // Kiểm tra data.status hoặc data.success
                     if (data.status === 1 || data.success === true) {
                         Toastify({
                             text: data.message || "Xóa bình luận thành công.",
@@ -89,7 +81,6 @@
                             position: "center"
                         }).showToast();
 
-                        // Xóa phần tử cha chứa toàn bộ bình luận
                         form.closest('.flex.items-start.gap-3.relative')?.remove();
                     } else {
                         Toastify({
@@ -115,9 +106,7 @@
     });
 
 
-    // 3. Logic Like (Giữ nguyên)
     document.addEventListener('click', async function (event) {
-        // Tìm phần tử .like-button gần nhất từ nơi click
         const button = event.target.closest('.like-button');
 
         if (button) {
@@ -128,7 +117,6 @@
             const likeCountElement = button.closest('.flex.items-center.gap-4')?.querySelector('a:last-child');
             let currentLikes = parseInt(likeCountElement?.textContent) || 0;
 
-            // Cập nhật giao diện ngay lập tức
             const icon = button.querySelector('ion-icon');
             if (isLiked) {
                 button.classList.remove('text-red-500');
@@ -149,7 +137,6 @@
                 });
                 const result = await response.json();
                 if (result.status !== 1) {
-                    // Hoàn tác giao diện nếu có lỗi từ server
                     if (isLiked) {
                         button.classList.add('text-red-500');
                         icon.name = 'heart';
@@ -169,7 +156,6 @@
                 }
             } catch (error) {
                 console.error("Lỗi khi gửi yêu cầu:", error);
-                // Hoàn tác giao diện nếu có lỗi
                 if (isLiked) {
                     button.classList.add('text-red-500');
                     icon.name = 'heart';
@@ -190,7 +176,6 @@
         }
     });
 
-    // 4. Logic Xóa Bài Viết (Giữ nguyên)
     window.openPostDeleteConfirmation = function (postId) {
         document.getElementById('deleteConfirmationPostId').value = postId;
         UIkit.modal(document.getElementById('postDeleteDialog')).show();
@@ -198,6 +183,8 @@
 
     document.getElementById('confirmDeleteBtn').addEventListener('click', async function () {
         const postId = document.getElementById('deleteConfirmationPostId').value;
+        this.disabled = true;
+
         try {
             const response = await fetch(`/Home/DeletePost?PostId=${postId}`, {
                 method: 'DELETE',
@@ -231,6 +218,8 @@
                 position: "right",
                 backgroundColor: "#ff4d4f",
             }).showToast();
+        } finally {
+            this.disabled = false;
         }
     });
 

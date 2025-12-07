@@ -388,5 +388,55 @@ namespace ApiApp.Controllers
             return rs;
         }
 
+        [HttpGet("getmorepost")]
+        public async Task<ApiReponseModel<PaginatedResponse<PostFull>>> getmorepost([FromQuery] int profileId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 5)
+        {
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1 || pageSize > 100) pageSize = 10;
+            var data = await UserSerivce.GetPostById(pageNumber, pageSize, profileId);
+            if (data != null)
+            {
+                return new ApiReponseModel<PaginatedResponse<PostFull>>
+                {
+                    Status = 1,
+                    Mess = "Tải bài viết thành công",
+                    Data = data
+                };
+            }
+            else
+            {
+                return new ApiReponseModel<PaginatedResponse<PostFull>>
+                {
+                    Status = 0,
+                    Mess = "Tải bài viết thất bại",
+                };
+            }
+        }
+
+        [HttpGet("getmorepostindex")]
+        public async Task<ApiReponseModel<PaginatedResponse<PostFull>>> getmorepostindex([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 5)
+        {
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1 || pageSize > 100) pageSize = 10;
+            var data = await UserSerivce.GetPostByIdIndex(pageNumber, pageSize, Cache.CacheEx.DataUser.ID);
+            if (data != null)
+            {
+                return new ApiReponseModel<PaginatedResponse<PostFull>>
+                {
+                    Status = 1,
+                    Mess = "Tải bài viết thành công",
+                    Data = data
+                };
+            }
+            else
+            {
+                return new ApiReponseModel<PaginatedResponse<PostFull>>
+                {
+                    Status = 0,
+                    Mess = "Tải bài viết thất bại",
+                };
+            }
+        }
+
     }
 }

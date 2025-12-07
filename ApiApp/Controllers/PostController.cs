@@ -100,7 +100,7 @@ namespace ApiApp.Controllers
             var userId = CacheEx.DataUser.ID;
             var data = await PostService.UserDeletePost(postId, userId);
             return data;
-        }   
+            }   
 
 
         //[HttpPost("addcomment/{postId}")]

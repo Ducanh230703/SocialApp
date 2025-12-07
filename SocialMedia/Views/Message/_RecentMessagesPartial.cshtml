@@ -7,28 +7,34 @@
 {
     @foreach (var message in Model.Data)
     {
+        // Liên kết để mở cửa sổ trò chuyện
         <a href="javascript:void(0);"
            class="relative flex items-center gap-3 p-2 rounded-xl hover:bg-secondery open-chat-trigger"
            data-user-id="@message.UserId"
            data-full-name="@message.FullName"
            data-profile-picture-url="@message.ProfilePictureUrl">
-            <img src="@message.ProfilePictureUrl" class="w-9 h-9 rounded-full" alt="Profile Picture">
+            <img src="@message.ProfilePictureUrl" class="w-9 h-9 rounded-full" alt="Ảnh đại diện">
+            
             <div class="flex-1 text-sm pr-4">
                 <div class="font-semibold text-black">@message.FullName</div>
                 <div class="mt-1">@message.LastMessageContent</div>
             </div>
+            
             <div class="absolute right-3 text-xs text-gray-500">
                 @if (message.LastMessageSentdate != default(DateTime))
                 {
+                    // Hàm Helper để hiển thị thời gian tương đối (ví dụ: 5 phút trước)
                     @TimeHelper.GetRelativeTime(message.LastMessageSentdate)
                 }
                 else
                 {
-                    <span>Unknown time</span>
+                    <span>Không rõ thời gian</span>
                 }
             </div>
+            
             @* @if (!message.IsRead)
             {
+                // Dấu chấm tròn (chưa đọc) - hiện đang được comment (ẩn)
                 <span class="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full"></span>
             } *@
         </a>
@@ -36,6 +42,7 @@
 
     {
         var nextPage = Model.PageNumber + 1;
+        // Kiểm tra xem còn trang tiếp theo không
         var hasNextPage = (Model.PageNumber * Model.PageSize) < Model.TotalCount;
 
         if (hasNextPage)
@@ -43,7 +50,7 @@
             <div class="flex justify-center p-2 load-more-messages-container">
                 <button onclick="loadMoreMessages(@nextPage, @Model.PageSize)"
                         class="uk-button uk-button-link uk-button-small text-blue-500 hover:text-blue-700">
-                    Tải thêm tin nhắn
+                    **Tải thêm tin nhắn**
                 </button>
             </div>
         }
@@ -52,6 +59,6 @@
 else
 {
     <div class="pl-2 p-1 text-sm font-normal text-gray-500">
-        Bạn chưa có tin nhắn nào gần đây.
+        **Bạn chưa có tin nhắn nào gần đây.**
     </div>
 }

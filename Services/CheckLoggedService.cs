@@ -33,11 +33,11 @@ namespace Services
                         !user.ProfilePictureUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
                         !user.ProfilePictureUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
                     {
-                        user.ProfilePictureUrl = "https://apiapp20250930133943-a3ewemhsd2egfgeq.canadacentral-01.azurewebsites.net/Media/ShowAvatar?fileName=" + user.ProfilePictureUrl;
+                        user.ProfilePictureUrl = "https://localhost:7024/Media/ShowAvatar?fileName=" + user.ProfilePictureUrl;
                     }
                     else if (string.IsNullOrEmpty(user.ProfilePictureUrl))
                     {
-                        user.ProfilePictureUrl = "https://apiapp20250930133943-a3ewemhsd2egfgeq.canadacentral-01.azurewebsites.net/Media/ShowAvatar?fileName=user.png";
+                        user.ProfilePictureUrl = "https://localhost:7024/Media/ShowAvatar?fileName=user.png";
                     }
                 }
 

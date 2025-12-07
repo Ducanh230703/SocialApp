@@ -219,6 +219,10 @@ namespace Services
                     {
                         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                         friends = JsonSerializer.Deserialize<List<SearchResult>>(json, options) ?? new List<SearchResult>();
+                        foreach (var friend in friends)
+                        {
+                            friend.ProfilePictureUrl = apiAvatar + friend.ProfilePictureUrl;
+                        }
                     }
                     catch (JsonException ex)
                     {

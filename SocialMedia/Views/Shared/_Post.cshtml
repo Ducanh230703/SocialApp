@@ -2,34 +2,47 @@
 @using System.Security.Claims
 
 @{
+    // Lấy ID người dùng đang đăng nhập
     int loggedInUserId = ViewBag.LoggedInUserId as int? ?? 0;
+
+    // Tính toán và định dạng thời gian bài đăng (ví dụ: 1d trước, 2h trước)
     TimeSpan timeSpanSincePosted = DateTime.UtcNow.Subtract(Model.DateCreated);
     string displayTime = timeSpanSincePosted switch
     {
-        var t when t.TotalDays >= 1 => $"{(int)t.TotalDays}d ago",
-        var t when t.TotalHours >= 1 => $"{(int)t.TotalHours}h ago",
-        var t when t.TotalMinutes >= 1 => $"{(int)t.TotalMinutes}m ago",
-        _ => "Just now"
+        var t when t.TotalDays >= 1 => $"{(int)t.TotalDays}d trước",
+        var t when t.TotalHours >= 1 => $"{(int)t.TotalHours}h trước",
+        var t when t.TotalMinutes >= 1 => $"{(int)t.TotalMinutes}m trước",
+        _ => "Vừa xong"
     };
 
+    // Các cờ logic chính
     bool isLiked = Model.LikeUserIds.Contains(loggedInUserId);
     bool isOwner = Model.UserId == loggedInUserId;
     bool isGroupPost = Model.GroupID != null && !string.IsNullOrEmpty(Model.GroupName);
+
+    // Logic hiển thị tất cả bình luận
     int showAllCommentsPostId = ViewData["ShowAllCommentsPostId"] as int? ?? -1;
     bool showAllComments = showAllCommentsPostId == Model.Id;
+
+    // Xử lý chuỗi URL hình ảnh (phân tách bằng dấu phẩy)
     string[] imageUrls = string.IsNullOrEmpty(Model.ImageUrl) ? new string[0] : Model.ImageUrl.Split(',');
+
+    // Tạo ID Gallery duy nhất cho FancyBox
+    string galleryId = $"post-gallery-{Model.Id}";
 }
+
 
 <div id="post-@Model.Id" class="bg-white rounded-xl shadow-sm text-sm font-medium border1 post-item">
 
-    <!-- Header -->
     <div class="flex gap-3 sm:p-4 p-2.5 items-center text-sm font-medium">
 
-        @* ==== Nếu bài viết ẩn danh ==== *@
+        @* ==== Phần Thông tin Người dùng/Nhóm ==== *@
         @if (Model.IsAnnoy)
         {
-            <img src="~/images/avatar/anonymous.png"
-                 class="w-9 h-9 rounded-full object-cover border border-gray-200" />
+            <a>
+                <img src="@(!string.IsNullOrEmpty(Model.UserProfilePictureUrl) ? Model.UserProfilePictureUrl : Url.Content("~/images/avatar/user.png"))"
+                     class="w-9 h-9 rounded-full object-cover border border-gray-200" />
+            </a>
 
             <div class="flex-1">
                 <div class="flex flex-wrap items-center gap-1">
@@ -46,7 +59,6 @@
                         </span>
                     }
                 </div>
-
                 <div class="text-xs text-gray-400 mt-0.5" title="@Model.DateCreated.ToString("MM/dd/yyyy HH:mm")">
                     @displayTime
                 </div>
@@ -54,7 +66,7 @@
         }
         else
         {
-            @* ==== Bài viết bình thường ==== *@
+            @* ==== Bài viết bình thường (Không ẩn danh) ==== *@
             <a href="/User/Details?userId=@Model.UserId">
                 <img src="@(!string.IsNullOrEmpty(Model.UserProfilePictureUrl) ? Model.UserProfilePictureUrl : Url.Content("~/images/avatar/user.png"))"
                      class="w-9 h-9 rounded-full object-cover border border-gray-200" />
@@ -70,7 +82,7 @@
                     @if (isGroupPost)
                     {
                         <span class="flex items-center text-gray-500 text-sm gap-1 ml-1">
-                            <ion-icon name="people-outline" class="text-xs"></ion-icon>
+                            <ion-icon name="people-circle-outline" class="text-xs"></ion-icon>
                             <a asp-controller="Group" asp-action="Details" asp-route-id="@Model.GroupID"
                                class="font-medium hover:underline">
                                 @Model.GroupName
@@ -78,55 +90,89 @@
                         </span>
                     }
                 </div>
-
                 <div class="text-xs text-gray-400 mt-0.5" title="@Model.DateCreated.ToString("MM/dd/yyyy HH:mm")">
                     @displayTime
                 </div>
             </div>
         }
 
-        @* Chỉ cho phép Edit/Delete khi không ẩn danh hoặc là chủ sở hữu *@
-        @if (isOwner && !Model.IsAnnoy)
+        @* ==== Nút Chỉnh sửa/Xóa (Nếu là chủ sở hữu) ==== *@
+        @if (isOwner)
         {
             <div class="flex gap-2 text-sm text-gray-600">
                 <a href="javascript:void(0)" onclick="openEditModal(@Model.Id)" class="hover:underline flex items-center gap-1">
-                    <ion-icon name="create-outline"></ion-icon> Edit
+                    <ion-icon name="create-outline"></ion-icon> Chỉnh sửa
                 </a>
                 <a href="javascript:void(0);" onclick="openPostDeleteConfirmation(@Model.Id)" class="text-red-500 hover:text-red-700 flex items-center gap-1">
-                    <ion-icon name="trash-outline"></ion-icon> Delete
+                    <ion-icon name="trash-outline"></ion-icon> Xóa
                 </a>
             </div>
         }
     </div>
 
-
-    <!-- Content -->
+    @* ==== Nội dung bài viết ==== *@
     @if (!string.IsNullOrEmpty(Model.Content))
     {
         <div class="sm:px-4 p-2.5 pt-0 w-full text-gray-800 whitespace-pre-line">@Model.Content</div>
     }
 
-    <!-- Images -->
+    @* ============================================= *@
+    @* PHẦN HIỂN THỊ HÌNH ẢNH (FANCYBOX FIX) *@
+    @* ============================================= *@
     @if (imageUrls.Length > 0)
     {
         <div class="relative w-full sm:px-4 pb-3">
-            @if (imageUrls.Length == 1)
-            {
-                <img src="@imageUrls[0]" class="sm:rounded-lg w-full h-auto object-cover max-h-[500px]" />
+
+            @{
+                int totalImages = imageUrls.Length;
+                int maxDisplay = Math.Min(totalImages, 4);
             }
-            else
+
+            <div class="grid grid-cols-2 gap-1.5">
+
+                @for (int i = 0; i < maxDisplay; i++)
+                {
+                    var img = imageUrls[i];
+
+                    @* Thẻ <a> hiển thị ảnh và kích hoạt FancyBox *@
+                    <a href="@img"
+                       data-fancybox="@galleryId"
+                       data-caption="Ảnh @(i + 1) của bài viết @Model.Id"
+                       class="relative block w-full h-[180px] sm:h-[220px] overflow-hidden rounded-lg cursor-pointer">
+
+                        <img src="@img"
+                             class="w-full h-full object-cover rounded-lg"
+                             loading="lazy" />
+
+                        @* Overlay nếu còn nhiều ảnh *@
+                        @if (i == 3 && totalImages > 4)
+                        {
+                            <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
+                                <span class="text-white text-xl font-semibold">
+                                    +@(totalImages - 4)
+                                </span>
+                            </div>
+                        }
+                    </a>
+                }
+            </div>
+
+            @* Bổ sung: Thêm các ảnh còn lại vào FancyBox Gallery một cách ẩn (dùng class hidden) *@
+            @if (totalImages > maxDisplay)
             {
-                <div class="flex flex-wrap gap-2">
-                    @foreach (var img in imageUrls)
-                    {
-                        <img src="@img" class="sm:rounded-lg w-full sm:w-1/2 lg:w-1/3 h-auto object-cover max-h-[300px]" />
-                    }
-                </div>
+                @for (int i = maxDisplay; i < totalImages; i++)
+                {
+                    <a href="@imageUrls[i]"
+                       data-fancybox="@galleryId"
+                       data-caption="Ảnh @(i + 1) của bài viết @Model.Id"
+                       class="hidden"></a>
+                }
             }
         </div>
     }
+    @* ============================================= *@
 
-    <!-- Reactions -->
+    @* ==== Nút Like/Comment ==== *@
     <div class="sm:p-4 p-2.5 flex items-center gap-4 text-xs font-semibold border-t border-gray-100 text-gray-600">
         <div class="flex items-center gap-2.5">
             <button class="button-icon like-button @(isLiked ? "text-red-500 bg-red-100" : "") flex items-center gap-1" data-post-id="@Model.Id" data-user-id="@loggedInUserId">
@@ -145,25 +191,27 @@
         <div class="ml-auto"></div>
     </div>
 
-    <!-- Comments -->
+    @* ==== Phần Bình luận ==== *@
     <div class="p-2.5 border-t border-gray-100 font-normal space-y-3 relative comments-list">
         @foreach (var comment in showAllComments
-                ? Model.Comments.OrderByDescending(c => c.DateCreated)
-                : Model.Comments.OrderByDescending(c => c.DateCreated).Take(2))
+                ? Model.Comments.OrderByDescending(c => c.DateCreated) // Hiển thị tất cả
+                : Model.Comments.OrderByDescending(c => c.DateCreated).Take(2)) // Chỉ hiển thị 2 bình luận
         {
+            // Tính toán và định dạng thời gian bình luận
             TimeSpan commentTimeSpanSincePosted = DateTime.UtcNow.Subtract(comment.DateCreated.ToUniversalTime());
             string commentDisplayTime = commentTimeSpanSincePosted.TotalSeconds < 0
-            ? "Just now"
+            ? "Vừa xong"
             : commentTimeSpanSincePosted switch
             {
-                var t when t.TotalDays >= 1 => $"{(int)t.TotalDays}d ago",
-                var t when t.TotalHours >= 1 => $"{(int)t.TotalHours}h ago",
-                var t when t.TotalMinutes >= 1 => $"{(int)t.TotalMinutes}m ago",
-                _ => "Just now"
+                var t when t.TotalDays >= 1 => $"{(int)t.TotalDays}d trước",
+                var t when t.TotalHours >= 1 => $"{(int)t.TotalHours}h trước",
+                var t when t.TotalMinutes >= 1 => $"{(int)t.TotalMinutes}m trước",
+                _ => "Vừa xong"
             };
 
             <div class="flex items-start gap-3 relative">
                 <img src="@(!string.IsNullOrEmpty(comment.UserProfilePictureUrl) ? comment.UserProfilePictureUrl : Url.Content("~/images/avatar/user.png"))" class="w-6 h-6 mt-1 rounded-full object-cover border border-gray-200" />
+
                 <div class="flex-1 bg-gray-50 p-2.5 rounded-xl">
                     <div class="flex justify-between items-center">
                         <span class="text-black font-medium">@comment.UserFullName</span>
@@ -174,9 +222,9 @@
                     @if (loggedInUserId == Model.UserId || loggedInUserId == comment.UserId)
                     {
                         <form class="remove-comment-form" data-comment-id="@comment.ID" action="/Home/RemovePostComment">
-                            <button type="submit" class="text-red-500 text-xs mt-1 flex items-center gap-1" title="Remove post comment">
+                            <button type="submit" class="text-red-500 text-xs mt-1 flex items-center gap-1" title="Xóa bình luận bài đăng">
                                 <ion-icon name="trash-outline"></ion-icon>
-                                <span>Delete</span>
+                                <span>Xóa</span>
                             </button>
                         </form>
                     }
@@ -189,25 +237,79 @@
             <div class="p-1.5 flex items-center gap-1">
                 <ion-icon name="chevron-down-outline" class="text-gray-400 text-xs"></ion-icon>
                 <a asp-controller="Home" asp-action="Details" asp-route-postId="@Model.Id" class="text-gray-500 text-xs hover:underline">
-                    Show all comments
+                    Xem tất cả bình luận
                 </a>
             </div>
         }
 
-        <!-- Add Comment -->
         <form class="add-comment-form" data-post-id="@Model.Id">
             <div class="sm:px-4 sm:py-3 p-2.5 border-t border-gray-100 flex items-center gap-2">
                 <a asp-controller="User" asp-action="Details" asp-route-userId="@Model.UserId">
                     <img src="@(string.IsNullOrEmpty(Model.UserProfilePictureUrl) ? Url.Content("~/images/avatar/user.png") : Model.UserProfilePictureUrl)" class="w-6 h-6 rounded-full object-cover border border-gray-200" />
                 </a>
+
                 <input type="hidden" name="postId" value="@Model.Id" />
+
                 <div class="flex-1 relative overflow-hidden h-10">
-                    <textarea name="content" placeholder="Add Comment...." rows="1" class="w-full resize-none !bg-transparent px-4 py-2 focus:!border-transparent focus:!ring-transparent text-gray-700"></textarea>
+                    <textarea name="content" placeholder="Thêm bình luận...." rows="1" class="w-full resize-none !bg-transparent px-4 py-2 focus:!border-transparent focus:!ring-transparent text-gray-700"></textarea>
                 </div>
+
                 <button type="submit" class="text-sm rounded-full py-1.5 px-3.5 bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center gap-1">
-                    <ion-icon name="send-outline"></ion-icon> Comment
+                    <ion-icon name="send-outline"></ion-icon> Bình luận
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+    // **Khởi tạo lại FancyBox** ngay sau khi Partial View này được chèn vào DOM.
+    // Điều này giải quyết lỗi FancyBox không nhận ra các phần tử tải bất đồng bộ (nếu có).
+    if (typeof Fancybox !== 'undefined') {
+        Fancybox.bind(document.getElementById('post-@Model.Id').querySelectorAll("[data-fancybox]"), {
+            // Cấu hình rõ ràng để đảm bảo các nút được chèn vào DOM
+            Toolbar: {
+                display: {
+                    left: ["infobar"],
+                    middle: [],
+                    right: ["close"], // Bắt buộc nút đóng
+                }
+            },
+            Navigation: true, // Bắt buộc nút điều hướng (trái/phải)
+            // Thêm log để debug
+            on: {
+                init: () => {
+                    console.log(`FancyBox re-initialized for Post #@Model.Id`);
+                }
+            }
+        });
+    }
+</script>
+
+@section Styles {
+    <style>
+        /* QUY TẮC GHI ĐÈ ĐỂ BUỘC HIỂN THỊ NÚT UI */
+        .fancybox__button {
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: flex !important;
+            background: rgba(0, 0, 0, 0.6) !important; /* Đảm bảo nền nút hiển thị */
+            color: #fff !important;
+            width: 44px !important;
+            height: 44px !important;
+            border-radius: 50%;
+            z-index: 100000 !important; /* Đảm bảo nó không bị che */
+        }
+        
+        /* Đảm bảo các mũi tên trái/phải hiển thị */
+        .fancybox__nav .fancybox__button {
+            visibility: visible !important;
+        }
+
+        /* Đảm bảo thanh Toolbar không bị ẩn */
+        .fancybox__toolbar {
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+    </style>
+}

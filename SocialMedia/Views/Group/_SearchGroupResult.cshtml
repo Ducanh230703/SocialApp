@@ -8,8 +8,8 @@
             <div class="bg-white rounded-xl shadow-sm p-4 flex items-center space-x-4">
                 <a href="/Group/Details/@group.ID">
                     <img src="@(!string.IsNullOrEmpty(group.GroupPictureUrl)
-                                                     ? group.GroupPictureUrl
-                                                     : Url.Content("~/images/group-default.png"))"
+                                                                      ? group.GroupPictureUrl
+                                                                      : Url.Content("~/images/group-default.png"))"
                  alt="@group.GroupName"
                  class="w-16 h-16 rounded-full object-cover" />
         </a>
@@ -22,6 +22,7 @@
                 @(group.MemberCount) thành viên
             </p>
         </div>
+        @* Thêm nút hành động tại đây nếu cần (ví dụ: Tham gia/Yêu cầu tham gia) *@
     </div>
         }
     </div>
@@ -29,6 +30,6 @@
 else
 {
     <div class="bg-white rounded-xl shadow-sm p-4 text-center text-gray-500">
-        Không tìm thấy nhóm nào.
+        Không tìm thấy **nhóm** nào.
     </div>
 }
