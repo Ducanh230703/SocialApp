@@ -10,7 +10,6 @@
 <main id="site__main" class="2xl:ml-[--w-side] xl:ml-[--w-side-sm] p-2.5 h-[calc(100vh-var(--m-top))] mt-[--m-top]">
     <div class="lg:flex 2xl:gap-16 gap-12 max-w-[1065px] mx-auto" style="background-color:rgb(249, 250, 251)">
         <div class="max-w-[680px] mx-auto w-full">
-            @* Thêm w-full để căn chỉnh tốt hơn *@
             <h2 class="text-2xl font-bold text-gray-800 mb-4">Nhóm của tôi</h2>
 
             <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mb-6" uk-toggle="target: #create-group-modal">
@@ -23,7 +22,6 @@
             @if (Model != null && Model.Any())
             {
                 <div class="flex flex-col gap-4">
-                    @* Giảm khoảng cách gap-6 thành gap-4 *@
                     @foreach (var group in Model)
                     {
                         if (group != null)
@@ -51,7 +49,8 @@
 
                                         @if (group.CreatedByUserId == loggedInUserId)
                                         {
-                                            <button type="button" onclick="openGroupDeleteConfirmation('@group.ID')"
+                                            @* Đã đổi tên hàm và loại bỏ logic modal UIkit *@
+                                            <button type="button" onclick="deleteGroupConfirmation('@group.ID')"
                                                     class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                                                 Xóa nhóm
                                             </button>
@@ -61,7 +60,7 @@
                                             <button type="button" onclick="leaveGroup('@group.ID')"
                                                     class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m-6-1V7a2 2 2 012-2h4a2 2 0 012 2v10a2 2 0 01-2 2h-4a2 2 0 01-2-2z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m-6-1V7a2 2 012-2h4a2 2 0 012 2v10a2 2 0 01-2 2h-4a2 2 0 01-2-2z" />
                                                 </svg>
                                                 Rời nhóm
                                             </button>
@@ -91,112 +90,101 @@
     </div>
 </div>
 
-<partial name="_confirmDelete" />
-
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
-        // Hàm mở modal xác nhận xóa nhóm
-        window.openGroupDeleteConfirmation = function (groupId) {
-            // Đảm bảo ẩn các dropdown khác nếu đang mở (UIkit logic)
-            if (typeof UIkit !== 'undefined' && UIkit.dropdown) {
-                UIkit.dropdown('.post-options-dropdown')?.hide?.();
-            }
 
-            // Đặt ID nhóm vào hidden input trong modal
-            const deleteConfirmationGroupId = document.getElementById('deleteConfirmationGroupId');
-            if (deleteConfirmationGroupId) {
-                deleteConfirmationGroupId.value = groupId;
-            }
+        function showSwalAlert(message, isSuccess, callback = null) {
+            Swal.fire({
+                icon: isSuccess ? 'success' : 'error',
+                title: isSuccess ? 'Thành công' : 'Thất bại',
+                text: message,
+                confirmButtonText: 'Đóng',
+                // Tự động gọi callback (thường là reload/redirect) sau khi đóng popup nếu thành công
+                didClose: () => {
+                    if (callback) {
+                        callback();
+                    }
+                }
+            });
+        }
 
-            // Hiển thị modal
-            if (typeof UIkit !== 'undefined' && UIkit.modal) {
-                UIkit.modal('#groupDeleteDialog').show();
-            } else {
-                // Fallback (giả sử bạn đã định nghĩa groupDeleteDialog)
-                const modal = document.getElementById('groupDeleteDialog');
-                if (modal) modal.style.display = 'block';
-            }
+        // --- Logic Xóa Nhóm (Chỉ Chủ nhóm) dùng Swal.fire ---
+        window.deleteGroupConfirmation = function (groupId) {
+            Swal.fire({
+                title: 'CẢNH BÁO: Xóa nhóm',
+                text: "Bạn có chắc chắn muốn xóa nhóm này không? Thao tác này không thể hoàn tác!",
+                icon: 'error',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Xóa nhóm vĩnh viễn',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/Group/DeleteGroup', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(parseInt(groupId))
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        const isSuccess = data.Status; // Giả sử API trả về Status/Mess
+                        showSwalAlert(data.Mess || (isSuccess ? "Nhóm đã được xóa thành công!" : "Không thể xóa nhóm."), isSuccess, () => {
+                            // Tải lại trang để cập nhật danh sách hoặc chuyển hướng
+                            if (isSuccess) window.location.href = '/Group';
+                        });
+                    })
+                    .catch(() => showSwalAlert("Đã xảy ra lỗi hệ thống khi xóa nhóm.", false));
+                }
+            });
+        };
+
+        // --- Logic Rời Nhóm dùng Swal.fire ---
+        window.leaveGroup = function(groupId) {
+            Swal.fire({
+                title: 'Xác nhận Rời nhóm',
+                text: "Bạn có chắc chắn muốn rời nhóm này không?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Rời nhóm',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/GroupMember/LeaveGroup', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(parseInt(groupId))
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const isSuccess = data.Status;
+                        showSwalAlert(data.Mess || (isSuccess ? 'Rời nhóm thành công!' : 'Rời nhóm không thành công.'), isSuccess, () => {
+                            if (isSuccess) window.location.reload();
+                        });
+                    })
+                    .catch(() => showSwalAlert('Đã xảy ra lỗi hệ thống khi rời nhóm. Vui lòng thử lại.', false));
+                }
+            });
         };
 
         document.addEventListener('DOMContentLoaded', function () {
-            // --- Hiển thị thông báo TempData (đã dịch) ---
+            // --- Hiển thị thông báo TempData bằng SweetAlert2 ---
             var successMessage = '@TempData["Success"]';
             var errorMessage = '@TempData["Error"]';
 
+            // Không cần kiểm tra null/empty ở đây vì Razor/C# đã xử lý string, chỉ cần kiểm tra xem có nội dung hay không
             if (successMessage) {
-                alert(successMessage);
+                showSwalAlert(successMessage, true);
             }
 
             if (errorMessage) {
-                alert(errorMessage);
+                showSwalAlert(errorMessage, false);
             }
-
-            // --- Logic Xóa Nhóm (Sử dụng nút trong Modal) ---
-            document.getElementById('confirmDeleteBtn')?.addEventListener('click', function () {
-                var groupId = document.getElementById('deleteConfirmationGroupId').value;
-
-                // Ẩn modal
-                if (typeof UIkit !== 'undefined' && UIkit.modal) {
-                    UIkit.modal('#groupDeleteDialog').hide();
-                }
-
-                // Gọi API xóa nhóm
-                fetch('/Group/DeleteGroup', {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(parseInt(groupId))
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.Status) {
-                        alert(data.Mess || 'Xóa nhóm thành công!');
-                        window.location.reload();
-                    } else {
-                        alert(data.Mess || 'Không thể xóa nhóm.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Lỗi khi xóa nhóm:', error);
-                    alert('Đã xảy ra lỗi hệ thống khi xóa nhóm. Vui lòng thử lại.');
-                });
-            });
-
-            // --- Logic Rời Nhóm ---
-            window.leaveGroup = function(groupId) {
-                if (!confirm('Bạn có chắc chắn muốn rời khỏi nhóm này không?')) {
-                    return;
-                }
-
-                fetch('/GroupMember/LeaveGroup', {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(parseInt(groupId))
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        // Ném lỗi nếu response không thành công
-                        return response.json().then(err => { throw new Error(err.message || 'Lỗi mạng không xác định'); });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.Status) { // Sử dụng Status nếu đó là cấu trúc chuẩn
-                        alert(data.Mess || 'Rời nhóm thành công!');
-                        window.location.reload();
-                    } else {
-                        alert(data.Mess || 'Rời nhóm không thành công.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Lỗi khi rời nhóm:', error);
-                    alert('Đã xảy ra lỗi khi rời nhóm. Vui lòng thử lại.');
-                });
-            };
         });
     </script>
 }

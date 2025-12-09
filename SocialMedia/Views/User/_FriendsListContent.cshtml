@@ -1,0 +1,46 @@
+﻿@using Models.ReponseModel
+@using Models.ViewModel.Friend
+@model PaginatedResponse<FriendListVM>
+
+<div class="space-y-3 mt-4" id="friends-list-items">
+    @if (Model != null && Model.Data != null && Model.Data.Any())
+    {
+        @foreach (var friend in Model.Data)
+        {
+            <div class="flex items-center gap-3 p-2 hover:bg-gray-100 rounded-lg">
+                <a href="/User/Details?userId=@friend.UserID" class="flex-shrink-0">
+                    <img src="@(friend.ProfilePictureUrl ?? Url.Content("~/images/avatar/user.png"))" alt="@friend.FullName" class="w-10 h-10 rounded-full object-cover">
+                </a>
+                <div class="flex-1">
+                    <a href="/User/Details?userId=@friend.UserID" class="text-base font-semibold text-black hover:text-blue-500">
+                        @friend.FullName
+                    </a>
+                </div>
+            </div>
+        }
+    }
+    else if (Model?.PageNumber == 1)
+    {
+        <p class="text-gray-500 text-center">Không có bạn bè nào để hiển thị.</p>
+    }
+</div>
+
+@if (Model != null && Model.HasNextPage)
+{
+    <div class="uk-flex uk-flex-center mt-5">
+        <button id="loadMoreFriendsBtn"
+                class="button lg:text-lg lg:py-4 flex items-center justify-center gap-2"
+                data-next-page="@(Model.PageNumber + 1)"
+                data-page-size="@Model.PageSize"
+                data-target-user-id="@(ViewBag.ProfileUserId ?? 0)">
+            <ion-icon name="sync-outline" class="text-xl"></ion-icon>
+            <span>Tải thêm bạn bè</span>
+        </button>
+    </div>
+}
+else if (Model != null && Model.Data != null && Model.Data.Any())
+{
+    <div class="uk-flex uk-flex-center text-gray-500 mt-4">
+        <span>Đã tải hết danh sách bạn bè.</span>
+    </div>
+}

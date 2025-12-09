@@ -40,7 +40,7 @@
         @if (Model.IsAnnoy)
         {
             <a>
-                <img src="@(!string.IsNullOrEmpty(Model.UserProfilePictureUrl) ? Model.UserProfilePictureUrl : Url.Content("~/images/avatar/user.png"))"
+                <img src="@Url.Content("~/images/avatar/user.png")" alt="Ảnh đại diện"
                      class="w-9 h-9 rounded-full object-cover border border-gray-200" />
             </a>
 

@@ -162,5 +162,43 @@ namespace SocialMedia.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetFriendsListForModal([FromQuery] int userId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        {
+            var token = Request.Cookies["AuthToken"];
+            if (string.IsNullOrEmpty(token))
+            {
+                return Json(new { status = 0, message = "Bạn cần đăng nhập để xem danh sách bạn bè." });
+            }
+
+            try
+            {
+                // Gửi yêu cầu đến API để lấy danh sách bạn bè
+                var apiResponse = await ApiHelper.GetAsync<ApiReponseModel<PaginatedResponse<FriendListVM>>>(
+                    $"/api/FriendRequest/loadmorefr?pageNumber={pageNumber}&pageSize={pageSize}", token);
+
+                if (apiResponse.Status == 1 && apiResponse.Data != null)
+                {
+                    // Truyền userId của profile vào ViewBag để nút Tải thêm có thể sử dụng
+                    ViewBag.ProfileUserId = userId;
+
+                    // Trả về Partial View chứa danh sách bạn bè
+                    return PartialView("~/Views/User/_FriendsListContent.cshtml", apiResponse.Data);
+                }
+                else
+                {
+                    // Trả về dữ liệu rỗng nếu có lỗi hoặc không có dữ liệu
+                    var emptyData = new PaginatedResponse<FriendListVM> { Data = new List<FriendListVM>(), PageNumber = pageNumber, PageSize = pageSize};
+                    return PartialView("~/Views/User/_FriendsListContent.cshtml", emptyData);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi tải danh sách bạn bè: {ex}");
+                var emptyData = new PaginatedResponse<FriendListVM> { Data = new List<FriendListVM>(), PageNumber = pageNumber, PageSize = pageSize};
+                return PartialView("~/Views/User/_FriendsListContent.cshtml", emptyData);
+            }
+        }
+
     }
 }

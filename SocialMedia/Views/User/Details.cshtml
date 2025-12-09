@@ -30,7 +30,6 @@
                 </div>
                 <div>
                     <h3 class="md:text-3xl text-base font-bold text-black">@Model?.FullName</h3>
-
                     <p class="mt-2 text-gray-500">@Model?.Bio</p>
                 </div>
             </div>
@@ -38,23 +37,29 @@
         <div class="flex 2xl:gap-12 gap-10 mt-8 max-lg:flex-col" id="js-oversized">
             <div class="flex-1 xl:space-y-6 space-y-3">
                 @if (profileUserId == loggedInUserIdServer)
+
                 {
                     <div class="bg-white rounded-xl shadow-sm md:p-4 p-2 space-y-4 text-sm font-medium border1">
                         <div class="flex items-center md:gap-3 gap-1">
                             <div class="flex-1 bg-slate-100 hover:bg-opacity-80 transition-all rounded-lg cursor-pointer" uk-toggle="target: #create-status">
 
+
                                 <div class="py-2.5 text-center">Bạn đang nghĩ gì?</div>
                             </div>
                             <div class="cursor-pointer hover:bg-opacity-80 p-1 px-1.5 rounded-xl transition-all bg-pink-100/60 hover:bg-pink-100" uk-toggle="target: #create-status">
 
+
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 stroke-pink-600 fill-pink-200/70" viewBox="0 0 24 24" stroke-width="1.5" stroke="#2c3e50" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+
 
                                     <path d="M15 8h.01" />
                                     <path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" />
 
+
                                     <path d="M3.5 15.5l4.5 -4.5c.928 -.893 2.072 -.893 3 0l5 5" />
                                     <path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l2.5 2.5" />
+
 
                                 </svg>
                             </div>
@@ -62,19 +67,23 @@
                     </div>
 
                     @if (ViewBag.EditPost != null)
+
                     {
                         <partial name="/Views/Home/_EditStatus.cshtml" model="ViewBag.EditPost as PostEditVM" />
                     }
                     else
+
                     {
                         <div id="edit-status-placeholder" class="hidden">
                             <partial name="/Views/Home/_EditStatus.cshtml" model="new PostEditVM()" />
                         </div>
+
                     }
                 }
                 else
                 {
                     <div class="mt-3 uk-flex uk-flex-wrap uk-gap-small">
+
 
                         @if (friendshipStatus == 1)
                         {
@@ -82,74 +91,92 @@
                                     data-profile-status-id="@statusId">
                                 Huỷ kết bạn
                             </button>
-                            <button class="button bg-blue-600 text-white py-2 px-4 rounded-full text-sm open-chat-trigger"
+                            <button class="button bg-blue-600 text-white py-2 px-4 rounded-full
+                text-sm open-chat-trigger"
                                     data-user-id="@Model.ID"
                                     data-full-name="@Model.FullName"
-                                    data-profile-picture-url="@(string.IsNullOrEmpty(Model.ProfilePictureUrl) ? Url.Content("~/images/avatar/user.png") : Model.ProfilePictureUrl)">
-                                <span uk-icon="icon: comments" class="uk-margin-small-right"></span> Nhắn tin
-                            </button>
-                        }
+                                    data-profile-picture-url="@(string.IsNullOrEmpty(Model.ProfilePictureUrl) ?
+                                                                        Url.Content("~/images/avatar/user.png") : Model.ProfilePictureUrl)">
+                        <span uk-icon="icon: comments" class="uk-margin-small-right"></span> Nhắn tin
+                    </button>
+                                        }
+
                         else if (friendshipStatus == 0 && senderId == loggedInUserIdServer)
                         {
                             <button id="cancelRequestBtn" class="button bg-yellow-500 text-white py-2 px-4 rounded-full text-sm"
                                     data-profile-status-id="@statusId">
                                 Huỷ lời mời
                             </button>
+
                             <button class="button bg-blue-600 text-white py-2 px-4 rounded-full text-sm open-chat-trigger"
                                     data-user-id="@Model.ID"
                                     data-full-name="@Model.FullName"
-                                    data-profile-picture-url="@(string.IsNullOrEmpty(Model.ProfilePictureUrl) ? Url.Content("~/images/avatar/user.png") : Model.ProfilePictureUrl)">
-                                <span uk-icon="icon: comments" class="uk-margin-small-right"></span> Nhắn tin
-                            </button>
-                        }
+                                    data-profile-picture-url="@(string.IsNullOrEmpty(Model.ProfilePictureUrl) ?
+                                                                        Url.Content("~/images/avatar/user.png") : Model.ProfilePictureUrl)">
+                        <span uk-icon="icon: comments" class="uk-margin-small-right"></span> Nhắn tin
+                    </button>
+                                        }
+
                         else if (friendshipStatus == 0 && senderId != loggedInUserIdServer)
                         {
                             <button id="acceptRequestBtn" class="button bg-blue-600 text-white py-2 px-4 rounded-full text-sm"
                                     data-profile-status-id="@statusId">
                                 Xác nhận
                             </button>
+
                             <button id="declineRequestBtn" class="button bg-red-600 text-white py-2 px-4 rounded-full text-sm"
                                     data-profile-status-id="@statusId">
                                 Từ chối
+
                             </button>
                             <button class="button bg-blue-600 text-white py-2 px-4 rounded-full text-sm open-chat-trigger"
                                     data-user-id="@Model.ID"
                                     data-full-name="@Model.FullName"
-                                    data-profile-picture-url="@(string.IsNullOrEmpty(Model.ProfilePictureUrl) ? Url.Content("~/images/avatar/user.png") : Model.ProfilePictureUrl)">
-                                <span uk-icon="icon: comments" class="uk-margin-small-right"></span> Nhắn tin
-                            </button>
-                        }
+                                    data-profile-picture-url="@(string.IsNullOrEmpty(Model.ProfilePictureUrl) ?
+                                                                        Url.Content("~/images/avatar/user.png") : Model.ProfilePictureUrl)">
+                        <span uk-icon="icon: comments" class="uk-margin-small-right"></span> Nhắn tin
+                    </button>
+                                        }
+
                         else
                         {
                             <button id="sendRequestBtn" class="button bg-blue-600 text-white py-2 px-4 rounded-full text-sm"
                                     data-profile-user-id="@profileUserId">
                                 Kết bạn
                             </button>
+
                             <button class="button bg-blue-600 text-white py-2 px-4 rounded-full text-sm open-chat-trigger"
                                     data-user-id="@Model.ID"
                                     data-full-name="@Model.FullName"
                                     data-profile-picture-url="@(string.IsNullOrEmpty(Model.ProfilePictureUrl) ? Url.Content("~/images/avatar/user.png") : Model.ProfilePictureUrl)">
                                 <span uk-icon="icon: comments" class="uk-margin-small-right"></span> Nhắn tin
                             </button>
+
                         }
                     </div>
                 }
 
                 <div id="posts-container" class="space-y-4">
                     @if (Model?.ListPost != null && Model.ListPost.Data != null && Model.ListPost.Data.Any())
+
                     {
                         @foreach (var post in Model.ListPost.Data)
                         {
                             <partial name="/Views/Shared/_Post.cshtml" model="post"
                                      view-data='new ViewDataDictionary(ViewData)
-                                                            {
-                                                                { "ShowAllComment", false },
-                                                                { "ShowDetails", false }
-                                                            }' />
 
-                                        }
+                                     {
+
+                                         { "ShowAllComment", false },
+
+                                                                                                  { "ShowDetails", false }
+
+                                     }' />
+
+                        }
                     }
                     else
+
                     {
                         <div class="bg-white rounded-xl shadow-sm md:p-4 p-2 space-y-4 text-sm font-medium border1">
                             Hiện tại không có bài viết nào.
@@ -157,12 +184,14 @@
                             {
                                 <span>Bạn có muốn tạo bài viết đầu tiên không?</span>
                             }
+
                         </div>
                     }
                 </div>
 
                 @if (Model?.ListPost != null && Model.ListPost.HasNextPage)
                 {
+
                     <div class="uk-flex uk-flex-center">
                         <button id="loadMorePostsBtn"
                                 class="button lg:text-lg lg:py-4 flex items-center justify-center gap-2"
@@ -173,50 +202,64 @@
                             <ion-icon name="sync-outline" class="text-xl"></ion-icon>
                             <span>Tải thêm</span>
                         </button>
+
                     </div>
                 }
                 else if (Model?.ListPost != null && !Model.ListPost.HasNextPage && Model.ListPost.Data.Any())
                 {
                     <div class="uk-flex uk-flex-center text-gray-500 mt-4">
+
                         <span>Đã tải hết bài viết.</span>
                     </div>
                 }
             </div>
             <div style="width:300px;">
                 <div class="lg:space-y-4 lg:pb-8 max-lg:grid sm:grid-cols-2 max-lg:gap-6"
-                     uk-sticky="media: 1024; end: #js-oversized; offset: 80">
+                     uk-sticky="media: 1024;
+                     end: #js-oversized; offset: 80">
                     <div class="box p-5 px-6">
                         <div class="flex items-center justify-between text-black">
                             <h3 class="font-bold text-lg">
+
                                 Bạn bè
                                 <span class="block text-sm text-gray-500 mt-0.5 font-normal"> @(Model?.ListFriend?.Count ?? 0) bạn bè </span>
                             </h3>
+
                             @if ((Model?.ListFriend?.Count ?? 0) > 0)
                             {
-                                <a href="/User/Friends?userId=@Model.ID" class="text-sm font-semibold text-blue-500 hover:text-blue-700 transition duration-200">
+                                <button id="viewAllFriendsBtn" class="text-sm font-semibold text-blue-500 hover:text-blue-700 transition duration-200"
+                                        data-profile-id="@Model.ID" data-initial-page-size="10">
                                     Xem tất cả
-                                </a>
+                                </button>
                             }
+
                         </div>
 
                         <div class="grid grid-cols-3 gap-2 gap-y-5 text-center text-sm mt-4 mb-2">
                             @if (Model?.ListFriend != null && Model.ListFriend.Any())
+
                             {
                                 @foreach (var friend in Model.ListFriend.Take(6))
                                 {
+
                                     <div>
                                         <a href="/User/Details?userId=@friend.ID">
                                             <div class="relative w-full aspect-square rounded-lg overflow-hidden">
+
                                                 <img src="@friend.ImageUrl" class="object-cover w-full h-full inset-0" alt="Friend's avatar" />
                                             </div>
+
                                             <div class="mt-2 line-clamp-1">@friend.FullName</div>
                                         </a>
+
                                     </div>
                                 }
                             }
+
                             else
                             {
                                 <div class="col-span-3 text-gray-500 text-center">Không có bạn bè nào để hiển thị.</div>
+
                             }
                         </div>
                     </div>
@@ -225,6 +268,27 @@
         </div>
     </div>
 </main>
+<div id="all-friends-modal" class="uk-modal-container" uk-modal>
+    <div class="uk-modal-dialog uk-modal-body" style="width: 400px; max-width: 100%; border: 1px solid black; border-radius: 4px;">
+
+        <button class="uk-modal-close-outside" type="button" uk-close></button>
+
+        <div class="uk-flex uk-flex-middle uk-flex-between">
+            <h2 class="uk-modal-title">Danh sách bạn bè</h2>
+
+            <button class="uk-button uk-button-default uk-modal-close" type="button">X</button>
+        </div>
+
+        <hr class="uk-margin-small-top uk-margin-remove-bottom">
+
+        <div id="friends-scroll-container" style="height: 500px; overflow-y: auto;">
+            <div id="modal-friends-content-wrapper">
+                <div class="uk-text-center uk-margin-large-top text-gray-500">Đang tải...</div>
+            </div>
+        </div>
+
+    </div>
+</div>
 
 <partial name="/Views/Home/_CreateStatus.cshtml" model="new PostVM()" />
 <partial name="/Views/Home/_PostDeleteConfirmation.cshtml" />
@@ -236,105 +300,127 @@
         let loggedInUserId = @(loggedInUserIdServer.HasValue? loggedInUserIdServer.Value.ToString() : "null");
         var profileUserIdClient = @(profileUserId.ToString() ?? "null");
 
-        // Đặt toàn bộ code JavaScript vào đây
-        $(document).ready(function() {
-            function sendFriendRequest(status, senderId, receiverId) {
-                $.ajax({
-                    url: '/FriendRequest/FriendRequest',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        Status: status,
-                        SenderId: senderId,
-                        ReceiverId: receiverId
-                    }),
-                    success: function(response) {
-                        if (response.status === 1) {
-                            alert(response.mess);
-                            location.reload();
-                        } else {
-                            alert('Lỗi: ' + response.mess);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Lỗi AJAX cho friendrequest:', status, error, xhr.responseText);
-                        alert('Đã xảy ra lỗi khi gửi yêu cầu kết bạn.');
+        function showSwalToast(icon, title) {
+            Swal.fire({
+                toast: true,
+                icon: icon,
+                title: title,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000
+            });
+        }
+
+
+        function sendFriendRequest(status, senderId, receiverId) {
+            $.ajax({
+                url: '/FriendRequest/FriendRequest',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    Status: status,
+                    SenderId: senderId,
+                    ReceiverId: receiverId
+                }),
+                success: function(response) {
+                    if (response.status === 1) {
+                        showSwalToast('success', response.mess);
+                        location.reload();
+                    } else {
+                        showSwalToast('error', 'Lỗi: ' + response.mess);
                     }
-                });
+                },
+                error: function(xhr, status, error) {
+                    console.error('Lỗi AJAX cho friendrequest:', status, error, xhr.responseText);
+                    showSwalToast('error', 'Đã xảy ra lỗi khi gửi yêu cầu kết bạn.');
+                }
+            });
+        }
+
+        function sendFriendAnswer(status, statusId) {
+            $.ajax({
+                url: '/FriendRequest/FriendAnswer',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    ID: statusId,
+                    Status: status
+                }),
+                success: function(response) {
+                    if (response.status === 1) {
+                        showSwalToast('success', response.mess);
+                        location.reload();
+                    } else {
+                        showSwalToast('error', 'Lỗi: ' + response.mess);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Lỗi AJAX cho friendanswer:', status, error, xhr.responseText);
+                    showSwalToast('error', 'Đã xảy ra lỗi khi thực hiện hành động.');
+                }
+            });
+        }
+
+
+        function loadFriends(userId, pageNumber, pageSize, append = false) {
+            const modal = document.getElementById('all-friends-modal');
+            const contentWrapper = document.getElementById('modal-friends-content-wrapper');
+            const url = `/FriendRequest/GetFriendsListForModal?userId=${userId}&pageNumber=${pageNumber}&pageSize=${pageSize}`;
+
+            if (!append) {
+                const initialContent = '<div class="uk-text-center uk-margin-large-top text-gray-500">Đang tải...</div>';
+                contentWrapper.innerHTML = initialContent;
+                UIkit.modal(modal).show();
             }
 
-            function sendFriendAnswer(status, statusId) {
-                $.ajax({
-                    url: '/FriendRequest/FriendAnswer',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        ID: statusId,
-                        Status: status
-                    }),
-                    success: function(response) {
-                        if (response.status === 1) {
-                            alert(response.mess);
-                            location.reload();
-                        } else {
-                            alert('Lỗi: ' + response.mess);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Lỗi AJAX cho friendanswer:', status, error, xhr.responseText);
-                        alert('Đã xảy ra lỗi khi thực hiện hành động.');
-                    }
-                });
+            const loadMoreBtn = contentWrapper.querySelector('#loadMoreFriendsBtn');
+            if (append && loadMoreBtn) {
+                loadMoreBtn.disabled = true;
+                loadMoreBtn.querySelector('span').textContent = 'Đang tải...';
             }
 
-            // Event Listeners
-            $(document).on('click', '#sendRequestBtn', function() {
-                if (loggedInUserId === "null" || loggedInUserId === null) {
-                    alert('Bạn cần đăng nhập để thực hiện hành động này.');
-                    return;
-                }
-                const targetUser = $(this).data('profile-user-id');
-                sendFriendRequest(0, parseInt(loggedInUserId), parseInt(targetUser));
-            });
+            fetch(url)
+                .then(res => res.text())
+                .then(html => {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = html;
 
-            $(document).on('click', '#cancelRequestBtn', function() {
-                if (loggedInUserId === "null" || loggedInUserId === null) {
-                    alert('Bạn cần đăng nhập để thực hiện hành động này.');
-                    return;
-                }
-                const statusId = $(this).data('profile-status-id');
-                sendFriendAnswer(0, parseInt(statusId));
-            });
+                    const newItems = tempDiv.querySelector('#friends-list-items');
+                    const newLoadMoreSection = tempDiv.querySelector('.uk-flex.uk-flex-center');
+                    const newNoMorePostsSection = tempDiv.querySelector('.uk-flex.uk-flex-center.text-gray-500');
 
-            $(document).on('click', '#acceptRequestBtn', function() {
-                if (loggedInUserId === "null" || loggedInUserId === null) {
-                    alert('Bạn cần đăng nhập để thực hiện hành động này.');
-                    return;
-                }
-                const statusId = $(this).data('profile-status-id');
-                sendFriendAnswer(1, parseInt(statusId));
-            });
+                    if (append) {
+                        const currentListItems = contentWrapper.querySelector('#friends-list-items');
+                        const currentLoadMoreContainer = contentWrapper.querySelector('.uk-flex.uk-flex-center');
 
-            $(document).on('click', '#declineRequestBtn', function() {
-                if (loggedInUserId === "null" || loggedInUserId === null) {
-                    alert('Bạn cần đăng nhập để thực hiện hành động này.');
-                    return;
-                }
-                const statusId = $(this).data('profile-status-id');
-                sendFriendAnswer(0, parseInt(statusId));
-            });
+                        if (newItems && currentListItems) {
+                            while (newItems.firstChild) {
+                                currentListItems.appendChild(newItems.firstChild);
+                            }
+                        }
 
-            $(document).on('click', '#unfriendBtn', function() {
-                if (loggedInUserId === "null" || loggedInUserId === null) {
-                    alert('Bạn cần đăng nhập để thực hiện hành động này.');
-                    return;
-                }
-                const statusId = $(this).data('profile-status-id');
-                sendFriendAnswer(-1, parseInt(statusId));
-            });
-        });
+                        if (currentLoadMoreContainer && newLoadMoreSection) {
+                            currentLoadMoreContainer.replaceWith(newLoadMoreSection);
+                        } else if (currentLoadMoreContainer && newNoMorePostsSection) {
+                            currentLoadMoreContainer.replaceWith(newNoMorePostsSection);
+                        } else if (currentLoadMoreContainer) {
+                            currentLoadMoreContainer.remove();
+                        }
 
-        // Các hàm xử lý khác
+                    } else {
+                        contentWrapper.innerHTML = html;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading friends:', error);
+                    showSwalToast('error', 'Không thể tải danh sách bạn bè.');
+                    if (!append) {
+                        contentWrapper.innerHTML = '<p class="uk-text-center uk-text-danger uk-margin-large-top">Có lỗi xảy ra khi tải dữ liệu.</p>';
+                    }
+                });
+        }
+
+
         function createCommentHtml(comment) {
             let removeButtonHtml = '';
             if (loggedInUserId && loggedInUserId == comment.userId) {
@@ -362,29 +448,6 @@
             `;
         }
 
-        if (typeof connection !== 'undefined' && connection) {
-            connection.on("ReceiveNewComment", (postId, newComment) => {
-                console.log("SignalR.js: Received a new comment.", newComment);
-
-                Toastify({
-                    text: "Bình luận thành công!",
-                    duration: 3000,
-                    backgroundColor: "#4CAF50",
-                    gravity: "top",
-                    position: "center",
-                }).showToast();
-
-                const postElement = document.getElementById(`post-${postId}`);
-                if (postElement) {
-                    const commentsList = postElement.querySelector('.comments-list');
-                    if (commentsList) {
-                        const newCommentHtml = createCommentHtml(newComment);
-                        commentsList.insertAdjacentHTML('afterbegin', newCommentHtml);
-                    }
-                }
-            });
-        }
-
         function openPostDeleteConfirmation(postId) {
             UIkit.dropdown('.post-options-dropdown')?.hide?.();
             document.getElementById('deleteConfirmationPostId').value = postId;
@@ -397,334 +460,317 @@
             UIkit.modal('#editPostModal').show();
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const postsContainer = document.getElementById('posts-container');
-            const loadMoreBtn = document.getElementById('loadMorePostsBtn');
-            let isFetching = false;
 
-            if (postsContainer) {
-                postsContainer.addEventListener('click', function (event) {
-                    const editButton = event.target.closest('a[data-edit-post-id]');
-                    if (editButton) {
-                        event.preventDefault();
-                        const postId = editButton.getAttribute('data-edit-post-id');
-                        window.location.href = `/Home/Index?editId=${postId}`;
-                    }
-                });
+        $(document).ready(function() {
 
-                postsContainer.addEventListener('submit', function (e) {
-                    if (e.target.classList.contains('add-comment-form')) {
-                        e.preventDefault();
-                        const form = e.target;
-                        const postId = form.getAttribute('data-post-id');
-                        const textarea = form.querySelector('textarea[name="content"]');
-                        const content = textarea.value.trim();
-
-                        if (!content) {
-                            Toastify({
-                                text: "Nội dung bình luận không được để trống.",
-                                duration: 3000,
-                                backgroundColor: "#f44336",
-                                gravity: "top",
-                                position: "center",
-                            }).showToast();
-                            return;
-                        }
-
-                        if (connection && connection.state === signalR.HubConnectionState.Connected) {
-                            connection.invoke("AddComment", parseInt(postId), content)
-                                .then(() => {
-                                    console.log("Comment request sent via SignalR.");
-                                    textarea.value = '';
-                                })
-                                .catch(err => {
-                                    console.error("Failed to add comment via SignalR: " + err);
-                                    Toastify({
-                                        text: "Đã xảy ra lỗi khi gửi yêu cầu bình luận.",
-                                        duration: 3000,
-                                        backgroundColor: "#f44336",
-                                        gravity: "top",
-                                        position: "center",
-                                    }).showToast();
-                                });
-                        } else {
-                            console.error("SignalR connection is not established.");
-                            Toastify({
-                                text: "Kết nối SignalR không khả dụng. Vui lòng thử lại sau.",
-                                duration: 3000,
-                                backgroundColor: "#f44336",
-                                gravity: "top",
-                                position: "center",
-                            }).showToast();
-                        }
-                    }
-
-                    if (e.target.classList.contains('remove-comment-form')) {
-                    e.preventDefault();
-
-                    const form = e.target;
-                    const commentId = form.getAttribute('data-comment-id');
-                    const actionUrl = '/Comment/RemovePostComment?CommentId=' + commentId;
-
-                    fetch(actionUrl, { method: 'DELETE' })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.status === 1) {
-                                Toastify({
-                                    text: data.message || "Xóa bình luận thành công.",
-                                    duration: 3000,
-                                    backgroundColor: "#4CAF50",
-                                    gravity: "top",
-                                    position: "center"
-                                }).showToast();
-
-                                form.closest('.flex.items-start.gap-3.relative')?.remove();
-                            } else {
-                                Toastify({
-                                    text: data.message || "Không thể xóa bình luận.",
-                                    duration: 3000,
-                                    backgroundColor: "#f44336",
-                                    gravity: "top",
-                                    position: "center"
-                                }).showToast();
-                            }
-                        })
-                        .catch(error => {
-                            console.error("Lỗi:", error);
-                            Toastify({
-                                text: "Đã xảy ra lỗi khi gửi yêu cầu xóa bình luận.",
-                                duration: 3000,
-                                backgroundColor: "#f44336",
-                                gravity: "top",
-                                position: "center"
-                            }).showToast();
-                        });
-                }
-            });
-                postsContainer.addEventListener('click', function (e) {
-                const likeButton = e.target.closest('.like-button');
-                if (!likeButton) return;
-
-                const postId = likeButton.getAttribute('data-post-id');
-
-                if (loggedInUserId === null || isNaN(parseInt(loggedInUserId))) {
-                    Toastify({
-                        text: "Bạn cần đăng nhập để thực hiện hành động này.",
-                        duration: 3000,
-                        backgroundColor: "#f44336",
-                        gravity: "top",
-                        position: "center",
-                    }).showToast();
+            $(document).on('click', '#sendRequestBtn', function() {
+                if (loggedInUserId === "null" || loggedInUserId === null) {
+                    Swal.fire({ title: 'Cảnh báo', text: 'Bạn cần đăng nhập để thực hiện hành động này.', icon: 'warning' });
                     return;
                 }
-
-                const isCurrentlyLiked = likeButton.classList.contains('text-red-500');
-
-                let url = '';
-                let successMessage = '';
-                let errorMessage = '';
-                let newIconName = '';
-                let newClassListAction = '';
-
-                if (isCurrentlyLiked) {
-                    url = '/Like/Unlike';
-                    successMessage = "Đã bỏ thích bài viết!";
-                    errorMessage = "Không thể bỏ thích bài viết.";
-                    newIconName = 'heart-outline';
-                    newClassListAction = 'remove';
-                } else {
-                    url = '/Like/LikePost';
-                    successMessage = "Đã thích bài viết!";
-                    errorMessage = "Không thể thích bài viết.";
-                    newIconName = 'heart';
-                    newClassListAction = 'add';
+                const targetUser = $(this).data('profile-user-id');
+                sendFriendRequest(0, parseInt(loggedInUserId), parseInt(targetUser));
+            });
+            $(document).on('click', '#cancelRequestBtn', function() {
+                if (loggedInUserId === "null" || loggedInUserId === null) {
+                    Swal.fire({ title: 'Cảnh báo', text: 'Bạn cần đăng nhập để thực hiện hành động này.', icon: 'warning' });
+                    return;
                 }
+                const statusId = $(this).data('profile-status-id');
+                sendFriendAnswer(0, parseInt(statusId));
+            });
+            $(document).on('click', '#acceptRequestBtn', function() {
+                if (loggedInUserId === "null" || loggedInUserId === null) {
+                    Swal.fire({ title: 'Cảnh báo', text: 'Bạn cần đăng nhập để thực hiện hành động này.', icon: 'warning' });
+                    return;
+                }
+                const statusId = $(this).data('profile-status-id');
+                sendFriendAnswer(1, parseInt(statusId));
+            });
+            $(document).on('click', '#declineRequestBtn', function() {
+                if (loggedInUserId === "null" || loggedInUserId === null) {
+                    Swal.fire({ title: 'Cảnh báo', text: 'Bạn cần đăng nhập để thực hiện hành động này.', icon: 'warning' });
+                    return;
+                }
+                const statusId = $(this).data('profile-status-id');
+                sendFriendAnswer(0, parseInt(statusId));
+            });
+            $(document).on('click', '#unfriendBtn', function() {
+                if (loggedInUserId === "null" || loggedInUserId === null) {
+                    Swal.fire({ title: 'Cảnh báo', text: 'Bạn cần đăng nhập để thực hiện hành động này.', icon: 'warning' });
+                    return;
+                }
+                Swal.fire({
+                    title: 'Xác nhận',
+                    text: "Bạn có chắc chắn muốn hủy kết bạn?",
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const statusId = $(this).data('profile-status-id');
+                        sendFriendAnswer(-1, parseInt(statusId));
+                    }
+                });
+            });
 
-                const formdata = new FormData();
-                formdata.append("postId", postId);
 
-                fetch(url, { method: 'POST', body: formdata })
-                    .then(response => {
-                        if (!response.ok) {
-                            if (response.status === 401) {
-                                Toastify({
-                                    text: "Bạn cần đăng nhập để thực hiện hành động này.",
-                                    duration: 3000,
-                                    backgroundColor: "#f44336",
-                                    gravity: "top",
-                                    position: "center",
-                                }).showToast();
-                                return Promise.reject("Unauthorized");
-                            }
-                            return response.json().then(err => Promise.reject(err.message || 'Lỗi server không xác định'));
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.status === 1) {
-                            Toastify({
-                                text: successMessage,
-                                duration: 3000,
-                                backgroundColor: "#4CAF50",
-                                gravity: "top",
-                                position: "center",
-                            }).showToast();
+            // --- LISTENERS CHO MODAL BẠN BÈ ---
+            $(document).on('click', '#viewAllFriendsBtn', function() {
+                const profileId = $(this).data('profile-id');
+                const pageSize = $(this).data('initial-page-size') || 10;
 
-                            // Tìm phần tử hiển thị số like: ưu tiên <span> trong button, fallback .like-count
-                            const likeCountElement = likeButton.querySelector('span')
-                                || likeButton.parentElement?.querySelector('.like-count')
-                                || likeButton.nextElementSibling;
+                loadFriends(profileId, 1, pageSize, false);
+            });
 
-                            // đảm bảo biến luôn được khai báo trong phạm vi
-                            let currentLikes = 0;
-                            if (likeCountElement) {
-                                const parsed = parseInt(likeCountElement.textContent);
-                                currentLikes = isNaN(parsed) ? 0 : parsed;
-                            }
+            $(document).on('click', '#modal-friends-content-wrapper #loadMoreFriendsBtn', function() {
+                const loadMoreBtn = $(this);
+                const nextPage = parseInt(loadMoreBtn.attr('data-next-page'));
+                const pageSize = parseInt(loadMoreBtn.attr('data-page-size'));
+                const profileId = parseInt(loadMoreBtn.attr('data-target-user-id'));
 
-                            // cập nhật trạng thái
-                            if (newClassListAction === 'add') {
-                                likeButton.classList.add('text-red-500', 'bg-red-100');
-                                currentLikes++;
-                            } else {
-                                likeButton.classList.remove('text-red-500', 'bg-red-100');
-                                currentLikes = Math.max(0, currentLikes - 1);
-                            }
+                if (nextPage) {
+                    loadFriends(profileId, nextPage, pageSize, true);
+                }
+            });
 
-                            const iconEl = likeButton.querySelector('ion-icon');
-                            if (iconEl) iconEl.setAttribute('name', newIconName);
 
-                            if (likeCountElement) {
-                                likeCountElement.textContent = currentLikes;
-                            } else {
-                                console.warn('Không tìm thấy phần tử hiển thị số like cho postId:', postId);
-                            }
+            // --- LISTENERS CHO BÀI VIẾT, COMMENT, LIKE, DELETE ---
+            document.addEventListener('DOMContentLoaded', function () {
+                const postsContainer = document.getElementById('posts-container');
+                const loadMoreBtn = document.getElementById('loadMorePostsBtn');
+                let isFetching = false;
 
-                        } else {
-                            Toastify({
-                                text: data.message || errorMessage,
-                                duration: 3000,
-                                backgroundColor: "#f44336",
-                                gravity: "top",
-                                position: "center",
-                            }).showToast();
-                        }
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        if (err !== "Unauthorized") {
-                            Toastify({
-                                text: err || errorMessage,
-                                duration: 3000,
-                                backgroundColor: "#f44336",
-                                gravity: "top",
-                                position: "center",
-                            }).showToast();
+                if (postsContainer) {
+                    postsContainer.addEventListener('click', function (event) {
+                        const editButton = event.target.closest('a[data-edit-post-id]');
+                        if (editButton) {
+                            event.preventDefault();
+                            const postId = editButton.getAttribute('data-edit-post-id');
+                            window.location.href = `/Home/Index?editId=${postId}`;
                         }
                     });
-            });
-        }
 
-            if (loadMoreBtn && postsContainer) {
-                window.addEventListener('scroll', function () {
-                    const isAtBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight;
-                    if (isAtBottom && !isFetching) {
-                        isFetching = true;
-                        const nextPage = parseInt(loadMoreBtn.getAttribute('data-next-page'));
-                        const pageSize = parseInt(loadMoreBtn.getAttribute('data-page-size'));
+                    postsContainer.addEventListener('submit', function (e) {
+                        if (e.target.classList.contains('add-comment-form')) {
+                            e.preventDefault();
+                            const form = e.target;
+                            const postId = form.getAttribute('data-post-id');
+                            const textarea = form.querySelector('textarea[name="content"]');
+                            const content = textarea.value.trim();
+                            if (!content) {
+                                showSwalToast('warning', "Nội dung bình luận không được để trống.");
+                                return;
+                            }
 
-                        if (isNaN(nextPage) || nextPage < 1) {
-                            console.warn('Giá trị nextPage không hợp lệ:', nextPage);
-                            isFetching = false;
+                            if (connection && connection.state === signalR.HubConnectionState.Connected) {
+                                connection.invoke("AddComment", parseInt(postId), content)
+                                    .then(() => {
+                                        console.log("Comment request sent via SignalR.");
+                                        textarea.value = '';
+                                    })
+                                    .catch(err => {
+                                        console.error("Failed to add comment via SignalR: " + err);
+                                        showSwalToast('error', "Đã xảy ra lỗi khi gửi yêu cầu bình luận.");
+                                    });
+                            } else {
+                                console.error("SignalR connection is not established.");
+                                showSwalToast('error', "Kết nối SignalR không khả dụng. Vui lòng thử lại sau.");
+                            }
+                        }
+
+                        if (e.target.classList.contains('remove-comment-form')) {
+                            e.preventDefault();
+                            const form = e.target;
+                            const commentId = form.getAttribute('data-comment-id');
+                            const actionUrl = '/Comment/RemovePostComment?CommentId=' + commentId;
+                            fetch(actionUrl, { method: 'DELETE' })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.status === 1) {
+                                    showSwalToast('success', data.message || "Xóa bình luận thành công.");
+                                    form.closest('.flex.items-start.gap-3.relative')?.remove();
+                                    location.reload();
+                                } else {
+                                    showSwalToast('error', data.message || "Không thể xóa bình luận.");
+                                }
+                            })
+                            .catch(error => {
+                                console.error("Lỗi:", error);
+                                showSwalToast('error', "Đã xảy ra lỗi khi gửi yêu cầu xóa bình luận.");
+                            });
+                        }
+                    });
+
+                    postsContainer.addEventListener('click', function (e) {
+                        const likeButton = e.target.closest('.like-button');
+                        if (!likeButton) return;
+
+                        const postId = likeButton.getAttribute('data-post-id');
+
+                        if (loggedInUserId === null || isNaN(parseInt(loggedInUserId))) {
+                            showSwalToast('warning', "Bạn cần đăng nhập để thực hiện hành động này.");
                             return;
                         }
-                        const hasNextPage = loadMoreBtn.getAttribute('data-has-next-page') === 'true';
 
-                        if (!hasNextPage) {
-                            const noMorePostsDiv = document.createElement('div');
-                            noMorePostsDiv.className = "uk-flex uk-flex-center text-gray-500 mt-4";
-                            noMorePostsDiv.innerHTML = "<span>Đã hết bài viết.</span>";
-                            loadMoreBtn.parentNode.replaceChild(noMorePostsDiv, loadMoreBtn);
-                            return;
+                        const isCurrentlyLiked = likeButton.classList.contains('text-red-500');
+
+                        let url = '';
+                        let successMessage = '';
+                        let errorMessage = '';
+                        let newIconName = '';
+                        let newClassListAction = '';
+
+                        if (isCurrentlyLiked) {
+                            url = '/Like/Unlike';
+                            successMessage = "Đã bỏ thích bài viết!";
+                            errorMessage = "Không thể bỏ thích bài viết.";
+                            newIconName = 'heart-outline';
+                            newClassListAction = 'remove';
+                        } else {
+                            url = '/Like/LikePost';
+                            successMessage = "Đã thích bài viết!";
+                            errorMessage = "Không thể thích bài viết.";
+                            newIconName = 'heart';
+                            newClassListAction = 'add';
                         }
-                        loadMoreBtn.style.display = 'none';
-                        fetch(`/Home/GetMorePosts?pageNumber=${nextPage}&pageSize=${pageSize}&profileId=${profileUserIdClient}`)
-                            .then(res => res.text())
-                            .then(html => {
-                                if (html.trim() === "") {
-                                    const noMorePostsDiv = document.createElement('div');
-                                    noMorePostsDiv.className = "uk-flex uk-flex-center text-gray-500 mt-4";
-                                    noMorePostsDiv.innerHTML = "<span>Đã hết bài viết.</span>";
-                                    if (loadMoreBtn.parentNode) {
-                                        loadMoreBtn.parentNode.replaceChild(noMorePostsDiv, loadMoreBtn);
+
+                        const formdata = new FormData();
+                        formdata.append("postId", postId);
+
+                        fetch(url, { method: 'POST', body: formdata })
+                            .then(response => {
+                                if (!response.ok) {
+                                    if (response.status === 401) {
+                                        showSwalToast('error', "Bạn cần đăng nhập để thực hiện hành động này.");
+                                        return Promise.reject("Unauthorized");
+                                    }
+                                    return response.json().then(err => Promise.reject(err.message || 'Lỗi server không xác định'));
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                if (data.status === 1) {
+                                    const likeCountElement = likeButton.querySelector('span')
+                                        || likeButton.parentElement?.querySelector('.like-count')
+                                        || likeButton.nextElementSibling;
+
+                                    let currentLikes = 0;
+                                    if (likeCountElement) {
+                                        const parsed = parseInt(likeCountElement.textContent);
+                                        currentLikes = isNaN(parsed) ? 0 : parsed;
+                                    }
+
+                                    if (newClassListAction === 'add') {
+                                        likeButton.classList.add('text-red-500', 'bg-red-100');
+                                        currentLikes++;
+                                    } else {
+                                        likeButton.classList.remove('text-red-500', 'bg-red-100');
+                                        currentLikes = Math.max(0, currentLikes - 1);
+                                    }
+
+                                    const iconEl = likeButton.querySelector('ion-icon');
+                                    if (iconEl) iconEl.setAttribute('name', newIconName);
+
+                                    if (likeCountElement) {
+                                        likeCountElement.textContent = currentLikes;
+                                    } else {
+                                        console.warn('Không tìm thấy phần tử hiển thị số like cho postId:', postId);
                                     }
                                 } else {
-                                    postsContainer.insertAdjacentHTML('beforeend', html);
-                                    loadMoreBtn.setAttribute('data-next-page', nextPage + 1);
-                                    loadMoreBtn.style.display = 'flex';
+                                    showSwalToast('error', data.message || errorMessage);
                                 }
                             })
                             .catch(err => {
                                 console.error(err);
-                                loadMoreBtn.style.display = 'flex';
-                                Toastify({
-                                    text: "Có lỗi xảy ra khi tải thêm bài viết.",
-                                    duration: 3000,
-                                    backgroundColor: "#f44336",
-                                    gravity: "top",
-                                    position: "center",
-                                }).showToast();
-                            })
-                            .finally(() => {
-                                isFetching = false;
+                                if (err !== "Unauthorized") {
+                                    showSwalToast('error', err || errorMessage);
+                                }
                             });
-                    }
-                });
-            }
-
-            document.getElementById("confirmDeleteBtn").addEventListener("click", function () {
-                const postId = document.getElementById("deleteConfirmationPostId").value;
-                if (!postId) return;
-                fetch(`/Home/DeletePost?postId=${postId}`, {
-                    method: "DELETE"
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.status === 1) {
-                            Toastify({
-                                text: data.message || "Xóa bài viết thành công.",
-                                duration: 3000,
-                                backgroundColor: "#4CAF50",
-                                gravity: "top",
-                                position: "center",
-                            }).showToast();
-                            UIkit.modal('#postDeleteDialog').hide();
-                            document.querySelector(`.post-container[data-post-id="${postId}"]`)?.remove();
-                        } else {
-                            Toastify({
-                                text: data.message || "Không thể xóa bài viết.",
-                                duration: 3000,
-                                backgroundColor: "#f44336",
-                                gravity: "top",
-                                position: "center",
-                            }).showToast();
-                        }
-                    })
-                    .catch(error => {
-                        console.error("Lỗi:", error);
-                        Toastify({
-                            text: "Có lỗi xảy ra khi xóa bài viết.",
-                            duration: 3000,
-                            backgroundColor: "#f44336",
-                            gravity: "top",
-                            position: "center",
-                        }).showToast();
                     });
-            });
-        });
+                }
 
-        if (window.history && window.history.replaceState) {
-            window.history.replaceState(null, document.title, window.location.href);
-        }
+                if (loadMoreBtn && postsContainer) {
+                    window.addEventListener('scroll', function () {
+                        const isAtBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight;
+                        if (isAtBottom && !isFetching) {
+
+                            isFetching = true;
+                            const nextPage = parseInt(loadMoreBtn.getAttribute('data-next-page'));
+                            const pageSize = parseInt(loadMoreBtn.getAttribute('data-page-size'));
+
+                            if (isNaN(nextPage) || nextPage < 1) {
+                                console.warn('Giá trị nextPage không hợp lệ:', nextPage);
+                                isFetching = false;
+                                return;
+                            }
+                            const hasNextPage = loadMoreBtn.getAttribute('data-has-next-page') === 'true';
+
+                            if (!hasNextPage) {
+                                const noMorePostsDiv = document.createElement('div');
+                                noMorePostsDiv.className = "uk-flex uk-flex-center text-gray-500 mt-4";
+                                noMorePostsDiv.innerHTML = "<span>Đã hết bài viết.</span>";
+                                loadMoreBtn.parentNode.replaceChild(noMorePostsDiv, loadMoreBtn);
+                                return;
+                            }
+                            loadMoreBtn.style.display = 'none';
+                            fetch(`/Home/GetMorePosts?pageNumber=${nextPage}&pageSize=${pageSize}&profileId=${profileUserIdClient}`)
+                                .then(res => res.text())
+                                .then(html => {
+                                    if (html.trim() === "") {
+                                        const noMorePostsDiv = document.createElement('div');
+                                        noMorePostsDiv.className = "uk-flex uk-flex-center text-gray-500 mt-4";
+                                        noMorePostsDiv.innerHTML = "<span>Đã hết bài viết.</span>";
+                                        if (loadMoreBtn.parentNode) {
+                                            loadMoreBtn.parentNode.replaceChild(noMorePostsDiv, loadMoreBtn);
+                                        }
+                                    } else {
+                                        postsContainer.insertAdjacentHTML('beforeend', html);
+                                        loadMoreBtn.setAttribute('data-next-page', nextPage + 1);
+                                        loadMoreBtn.style.display = 'flex';
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error(err);
+                                    loadMoreBtn.style.display = 'flex';
+                                    showSwalToast('error', "Có lỗi xảy ra khi tải thêm bài viết.");
+                                })
+                                .finally(() => {
+                                    isFetching = false;
+                                });
+                        }
+                    });
+                }
+
+                document.getElementById("confirmDeleteBtn").addEventListener("click", function () {
+                    const postId = document.getElementById("deleteConfirmationPostId").value;
+                    if (!postId) return;
+                    fetch(`/Home/DeletePost?postId=${postId}`, {
+                        method: "DELETE"
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.status === 1) {
+                                showSwalToast('success', data.message || "Xóa bài viết thành công.");
+                                UIkit.modal('#postDeleteDialog').hide();
+                                document.querySelector(`.post-container[data-post-id="${postId}"]`)?.remove();
+                            } else {
+                                showSwalToast('error', data.message || "Không thể xóa bài viết.");
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Lỗi:", error);
+                            showSwalToast('error', "Có lỗi xảy ra khi xóa bài viết.");
+                        });
+                });
+            });
+
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, document.title, window.location.href);
+            }
+        });
     </script>
 }

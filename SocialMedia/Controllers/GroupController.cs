@@ -123,7 +123,14 @@ namespace SocialMedia.Controllers
 
                 if (apiResponse != null && apiResponse.Status == 1)
                 {
-                    // Pass the data to the view
+                    int loggedInUserId = 0;
+                    var loggedInUserIdCookie = Request.Cookies["LoggedInUserId"];
+                    if (!string.IsNullOrEmpty(loggedInUserIdCookie) && int.TryParse(loggedInUserIdCookie, out int parsedUserId))
+                    {
+                        loggedInUserId = parsedUserId;
+                    }
+
+                    ViewBag.LoggedInUserId = loggedInUserId;
                     return View(apiResponse.Data);
                 }
                 else

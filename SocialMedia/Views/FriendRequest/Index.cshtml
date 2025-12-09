@@ -23,8 +23,8 @@
                     <div class="flex md:items-center space-x-4 p-4 rounded-md box" id="friend-item-@friend.StatusID">
                         <div class="w-14 h-14 flex-shrink-0 rounded-lg relative">
                             <img src="@(string.IsNullOrEmpty(friend.ProfilePictureUrl) ? Url.Content("~/images/avatar/user.png") : friend.ProfilePictureUrl)"
-                                 class="absolute w-full h-full inset-0 rounded-md object-cover shadow-sm"
-                                 alt="@(friend.FullName ?? "Người dùng")" /> @* Thêm alt tag *@@* Thêm alt tag *@@* Thêm alt tag *@
+                                                  class="absolute w-full h-full inset-0 rounded-md object-cover shadow-sm"
+                                                  alt="@(friend.FullName ?? "Người dùng")" /> @* Thêm alt tag *@@* Thêm alt tag *@@* Thêm alt tag *@
                         </div>
                         <div class="flex-1">
                             <a href="/User/Details?userId=@friend.UserID" class="text-base font-semibold capitalize text-black">@friend.FullName</a>
@@ -66,8 +66,8 @@
                     <div class="flex md:items-center space-x-4 p-4 rounded-md box" id="request-item-@request.StatusID">
                         <div class="w-14 h-14 flex-shrink-0 rounded-lg relative">
                             <img src="@(string.IsNullOrEmpty(request.ProfilePictureUrl) ? Url.Content("~/images/avatar/user.png") : request.ProfilePictureUrl)"
-                                 class="absolute w-full h-full inset-0 rounded-md object-cover shadow-sm"
-                                 alt="@(request.FullName ?? "Người dùng")" /> @* Thêm alt tag *@@* Thêm alt tag *@@* Thêm alt tag *@
+                                                  class="absolute w-full h-full inset-0 rounded-md object-cover shadow-sm"
+                                                  alt="@(request.FullName ?? "Người dùng")" /> @* Thêm alt tag *@@* Thêm alt tag *@@* Thêm alt tag *@
                         </div>
                         <div class="flex-1">
                             <a href="/User/Details?userId =@request.UserID" class="text-base font-semibold capitalize text-black">@request.FullName</a>
@@ -80,7 +80,7 @@
                             </button>
                         </form>
                         <form class="ajax-friend-action-form" data-success-action="hide" data-item-id="@request.StatusID"
-                              action="/FriendRequest/FriendAnswer" method="post">
+                                             action="/FriendRequest/FriendAnswer" method="post">
                             @* Đã đổi href thành action cho form submit *@
                             <input type="hidden" name="ID" value="@request.StatusID" />
                             <input type="hidden" name="Status" value="@((int)1)" />
@@ -119,14 +119,14 @@
                     <div class="flex md:items-center space-x-4 p-4 rounded-md box" id="request-item-@request.StatusID">
                         <div class="w-14 h-14 flex-shrink-0 rounded-lg relative">
                             <img src="@(string.IsNullOrEmpty(request.ProfilePictureUrl) ? Url.Content("~/images/avatar/user.png") : request.ProfilePictureUrl)"
-                                 class="absolute w-full h-full inset-0 rounded-md object-cover shadow-sm"
-                                 alt="@(request.FullName ?? "Người dùng")" /> @* Thêm alt tag *@@* Thêm alt tag *@@* Thêm alt tag *@
+                                                  class="absolute w-full h-full inset-0 rounded-md object-cover shadow-sm"
+                                                  alt="@(request.FullName ?? "Người dùng")" /> @* Thêm alt tag *@@* Thêm alt tag *@@* Thêm alt tag *@
                         </div>
                         <div class="flex-1">
                             <a href="/User/Details?userId =@request.UserID" class="text-base font-semibold capitalize text-black">@request.FullName</a>
                         </div>
                         <form class="ajax-friend-action-form" data-success-action="hide" data-item-id="@request.StatusID"
-                              asp-controller="FriendRequest" asp-action="FriendAnswer" method="post">
+                                             asp-controller="FriendRequest" asp-action="FriendAnswer" method="post">
                             <input type="hidden" name="ID" value="@request.StatusID" />
                             <input type="hidden" name="Status" value="@((int)-1)" />
                             <button type="submit" class="button text-primary gap-1 max-md:hidden">
@@ -151,6 +151,10 @@
 
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    @* Thêm SweetAlert2 CDN *@
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
     <script>
         $(document).ready(function () {
             // Khởi tạo: Lưu trữ text ban đầu của nút để khôi phục sau khi xử lý
@@ -193,12 +197,39 @@
                                     $(this).remove();
                                     // Sau khi xóa thành công, cần cập nhật số lượng TotalCount và LoadedCount trong các nút Load More
                                     updateLoadMoreCounts(successAction === 'remove' ? 'myFriends' : 'receivedRequests');
+
+                                    // Hiển thị thông báo thành công bằng Swal.fire
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Thành công!',
+                                        text: response.mess || 'Thao tác đã được thực hiện thành công.',
+                                        toast: true,
+                                        position: 'top-end',
+                                        showConfirmButton: false,
+                                        timer: 3000
+                                    });
+                                });
+                            } else {
+                                // Trong trường hợp request thành công nhưng không có hành động remove/hide
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Thành công!',
+                                    text: response.mess || 'Thao tác đã được thực hiện thành công.',
+                                    toast: true,
+                                    position: 'top-end',
+                                    showConfirmButton: false,
+                                    timer: 3000
                                 });
                             }
-                            console.log("Thành công:", response.mess);
-                            // Có thể thêm thông báo thành công cho người dùng ở đây
+
                         } else {
-                            alert('Lỗi: ' + response.mess);
+                            // Hiển thị thông báo thất bại bằng Swal.fire thay vì alert
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Thất bại!',
+                                text: 'Lỗi: ' + (response.mess || 'Lỗi không xác định.'),
+                                confirmButtonText: 'Đóng'
+                            });
                             console.error("Lỗi API:", response.mess);
                         }
                     },
@@ -215,7 +246,13 @@
                         } catch (e) {
                             // Bỏ qua lỗi parsing nếu response không phải JSON
                         }
-                        alert(errorMessage);
+                        // Hiển thị thông báo lỗi bằng Swal.fire thay vì alert
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi Hệ thống!',
+                            text: errorMessage,
+                            confirmButtonText: 'Đóng'
+                        });
                     },
                     complete: function() {
                         // Đảm bảo nút được bật lại sau khi request hoàn tất và khôi phục text gốc
@@ -246,7 +283,7 @@
         });
 
         // =========================================================================================
-        // LOGIC TẢI THÊM BẰNG FETCH API (không dùng jQuery)
+        // LOGIC TẢI THÊM BẰNG FETCH API (không dùng jQuery) - Cập nhật Swal.fire
         // =========================================================================================
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -296,8 +333,15 @@
                             try {
                                 const errorResponse = await response.json();
                                 if (errorResponse && errorResponse.status === 0 && errorResponse.message === "Chưa xác thực") {
-                                    alert("Bạn chưa xác thực. Vui lòng đăng nhập lại.");
-                                    window.location.href = "/Account/Login";
+                                    // Thay alert bằng Swal.fire và chuyển hướng sau khi người dùng đóng/xác nhận
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: 'Lỗi xác thực',
+                                        text: "Bạn chưa xác thực. Vui lòng đăng nhập lại.",
+                                        confirmButtonText: 'Đăng nhập'
+                                    }).then((result) => {
+                                        window.location.href = "/Account/Login";
+                                    });
                                     return;
                                 }
                                 errorMessage = errorResponse.message || 'Lỗi không xác định';
@@ -335,7 +379,13 @@
 
                     } catch (error) {
                         console.error('Lỗi khi tải thêm mục:', error);
-                        alert(`Không thể tải thêm. Vui lòng thử lại. Lỗi: ${error.message}`);
+                        // Thay alert bằng Swal.fire
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Tải thêm thất bại',
+                            text: `Không thể tải thêm. Vui lòng thử lại. Lỗi: ${error.message}`,
+                            confirmButtonText: 'Đóng'
+                        });
                         this.disabled = false;
                         this.textContent = originalText;
                     }

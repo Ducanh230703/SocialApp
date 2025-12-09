@@ -8,8 +8,8 @@
 
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Circle</title>
-    <link href="~/images/favicon.png" rel="icon" type="image/png" />
+    <title>@ViewData["Title"] - V-Social</title>
+    <link href="~/images/logo.png" rel="icon" type="image/png" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/style.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/tailwind.css" asp-append-version="true" />
@@ -47,9 +47,18 @@
 
         <div id="chatBoxesContainer">
         </div>
-
         <div id="videoCallModal" uk-modal>
-            <div class="uk-modal-dialog uk-modal-body uk-margin-auto-vertical video-call-modal-content">
+            <div id="videoCallDialog" class="uk-modal-dialog uk-modal-body uk-margin-auto-vertical video-call-modal-content">
+
+                <div class="call-size-controls absolute top-2 right-2">
+                    <button id="minimizeCallButton" class="uk-button uk-button-small uk-button-default uk-margin-small-right" title="Thu nhỏ khung">
+                        <ion-icon name="remove-sharp"></ion-icon>
+                    </button>
+                    <button id="maximizeCallButton" class="uk-button uk-button-small uk-button-default" title="Phóng to khung" style="display: none;">
+                        <ion-icon name="scan-sharp"></ion-icon>
+                    </button>
+                </div>
+
                 <h2 class="uk-modal-title uk-text-center"></h2>
                 <div class="video-streams-container">
                     <video id="localVideo" autoplay muted playsinline></video>
@@ -60,29 +69,40 @@
                 <div id="incomingCallModal" class="uk-text-center uk-margin-top">
                     <div id="incoming-call-actions" style="display: none;">
                         <button id="acceptCallButton" class="uk-button uk-button-primary uk-button-large uk-margin-small-right">
-                            <span uk-icon="icon: check"></span> Trả lời
+                            <ion-icon name="call-sharp"></ion-icon> Trả lời
                         </button>
                         <button id="rejectCallButton" class="uk-button uk-button-danger uk-button-large">
-                            <span uk-icon="icon: ban"></span> Từ chối
+                            <ion-icon name="call-outline" style="transform: rotate(135deg);"></ion-icon> Từ chối
                         </button>
                     </div>
                 </div>
 
                 <div class="uk-flex uk-flex-center uk-margin-top call-controls">
-                    <button id="toggleAudioBtn" class="uk-button uk-button-default uk-button-large uk-margin-small-right" title="Tắt/Bật Mic">
-                        <span uk-icon="icon: mic"></span>
+                    <button id="toggleAudioBtn"
+                            class="uk-button uk-button-primary uk-button-large uk-margin-small-right active"
+                            title="Tắt/Bật Mic"
+                            data-is-active="true"
+                            data-active-icon="mic-sharp"
+                            data-inactive-icon="mic-off-sharp">
+                        <ion-icon name="mic-sharp"></ion-icon>
                     </button>
-                    <button id="toggleVideoBtn" class="uk-button uk-button-default uk-button-large uk-margin-small-right" title="Tắt/Bật Camera">
-                        <span uk-icon="icon: video-camera"></span>
+                    <button id="toggleVideoBtn"
+                            class="uk-button uk-button-primary uk-button-large uk-margin-small-right active"
+                            title="Tắt/Bật Camera"
+                            data-is-active="true"
+                            data-active-icon="videocam-sharp"
+                            data-inactive-icon="videocam-off-sharp">
+                        <ion-icon name="videocam-sharp"></ion-icon>
                     </button>
+
                     <button id="endCallButton" class="uk-button uk-button-danger uk-button-large" title="Kết thúc cuộc gọi">
-                        <span uk-icon="icon: close"></span> Kết thúc
+                        <ion-icon name="call-end-sharp"></ion-icon> Kết thúc
                     </button>
                 </div>
             </div>
         </div>
     }
-
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/uikit@3.16.5/dist/js/uikit.min.js"></script>
